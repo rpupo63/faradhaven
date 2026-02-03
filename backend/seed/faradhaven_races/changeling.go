@@ -1,0 +1,31 @@
+package faradhaven_races
+
+// Changeling returns the Changeling race seed
+func Changeling() FaradhavenRaceSeed {
+	return FaradhavenRaceSeed{
+		Name:         "Changeling",
+		PhotoURL:     "https://photos-for-apps.s3.us-east-2.amazonaws.com/changeling.jpg",
+		Description:  "With ever-changing appearances, changelings reside in many societies undetected. Each changeling can supernaturally adopt any face they like. For some changelings, a new face may reveal an aspect of their soul.\n\nThe first changelings in the multiverse appeared in the Feywild, and the wondrous, mutable essence of that plane lingers in changelings today—even in those who have never set foot in the fey realm.\n\nIn their true form, changelings appear faded, their features almost devoid of detail. It is rare to see one in that form, for a typical changeling alters their shape the way others might change clothes. However, many changelings develop identities with more depth, crafting a persona complete with history and beliefs to go with each shape. A changeling adventurer might have personas for many situations, including negotiation, investigation, and combat.\n\nMultiple changelings can share a persona. Personas can even pass down through a family, allowing a younger changeling to take advantage of contacts established by the persona's previous users.",
+		CreatureType: "Fey",
+		Size:         "Medium (about 4–7 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
+		BaseSpeed:    30,
+		Traits:       changelingTraits(),
+	}
+}
+
+func changelingTraits() []TraitSeed {
+	return []TraitSeed{
+		{
+			Name:        "Changeling Instincts",
+			Description: "Thanks to your connection to the fey realm, you gain proficiency in two of the following skills of your choice: Deception, Insight, Intimidation, Performance, or Persuasion.",
+			LevelReq:    1,
+			ActionType:  "Passive",
+		},
+		{
+			Name:        "Shape-Shifter",
+			Description: "As an action, you can shape-shift to change your appearance and your voice. You determine the specifics of the changes, including your coloration, hair length, and sex. You can also adjust your height and weight and can change your size between Medium and Small. You can make yourself appear as a member of another playable species, though none of your game statistics change. You can't duplicate the appearance of an individual you've never seen, and you must adopt a form that has the same basic arrangement of limbs that you have. This trait doesn't change your clothing and equipment.\n\nWhile shape-shifted with this trait, you have Advantage on Charisma checks.\n\nYou stay in the new form until you take an action to revert to your true form.",
+			LevelReq:    1,
+			ActionType:  "Action",
+		},
+	}
+}
