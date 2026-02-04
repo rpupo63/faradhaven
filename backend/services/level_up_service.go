@@ -46,6 +46,7 @@ type LevelUpRequest struct {
 	SkillSelections []string       `json:"skill_selections,omitempty"` // new skills to add
 	ASIAllocation   map[string]int `json:"asi_allocation,omitempty"`   // {"strength": 1, "dexterity": 1}
 	SpellsLearned   []string       `json:"spells_learned,omitempty"`   // new spell IDs
+	HPRollResult    *int           `json:"hp_roll_result,omitempty"`   // nil = use average, otherwise the rolled value
 }
 
 // LevelUpResponse contains the result of a level-up operation
@@ -63,6 +64,10 @@ type LevelUpPreview struct {
 	ClassLevel         *models.ClassLevel `json:"class_level"`
 	ASIPointsAvailable int                `json:"asi_points_available"`
 	NewSpellsAllowed   int                `json:"new_spells_allowed"`
+	HitDie             int                `json:"hit_die"`              // Class hit die (e.g., 10 for d10)
+	ConMod             int                `json:"con_mod"`              // Current CON modifier
+	HPGainAverage      int                `json:"hp_gain_average"`      // Average HP gain (hitDie/2 + 1 + conMod)
+	CurrentMaxHP       int                `json:"current_max_hp"`       // Current max HP before level up
 }
 
 // LevelUp advances a character by one level, applying choices and saving history
@@ -113,6 +118,10 @@ func (s *LevelUpService) LevelUp(userID uuid.UUID, req LevelUpRequest) (*LevelUp
 		Charisma:           character.Charisma,
 		SpellbookIDs:       []string(character.SpellbookIDs),
 		CurrentSpellPoints: character.CurrentSpellPoints,
+		CurrentHP:          character.CurrentHP,
+		MaxHP:              character.MaxHP,
+		TempHP:             character.TempHP,
+		HitDiceUsed:        character.HitDiceUsed,
 	}
 	snapshotJSON, err := json.Marshal(snapshot)
 	if err != nil {
@@ -146,6 +155,25 @@ func (s *LevelUpService) LevelUp(userID uuid.UUID, req LevelUpRequest) (*LevelUp
 				character.Charisma += points
 			}
 		}
+
+		// Calculate HP gain for this level
+		conMod := (character.Constitution - 10) / 2
+		var hpGain int
+		if req.HPRollResult != nil {
+			// Use the player's roll
+			hpGain = *req.HPRollResult + conMod
+		} else {
+			// Use average (rounded up): (hitDie / 2) + 1
+			avgHitDie := (character.Class.HitDie / 2) + 1
+			hpGain = avgHitDie + conMod
+		}
+		// Minimum 1 HP per level
+		if hpGain < 1 {
+			hpGain = 1
+		}
+		character.MaxHP += hpGain
+		// On level up, restore to new max HP (design decision)
+		character.CurrentHP = character.MaxHP
 
 		// Add new spells to spellbook
 		if len(req.SpellsLearned) > 0 {
@@ -250,6 +278,12 @@ func (s *LevelUpService) LevelDown(userID uuid.UUID, characterID uuid.UUID) (*Le
 		character.SpellbookIDs = snapshot.SpellbookIDs
 		character.CurrentSpellPoints = snapshot.CurrentSpellPoints
 
+		// Restore HP and hit dice from snapshot
+		character.CurrentHP = snapshot.CurrentHP
+		character.MaxHP = snapshot.MaxHP
+		character.TempHP = snapshot.TempHP
+		character.HitDiceUsed = snapshot.HitDiceUsed
+
 		if err := tx.Save(character).Error; err != nil {
 			return err
 		}
@@ -329,12 +363,24 @@ func (s *LevelUpService) GetLevelUpPreview(userID uuid.UUID, characterID uuid.UU
 		newSpellsAllowed = *classLevel.SpellsKnown - *currentClassLevel.SpellsKnown
 	}
 
+	// Calculate HP preview
+	conMod := (character.Constitution - 10) / 2
+	avgHitDie := (character.Class.HitDie / 2) + 1
+	hpGainAvg := avgHitDie + conMod
+	if hpGainAvg < 1 {
+		hpGainAvg = 1
+	}
+
 	return &LevelUpPreview{
 		CurrentLevel:       character.Level,
 		NextLevel:          nextLevel,
 		ClassLevel:         classLevel,
 		ASIPointsAvailable: classLevel.AbilityScoreImprovement,
 		NewSpellsAllowed:   newSpellsAllowed,
+		HitDie:             character.Class.HitDie,
+		ConMod:             conMod,
+		HPGainAverage:      hpGainAvg,
+		CurrentMaxHP:       character.MaxHP,
 	}, nil
 }
 
@@ -347,4 +393,174 @@ func (s *LevelUpService) findClassLevelWithFeatures(classID uuid.UUID, level int
 		return nil, err
 	}
 	return &cl, nil
+}
+
+// UpdateHP updates the character's current HP by the given delta (positive = heal, negative = damage)
+func (s *LevelUpService) UpdateHP(userID uuid.UUID, characterID uuid.UUID, delta int) (*models.Character, error) {
+	character, err := s.characterRepo.FindByID(characterID)
+	if err != nil {
+		return nil, fmt.Errorf("character not found: %w", err)
+	}
+
+	if character.UserID != userID {
+		return nil, ErrUnauthorized
+	}
+
+	// Apply delta
+	character.CurrentHP += delta
+
+	// Clamp to valid range [0, MaxHP + TempHP]
+	maxWithTemp := character.MaxHP + character.TempHP
+	if character.CurrentHP > maxWithTemp {
+		character.CurrentHP = maxWithTemp
+	}
+	if character.CurrentHP < 0 {
+		character.CurrentHP = 0
+	}
+
+	if err := s.db.Save(character).Error; err != nil {
+		return nil, fmt.Errorf("failed to update HP: %w", err)
+	}
+
+	return character, nil
+}
+
+// SetTempHP sets the character's temporary HP (replaces, doesn't stack per 5e rules)
+func (s *LevelUpService) SetTempHP(userID uuid.UUID, characterID uuid.UUID, tempHP int) (*models.Character, error) {
+	character, err := s.characterRepo.FindByID(characterID)
+	if err != nil {
+		return nil, fmt.Errorf("character not found: %w", err)
+	}
+
+	if character.UserID != userID {
+		return nil, ErrUnauthorized
+	}
+
+	// Temp HP doesn't stack, only use new value if higher (player choice in 5e)
+	if tempHP < 0 {
+		tempHP = 0
+	}
+	character.TempHP = tempHP
+
+	if err := s.db.Save(character).Error; err != nil {
+		return nil, fmt.Errorf("failed to set temp HP: %w", err)
+	}
+
+	return character, nil
+}
+
+// UseHitDiceResult contains the result of using hit dice
+type UseHitDiceResult struct {
+	Character   *models.Character `json:"character"`
+	HPHealed    int               `json:"hp_healed"`
+	DiceUsed    int               `json:"dice_used"`
+	DiceResults []int             `json:"dice_results"`
+}
+
+// UseHitDice spends hit dice during a short rest and heals HP
+// rolls is the array of roll results from the frontend (d{HitDie} + ConMod each)
+func (s *LevelUpService) UseHitDice(userID uuid.UUID, characterID uuid.UUID, rolls []int) (*UseHitDiceResult, error) {
+	character, err := s.characterRepo.FindByID(characterID)
+	if err != nil {
+		return nil, fmt.Errorf("character not found: %w", err)
+	}
+
+	if character.UserID != userID {
+		return nil, ErrUnauthorized
+	}
+
+	// Calculate available hit dice
+	available := character.Level - character.HitDiceUsed
+	if len(rolls) > available {
+		return nil, fmt.Errorf("not enough hit dice available: have %d, requested %d", available, len(rolls))
+	}
+
+	// Sum the healing
+	totalHealing := 0
+	for _, roll := range rolls {
+		if roll < 1 {
+			roll = 1 // Minimum 1 HP per die
+		}
+		totalHealing += roll
+	}
+
+	// Apply healing
+	character.HitDiceUsed += len(rolls)
+	character.CurrentHP += totalHealing
+	if character.CurrentHP > character.MaxHP {
+		character.CurrentHP = character.MaxHP
+	}
+
+	if err := s.db.Save(character).Error; err != nil {
+		return nil, fmt.Errorf("failed to use hit dice: %w", err)
+	}
+
+	return &UseHitDiceResult{
+		Character:   character,
+		HPHealed:    totalHealing,
+		DiceUsed:    len(rolls),
+		DiceResults: rolls,
+	}, nil
+}
+
+// ShortRest performs a short rest: allows using hit dice (call UseHitDice), restores spell points
+func (s *LevelUpService) ShortRest(userID uuid.UUID, characterID uuid.UUID) (*models.Character, error) {
+	character, err := s.characterRepo.FindByID(characterID)
+	if err != nil {
+		return nil, fmt.Errorf("character not found: %w", err)
+	}
+
+	if character.UserID != userID {
+		return nil, ErrUnauthorized
+	}
+
+	// Restore spell points to max
+	classLevel, err := s.classRepo.FindLevelByClassAndLevel(character.ClassID, character.Level)
+	if err == nil && classLevel != nil {
+		character.CurrentSpellPoints = classLevel.MaxSpellPoints
+	}
+
+	if err := s.db.Save(character).Error; err != nil {
+		return nil, fmt.Errorf("failed to short rest: %w", err)
+	}
+
+	return character, nil
+}
+
+// LongRest performs a long rest: restore HP to max, restore half hit dice (minimum 1), restore spell points
+func (s *LevelUpService) LongRest(userID uuid.UUID, characterID uuid.UUID) (*models.Character, error) {
+	character, err := s.characterRepo.FindByID(characterID)
+	if err != nil {
+		return nil, fmt.Errorf("character not found: %w", err)
+	}
+
+	if character.UserID != userID {
+		return nil, ErrUnauthorized
+	}
+
+	// Restore HP to max
+	character.CurrentHP = character.MaxHP
+	character.TempHP = 0 // Temp HP goes away after long rest
+
+	// Restore half hit dice (rounded down, minimum 1)
+	diceToRestore := character.Level / 2
+	if diceToRestore < 1 {
+		diceToRestore = 1
+	}
+	character.HitDiceUsed -= diceToRestore
+	if character.HitDiceUsed < 0 {
+		character.HitDiceUsed = 0
+	}
+
+	// Restore spell points to max
+	classLevel, err := s.classRepo.FindLevelByClassAndLevel(character.ClassID, character.Level)
+	if err == nil && classLevel != nil {
+		character.CurrentSpellPoints = classLevel.MaxSpellPoints
+	}
+
+	if err := s.db.Save(character).Error; err != nil {
+		return nil, fmt.Errorf("failed to long rest: %w", err)
+	}
+
+	return character, nil
 }

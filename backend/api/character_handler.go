@@ -183,10 +183,19 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 			return
 		}
 
-		class, err := h.classRepo.FindByID(character.ClassID)
+		// Fetch class with components for spell crafting
+		class, err := h.classRepo.FindByIDWithLevels(character.ClassID)
 		if err != nil {
 			log.Error().Err(err).Str("class_id", character.ClassID.String()).Msg("Class not found")
 			respondError(w, http.StatusNotFound, "Class not found for character")
+			return
+		}
+
+		// Fetch race with components for spell crafting
+		race, err := h.raceRepo.FindByID(character.RaceID)
+		if err != nil {
+			log.Error().Err(err).Str("race_id", character.RaceID.String()).Msg("Race not found")
+			respondError(w, http.StatusNotFound, "Race not found for character")
 			return
 		}
 
@@ -224,16 +233,50 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 			saveProfs = append(saveProfs, strings.ToLower(strings.TrimSpace(name)))
 		}
 
+		// Combine class and race components for spell crafting (deduplicated by ID)
+		componentMap := make(map[uuid.UUID]models.Component)
+		for _, comp := range class.Components {
+			componentMap[comp.ID] = comp
+		}
+		for _, comp := range race.Components {
+			componentMap[comp.ID] = comp
+		}
+		availableComponents := make([]models.Component, 0, len(componentMap))
+		for _, comp := range componentMap {
+			availableComponents = append(availableComponents, comp)
+		}
+
+		// Use persisted HP values if set, otherwise fall back to computed
+		maxHP := character.MaxHP
+		currentHP := character.CurrentHP
+		if maxHP == 0 {
+			// First-time calculation for existing characters without HP
+			maxHP = totalHP
+			currentHP = totalHP
+		}
+
+		profBonus := classLevel.ProficiencyBonus
+		strMod := abilityMod(character.Strength)
+
 		sheet := CharacterSheetResponse{
 			Character:                character,
 			Class:                    class,
 			ClassLevel:               classLevel,
-			TotalHP:                  totalHP,
+			TotalHP:                  maxHP, // Keep for backwards compatibility
+			MaxHP:                    maxHP,
+			CurrentHP:                currentHP,
+			TempHP:                   character.TempHP,
 			AC:                       ac,
 			SaveDC:                   saveDC,
 			MaxSpellPoints:           maxSP,
 			CurrentSpellPoints:       currentSP,
 			SavingThrowProficiencies: saveProfs,
+			AvailableComponents:      availableComponents,
+			HitDiceTotal:             character.Level,
+			HitDiceRemaining:         character.Level - character.HitDiceUsed,
+			HitDie:                   class.HitDie,
+			MeleeAttackBonus:         profBonus + strMod,
+			RangedAttackBonus:        profBonus + dexMod,
 		}
 		respondJSON(w, http.StatusOK, sheet)
 	}
@@ -335,7 +378,8 @@ func (h *characterHandler) createCharacter() http.HandlerFunc {
 			respondError(w, http.StatusBadRequest, "Invalid race_id")
 			return
 		}
-		if _, err := h.classRepo.FindByID(req.ClassID); err != nil {
+		class, err := h.classRepo.FindByID(req.ClassID)
+		if err != nil {
 			respondError(w, http.StatusBadRequest, "Invalid class_id")
 			return
 		}
@@ -388,6 +432,15 @@ func (h *characterHandler) createCharacter() http.HandlerFunc {
 		if character.Charisma == 0 {
 			character.Charisma = 10
 		}
+
+		// Calculate initial HP for level 1: HitDie (max) + CON modifier
+		conMod := abilityMod(character.Constitution)
+		initialHP := class.HitDie + conMod
+		if initialHP < 1 {
+			initialHP = 1 // Minimum 1 HP
+		}
+		character.MaxHP = initialHP
+		character.CurrentHP = initialHP
 
 		if err := h.characterRepo.Add(character); err != nil {
 			log.Error().Err(err).Msg("Failed to create character")

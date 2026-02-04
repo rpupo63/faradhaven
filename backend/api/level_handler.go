@@ -180,3 +180,247 @@ func (h *levelHandler) getLevelUpPreview() http.HandlerFunc {
 		respondJSON(w, http.StatusOK, preview)
 	}
 }
+
+// updateHP handles PATCH /api/character/{characterID}/hp
+func (h *levelHandler) updateHP() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		characterIDStr := chi.URLParam(r, "characterID")
+		characterID, err := uuid.Parse(characterIDStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		userID, err := uuid.Parse(authUserID)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Invalid user ID")
+			return
+		}
+
+		var req UpdateHPRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		character, err := h.levelUpService.UpdateHP(userID, characterID, req.Delta)
+		if err != nil {
+			log.Error().Err(err).Str("characterID", characterIDStr).Msg("Failed to update HP")
+			if err == services.ErrUnauthorized {
+				respondError(w, http.StatusForbidden, err.Error())
+				return
+			}
+			respondError(w, http.StatusInternalServerError, "Failed to update HP")
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"current_hp": character.CurrentHP,
+			"max_hp":     character.MaxHP,
+			"temp_hp":    character.TempHP,
+		})
+	}
+}
+
+// setTempHP handles PUT /api/character/{characterID}/temp-hp
+func (h *levelHandler) setTempHP() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		characterIDStr := chi.URLParam(r, "characterID")
+		characterID, err := uuid.Parse(characterIDStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		userID, err := uuid.Parse(authUserID)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Invalid user ID")
+			return
+		}
+
+		var req SetTempHPRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		character, err := h.levelUpService.SetTempHP(userID, characterID, req.TempHP)
+		if err != nil {
+			log.Error().Err(err).Str("characterID", characterIDStr).Msg("Failed to set temp HP")
+			if err == services.ErrUnauthorized {
+				respondError(w, http.StatusForbidden, err.Error())
+				return
+			}
+			respondError(w, http.StatusInternalServerError, "Failed to set temp HP")
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"current_hp": character.CurrentHP,
+			"max_hp":     character.MaxHP,
+			"temp_hp":    character.TempHP,
+		})
+	}
+}
+
+// useHitDice handles POST /api/character/{characterID}/hit-dice
+func (h *levelHandler) useHitDice() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		characterIDStr := chi.URLParam(r, "characterID")
+		characterID, err := uuid.Parse(characterIDStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		userID, err := uuid.Parse(authUserID)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Invalid user ID")
+			return
+		}
+
+		var req UseHitDiceRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		result, err := h.levelUpService.UseHitDice(userID, characterID, req.Rolls)
+		if err != nil {
+			log.Error().Err(err).Str("characterID", characterIDStr).Msg("Failed to use hit dice")
+			if err == services.ErrUnauthorized {
+				respondError(w, http.StatusForbidden, err.Error())
+				return
+			}
+			respondError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		resp := UseHitDiceResponse{
+			CurrentHP:        result.Character.CurrentHP,
+			MaxHP:            result.Character.MaxHP,
+			HPHealed:         result.HPHealed,
+			DiceUsed:         result.DiceUsed,
+			DiceResults:      result.DiceResults,
+			HitDiceRemaining: result.Character.Level - result.Character.HitDiceUsed,
+		}
+		respondJSON(w, http.StatusOK, resp)
+	}
+}
+
+// shortRest handles POST /api/character/{characterID}/rest/short
+func (h *levelHandler) shortRest() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		characterIDStr := chi.URLParam(r, "characterID")
+		characterID, err := uuid.Parse(characterIDStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		userID, err := uuid.Parse(authUserID)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Invalid user ID")
+			return
+		}
+
+		character, err := h.levelUpService.ShortRest(userID, characterID)
+		if err != nil {
+			log.Error().Err(err).Str("characterID", characterIDStr).Msg("Failed to short rest")
+			if err == services.ErrUnauthorized {
+				respondError(w, http.StatusForbidden, err.Error())
+				return
+			}
+			respondError(w, http.StatusInternalServerError, "Failed to short rest")
+			return
+		}
+
+		// Get max spell points from class level
+		maxSP := 0
+		if character.CurrentSpellPoints > 0 {
+			maxSP = character.CurrentSpellPoints
+		}
+
+		resp := RestResponse{
+			CurrentHP:          character.CurrentHP,
+			MaxHP:              character.MaxHP,
+			TempHP:             character.TempHP,
+			CurrentSpellPoints: character.CurrentSpellPoints,
+			MaxSpellPoints:     maxSP,
+			HitDiceRemaining:   character.Level - character.HitDiceUsed,
+			HitDiceTotal:       character.Level,
+		}
+		respondJSON(w, http.StatusOK, resp)
+	}
+}
+
+// longRest handles POST /api/character/{characterID}/rest/long
+func (h *levelHandler) longRest() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		characterIDStr := chi.URLParam(r, "characterID")
+		characterID, err := uuid.Parse(characterIDStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		userID, err := uuid.Parse(authUserID)
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Invalid user ID")
+			return
+		}
+
+		character, err := h.levelUpService.LongRest(userID, characterID)
+		if err != nil {
+			log.Error().Err(err).Str("characterID", characterIDStr).Msg("Failed to long rest")
+			if err == services.ErrUnauthorized {
+				respondError(w, http.StatusForbidden, err.Error())
+				return
+			}
+			respondError(w, http.StatusInternalServerError, "Failed to long rest")
+			return
+		}
+
+		// Get max spell points from class level
+		maxSP := 0
+		if character.CurrentSpellPoints > 0 {
+			maxSP = character.CurrentSpellPoints
+		}
+
+		resp := RestResponse{
+			CurrentHP:          character.CurrentHP,
+			MaxHP:              character.MaxHP,
+			TempHP:             character.TempHP,
+			CurrentSpellPoints: character.CurrentSpellPoints,
+			MaxSpellPoints:     maxSP,
+			HitDiceRemaining:   character.Level - character.HitDiceUsed,
+			HitDiceTotal:       character.Level,
+		}
+		respondJSON(w, http.StatusOK, resp)
+	}
+}

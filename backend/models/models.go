@@ -4,6 +4,9 @@ package models
 // Order matters: parent tables must be created before child tables with foreign keys.
 func AllModels() []interface{} {
 	return []interface{}{
+		// Seed version tracking (must be first - no dependencies)
+		&SeedVersion{},
+
 		// Core entities (no foreign keys to other app tables)
 		&User{},
 		&Component{},
@@ -32,5 +35,9 @@ func AllModels() []interface{} {
 		// Beast hierarchy
 		&Beast{},
 		&Attack{},
+
+		// Item hierarchy
+		&Weapon{},
+		&WeaponDamage{},
 	}
 }

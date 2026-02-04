@@ -3,13 +3,14 @@ package faradhaven_races
 // Dragonborn returns the Dragonborn race seed
 func Dragonborn() FaradhavenRaceSeed {
 	return FaradhavenRaceSeed{
-		Name:         "Dragonborn",
-		PhotoURL:     "https://photos-for-apps.s3.us-east-2.amazonaws.com/dragonborn.jpg",
-		Description:  "The ancestors of dragonborn hatched from the eggs of chromatic and metallic dragons. One story holds that these eggs were blessed by the dragon gods Bahamut and Tiamat, who wanted to populate the multiverse with people created in their image. Another story claims that dragons created the first dragonborn without the gods' blessings. Whatever their origin, dragonborn have made homes for themselves on the Material Plane. Dragonborn look like wingless, bipedal dragons - scaly, bright-eyed, and thick-boned with horns on their heads - and their coloration and other features are reminiscent of their draconic ancestors.",
-		CreatureType: "Humanoid",
-		Size:         "Medium (about 5–7 feet tall)",
-		BaseSpeed:    30,
-		Traits:       dragonbornTraits(),
+		Name:           "Dragonborn",
+		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/dragonborn.jpg",
+		Description:    "The ancestors of dragonborn hatched from the eggs of chromatic and metallic dragons. One story holds that these eggs were blessed by the dragon gods Bahamut and Tiamat, who wanted to populate the multiverse with people created in their image. Another story claims that dragons created the first dragonborn without the gods' blessings. Whatever their origin, dragonborn have made homes for themselves on the Material Plane. Dragonborn look like wingless, bipedal dragons - scaly, bright-eyed, and thick-boned with horns on their heads - and their coloration and other features are reminiscent of their draconic ancestors.",
+		CreatureType:   "Humanoid",
+		Size:           "Medium (about 5–7 feet tall)",
+		BaseSpeed:      30,
+		Traits:         dragonbornTraits(),
+		ComponentNames: []string{"Ignis", "Fulgur", "Cool", "Wither", "Aer", "Nova", "Channel"},
 	}
 }
 
@@ -24,7 +25,7 @@ func dragonbornTraits() []TraitSeed {
 		},
 		{
 			Name:           "Breath Weapon",
-			Description:    "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in either a 15-foot Cone or a 30-foot Line that is 5 feet wide (choose the shape each time). Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 damage of the type determined by your Draconic Ancestry trait. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10). You can use this Breath Weapon a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest.",
+			Description:    "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy using your ancestral element component in either Nova (15-foot Cone) or Channel (30-foot Line that is 5 feet wide) shape, chosen each time. Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 damage of the type determined by your Draconic Ancestry trait. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10). You can use this Breath Weapon a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest.",
 			LevelReq:       1,
 			ActionType:     "Action",
 			UsesPerRest:    "Proficiency Bonus",
@@ -58,15 +59,15 @@ func dragonbornTraits() []TraitSeed {
 
 func dragonbornAncestryOptions() []TraitOptionSeed {
 	return []TraitOptionSeed{
-		{Name: "Black", Description: "Acid damage."},
-		{Name: "Blue", Description: "Lightning damage."},
-		{Name: "Brass", Description: "Fire damage."},
-		{Name: "Bronze", Description: "Lightning damage."},
-		{Name: "Copper", Description: "Acid damage."},
-		{Name: "Gold", Description: "Fire damage."},
-		{Name: "Green", Description: "Poison damage."},
-		{Name: "Red", Description: "Fire damage."},
-		{Name: "Silver", Description: "Cold damage."},
-		{Name: "White", Description: "Cold damage."},
+		{Name: "Black", Description: "Wither component (Acid damage)."},
+		{Name: "Blue", Description: "Fulgur component (Lightning damage)."},
+		{Name: "Brass", Description: "Ignis component (Fire damage)."},
+		{Name: "Bronze", Description: "Fulgur component (Lightning damage)."},
+		{Name: "Copper", Description: "Wither component (Acid damage)."},
+		{Name: "Gold", Description: "Ignis component (Fire damage)."},
+		{Name: "Green", Description: "Wither + Aer components (Poison damage)."},
+		{Name: "Red", Description: "Ignis component (Fire damage)."},
+		{Name: "Silver", Description: "Cool component (Cold damage)."},
+		{Name: "White", Description: "Cool component (Cold damage)."},
 	}
 }

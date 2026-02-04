@@ -34,7 +34,7 @@ func AllRaces() []FaradhavenRaceSeed {
 	}
 }
 
-// SeedFaradhavenRaces creates Race, Trait, and TraitOption rows for all Faradhaven races.
+// SeedFaradhavenRaces creates Race, Trait, TraitOption, and RaceComponent rows for all Faradhaven races.
 // Skips races that already exist by name.
 func SeedFaradhavenRaces(db *gorm.DB) error {
 	for _, rs := range AllRaces() {
@@ -67,6 +67,10 @@ func SeedFaradhavenRaces(db *gorm.DB) error {
 			}
 			log.Printf("Updated race: %s", r.Name)
 			if err := db.Where("race_id = ?", r.ID).Delete(&models.Trait{}).Error; err != nil {
+				return err
+			}
+			// Clear existing race_components for re-seeding
+			if err := db.Exec("DELETE FROM race_components WHERE race_id = ?", r.ID).Error; err != nil {
 				return err
 			}
 		default:
@@ -103,6 +107,24 @@ func SeedFaradhavenRaces(db *gorm.DB) error {
 					return err
 				}
 			}
+		}
+
+		// Link components to race (for spell crafting)
+		for _, compName := range rs.ComponentNames {
+			var component models.Component
+			if err := db.Where("name = ?", compName).First(&component).Error; err != nil {
+				if err == gorm.ErrRecordNotFound {
+					log.Printf("  Warning: Component '%s' not found for race %s", compName, rs.Name)
+					continue
+				}
+				return err
+			}
+
+			// Insert into race_components join table
+			if err := db.Exec("INSERT INTO race_components (race_id, component_id) VALUES (?, ?) ON CONFLICT DO NOTHING", r.ID, component.ID).Error; err != nil {
+				return err
+			}
+			log.Printf("  Linked component %s to race %s", compName, rs.Name)
 		}
 	}
 	return nil

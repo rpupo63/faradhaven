@@ -4,6 +4,7 @@ package faradhaven_classes
 func VaporBlade() FaradhavenClassSeed {
 	return FaradhavenClassSeed{
 		Name:           "The Vapor Blade",
+		Description:    "Coat your blades in venom and slip through shadows to strike before enemies know you're there. Master the art of assassination with poison damage over time, shadow teleportation, and lethal precision.",
 		HitDie:         8,
 		PrimaryAbility: "dexterity",
 		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/vapor_blade.jpg",

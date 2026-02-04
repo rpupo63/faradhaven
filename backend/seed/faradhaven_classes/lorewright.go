@@ -7,6 +7,7 @@ package faradhaven_classes
 func Lorewright() FaradhavenClassSeed {
 	return FaradhavenClassSeed{
 		Name:           "The Lorewright",
+		Description:    "Decipher ancient languages, find weak points in enemy machinery, and record everything in your Field Journal. You don't deal damage—you make sure your party hunts smarter.",
 		HitDie:         8,
 		PrimaryAbility: "intelligence",
 		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/lorewright.jpg",

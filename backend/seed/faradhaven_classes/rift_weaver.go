@@ -4,6 +4,7 @@ package faradhaven_classes
 func RiftWeaver() FaradhavenClassSeed {
 	return FaradhavenClassSeed{
 		Name:           "The Rift Weaver",
+		Description:    "Open rifts to elemental planes and channel raw fire, ice, lightning, and earth into devastating evocations. You're the party's artillery—stand back and obliterate the battlefield with area destruction.",
 		HitDie:         8,
 		PrimaryAbility: "intelligence",
 		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/rift_weaver.jpg",

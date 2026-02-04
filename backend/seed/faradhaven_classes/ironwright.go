@@ -4,6 +4,7 @@ package faradhaven_classes
 func Ironwright() FaradhavenClassSeed {
 	return FaradhavenClassSeed{
 		Name:           "The Ironwright",
+		Description:    "Deploy swarms of mechanical drones and gadgets to deliver spell effects from a distance. Build turrets, copters, and spiders while magnetizing scrap metal into a protective exosuit at higher levels.",
 		HitDie:         8,
 		PrimaryAbility: "intelligence",
 		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/ironwright.jpg",

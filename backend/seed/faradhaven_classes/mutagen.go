@@ -4,6 +4,7 @@ package faradhaven_classes
 func Mutagen() FaradhavenClassSeed {
 	return FaradhavenClassSeed{
 		Name:           "The Mutagen",
+		Description:    "Transform into a monstrous beast by metabolizing alchemical reagents, trading spell slots for raw biological mutations. You're the front-line juggernaut who grows claws, hardens skin, and regenerates mid-combat.",
 		HitDie:         12,
 		PrimaryAbility: "wisdom",
 		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/mutagen.jpg",

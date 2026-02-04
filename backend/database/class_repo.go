@@ -26,7 +26,11 @@ func NewClassRepo(db *gorm.DB) *ClassRepo {
 
 func (r *ClassRepo) FindAll() ([]*models.Class, error) {
 	var classes []*models.Class
-	err := r.db.Preload("Components").Find(&classes).Error
+	err := r.db.Preload("Components").Preload("Levels", func(db *gorm.DB) *gorm.DB {
+		return db.Where("level = ?", 1)
+	}).Preload("Levels.LevelFeatures", func(db *gorm.DB) *gorm.DB {
+		return db.Order("sort_order ASC")
+	}).Find(&classes).Error
 	return classes, err
 }
 

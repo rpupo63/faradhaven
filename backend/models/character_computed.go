@@ -5,6 +5,7 @@ package models
 type CharacterComputedStats struct {
 	MaxHP             int `json:"max_hp"`
 	CurrentHP         int `json:"current_hp"`
+	TempHP            int `json:"temp_hp"`
 	ArmorClass        int `json:"armor_class"`
 	Initiative        int `json:"initiative"`
 	ProficiencyBonus  int `json:"proficiency_bonus"`
@@ -12,6 +13,15 @@ type CharacterComputedStats struct {
 	SpellAttackBonus  int `json:"spell_attack_bonus"`
 	MaxSpellPoints    int `json:"max_spell_points"`
 	PassivePerception int `json:"passive_perception"`
+
+	// Attack bonuses
+	MeleeAttackBonus  int `json:"melee_attack_bonus"`
+	RangedAttackBonus int `json:"ranged_attack_bonus"`
+
+	// Hit dice tracking
+	HitDiceTotal     int `json:"hit_dice_total"`     // = Level
+	HitDiceRemaining int `json:"hit_dice_remaining"` // = Level - HitDiceUsed
+	HitDie           int `json:"hit_die"`            // e.g., 10 for d10
 
 	// Ability modifiers
 	StrengthMod     int `json:"strength_mod"`
@@ -67,6 +77,22 @@ func (c *Character) ComputeStats() {
 
 	// Base AC (unarmored) = 10 + Dex modifier
 	stats.ArmorClass = 10 + stats.DexterityMod
+
+	// Attack bonuses (proficiency + ability modifier)
+	stats.MeleeAttackBonus = stats.ProficiencyBonus + stats.StrengthMod
+	stats.RangedAttackBonus = stats.ProficiencyBonus + stats.DexterityMod
+
+	// HP from character (persisted values)
+	stats.MaxHP = c.MaxHP
+	stats.CurrentHP = c.CurrentHP
+	stats.TempHP = c.TempHP
+
+	// Hit dice tracking
+	stats.HitDiceTotal = c.Level
+	stats.HitDiceRemaining = c.Level - c.HitDiceUsed
+	if c.Class.HitDie > 0 {
+		stats.HitDie = c.Class.HitDie
+	}
 
 	c.ComputedStats = stats
 }

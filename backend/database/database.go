@@ -15,6 +15,7 @@ type Database struct {
 	beastRepo          *BeastRepo
 	attackRepo         *AttackRepo
 	levelUpHistoryRepo *LevelUpHistoryRepo
+	weaponRepo         *WeaponRepo
 }
 
 // New initializes a new Database struct with each repository using a shared GORM database instance
@@ -29,6 +30,7 @@ func New(db *gorm.DB) Database {
 		beastRepo:          NewBeastRepo(db),
 		attackRepo:         NewAttackRepo(db),
 		levelUpHistoryRepo: NewLevelUpHistoryRepo(db),
+		weaponRepo:         NewWeaponRepo(db),
 	}
 }
 
@@ -64,6 +66,10 @@ func (d Database) AttackRepo() *AttackRepo {
 
 func (d Database) LevelUpHistoryRepo() *LevelUpHistoryRepo {
 	return d.levelUpHistoryRepo
+}
+
+func (d Database) WeaponRepo() *WeaponRepo {
+	return d.weaponRepo
 }
 
 // AutoMigrate runs GORM auto-migration for all models

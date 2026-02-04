@@ -2,13 +2,14 @@ package faradhaven_races
 
 // FaradhavenRaceSeed defines the full race data for seeding
 type FaradhavenRaceSeed struct {
-	Name         string
-	Description  string
-	CreatureType string // e.g., "Humanoid"
-	Size         string // e.g., "Medium or Small"
-	BaseSpeed    int
-	PhotoURL     string // URL to race artwork/photo
-	Traits       []TraitSeed
+	Name           string
+	Description    string
+	CreatureType   string // e.g., "Humanoid"
+	Size           string // e.g., "Medium or Small"
+	BaseSpeed      int
+	PhotoURL       string // URL to race artwork/photo
+	Traits         []TraitSeed
+	ComponentNames []string // Names of spell components this race grants access to
 }
 
 // TraitSeed defines a race trait for seeding

@@ -7,6 +7,7 @@ import (
 // FaradhavenClassSeed defines the full class data for seeding
 type FaradhavenClassSeed struct {
 	Name           string
+	Description    string // Short 2-sentence description of how this class uniquely plays
 	HitDie         int
 	PrimaryAbility string
 	PhotoURL       string // URL to class artwork/photo
@@ -30,6 +31,7 @@ type FaradhavenClassSeed struct {
 type ComponentSeed struct {
 	Name        string
 	Type        models.ComponentType
+	Category    models.ComponentCategory
 	Description string
 	Element     string
 }

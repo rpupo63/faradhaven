@@ -6,6 +6,7 @@ package faradhaven_classes
 func Sanguinist() FaradhavenClassSeed {
 	return FaradhavenClassSeed{
 		Name:           "The Sanguinist",
+		Description:    "Manage Blood Ichor to fuel both healing miracles and devastating vampiric attacks. Every encounter forces a moral choice—save your allies with blood magic or siphon them for overwhelming predatory power.",
 		HitDie:         10,
 		PrimaryAbility: "charisma",
 		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/sanguinist.jpg",

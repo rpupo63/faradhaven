@@ -22,5 +22,6 @@ func initializeHandlers(db database.Database) *routeHandlers {
 		spellHandler:     newSpellHandler(db.SpellRepo()),
 		beastHandler:     newBeastHandler(db.BeastRepo(), db.AttackRepo()),
 		levelHandler:     newLevelHandler(levelUpService),
+		weaponHandler:    newWeaponHandler(db.WeaponRepo()),
 	}
 }

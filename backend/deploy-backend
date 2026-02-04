@@ -7,18 +7,18 @@ RETRY_DELAY=2
 
 echo "Building production binary..."
 go build -ldflags="-s -w" -o server .
-c
+
 echo "Uploading to racknerd-backend..."
 scp server racknerd-backend:~
 
 echo "Installing binary and restarting service..."
 ssh racknerd-backend '
-    sudo systemctl stop backend-api
-    sudo mv ~/server /opt/backend-api/server
-    sudo chown api-service:api-service /opt/backend-api/server
-    sudo chmod +x /opt/backend-api/server
+    sudo systemctl stop faradhaven
+    sudo mv ~/server /opt/faradhaven/server
+    sudo chown faradhaven:faradhaven /opt/faradhaven/server
+    sudo chmod +x /opt/faradhaven/server
     sudo systemctl daemon-reload
-    sudo systemctl restart backend-api
+    sudo systemctl restart faradhaven
 '
 
 echo "Checking deployment health..."
@@ -35,5 +35,5 @@ done
 
 echo "Health check failed after $MAX_RETRIES attempts!"
 echo "Checking service status..."
-ssh racknerd-backend 'sudo systemctl status backend-api'
+ssh racknerd-backend 'sudo systemctl status faradhaven'
 exit 1

@@ -30,6 +30,14 @@ type Character struct {
 	// Spell point pool: current points (max comes from ClassLevel)
 	CurrentSpellPoints int `json:"current_spell_points" gorm:"type:int;default:0"`
 
+	// HP tracking (persisted, not computed)
+	CurrentHP int `json:"current_hp" gorm:"type:int;default:0"`
+	MaxHP     int `json:"max_hp" gorm:"type:int;default:0"`
+	TempHP    int `json:"temp_hp" gorm:"type:int;default:0"`
+
+	// Hit dice tracking: how many hit dice have been spent (total = Level)
+	HitDiceUsed int `json:"hit_dice_used" gorm:"type:int;default:0"`
+
 	CreatedAt time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 

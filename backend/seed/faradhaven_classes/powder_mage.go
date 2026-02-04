@@ -4,6 +4,7 @@ package faradhaven_classes
 func PowderMage() FaradhavenClassSeed {
 	return FaradhavenClassSeed{
 		Name:           "The Powder Mage",
+		Description:    "Etch spells directly onto bullet casings and fire magic through your Caster Gun. Cycle through ice shots, piercing rounds, and explosive shells to dominate at range with deadly precision.",
 		HitDie:         10,
 		PrimaryAbility: "dexterity",
 		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/powder_mage.jpg",

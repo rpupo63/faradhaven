@@ -13,7 +13,6 @@ import (
 	api "github.com/rpupo63/unified-personal-site-backend/api"
 	"github.com/rpupo63/unified-personal-site-backend/database"
 	"github.com/rpupo63/unified-personal-site-backend/internal/bootstrap"
-	"github.com/rpupo63/unified-personal-site-backend/models"
 )
 
 // @title           Faradhaven API
@@ -51,23 +50,25 @@ func main() {
 	// 6. Wrap for Application
 	currentDB := database.New(db)
 
-	// 7. Run migrations if GENERATE_MODELS=true (then exit)
-	if strings.ToLower(strings.TrimSpace(os.Getenv("GENERATE_MODELS"))) == "true" {
-		fmt.Println("Generating models and running migrations...")
-		models.GenerateModels(db)
-		return
-	}
-
-	// 8. Auto-migrate if AUTO_MIGRATE=true (for local development)
-	if strings.ToLower(strings.TrimSpace(os.Getenv("AUTO_MIGRATE"))) == "true" {
-		fmt.Println("Running auto-migration...")
+	// 7. Run migrations based on GENERATE_MODELS env var
+	// GENERATE_MODELS=only  -> run migrations and exit (for CI/CD or standalone migration)
+	// GENERATE_MODELS=true  -> run migrations and continue to start server
+	// GENERATE_MODELS=false or unset -> skip migrations
+	migrateMode := strings.ToLower(strings.TrimSpace(os.Getenv("GENERATE_MODELS")))
+	if migrateMode == "only" || migrateMode == "true" {
+		fmt.Println("Running database migrations...")
 		if err := currentDB.AutoMigrate(); err != nil {
-			log.Fatalf("Error running auto-migration: %v", err)
+			log.Fatalf("Error running migrations: %v", err)
 		}
-		fmt.Println("Auto-migration completed successfully")
+		fmt.Println("Migrations completed successfully")
+
+		if migrateMode == "only" {
+			fmt.Println("GENERATE_MODELS=only set, exiting after migrations.")
+			return
+		}
 	}
 
-	// 9. Start Server
+	// 8. Start Server
 	startServer(currentDB)
 }
 

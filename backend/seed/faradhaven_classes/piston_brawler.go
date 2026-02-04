@@ -4,6 +4,7 @@ package faradhaven_classes
 func PistonBrawler() FaradhavenClassSeed {
 	return FaradhavenClassSeed{
 		Name:           "The Piston Brawler",
+		Description:    "Wear massive steam-powered gauntlets and fight unarmored, relying on raw Strength and Constitution for defense. Punch through enemies with explosive force while shielding yourself with pressurized steam.",
 		HitDie:         10,
 		PrimaryAbility: "strength",
 		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/piston_brawler.jpg",

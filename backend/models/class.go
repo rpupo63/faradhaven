@@ -11,6 +11,7 @@ import (
 type Class struct {
 	ID             uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid();not null"`
 	Name           string    `json:"name" gorm:"type:text;not null;uniqueIndex"`
+	Description    string    `json:"description" gorm:"type:text"`              // Short description of the class playstyle
 	HitDie         int       `json:"hit_die" gorm:"type:int;not null"`          // e.g. 10 for d10
 	PrimaryAbility string    `json:"primary_ability" gorm:"type:text;not null"` // e.g. "intelligence", "wisdom"
 	PhotoURL       string    `json:"photo_url" gorm:"type:text"`                // URL to class artwork/photo

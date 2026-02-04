@@ -139,10 +139,17 @@ func SeedFaradhavenClasses(db *gorm.DB) error {
 		var c models.Class
 		err := db.Where("name = ?", cs.Name).First(&c).Error
 		if err == nil {
-			log.Printf("Class already exists: %s", cs.Name)
+			// Update existing class with new fields (like description)
+			c.Description = cs.Description
+			c.PhotoURL = cs.PhotoURL
+			if err := db.Save(&c).Error; err != nil {
+				return err
+			}
+			log.Printf("Updated class: %s", cs.Name)
 		} else if err == gorm.ErrRecordNotFound {
 			c = models.Class{
 				Name:             cs.Name,
+				Description:      cs.Description,
 				HitDie:           cs.HitDie,
 				PrimaryAbility:   cs.PrimaryAbility,
 				PhotoURL:         cs.PhotoURL,
@@ -216,6 +223,7 @@ func SeedFaradhavenClasses(db *gorm.DB) error {
 				component = models.Component{
 					Name:        comp.Name,
 					Type:        comp.Type,
+					Category:    comp.Category,
 					Description: comp.Description,
 					Element:     comp.Element,
 				}

@@ -23,22 +23,22 @@ func NewRaceRepo(db *gorm.DB) *RaceRepo {
 
 func (r *RaceRepo) FindAll() ([]*models.Race, error) {
 	var races []*models.Race
-	err := r.db.Find(&races).Error
+	err := r.db.Preload("Components").Find(&races).Error
 	return races, err
 }
 
 func (r *RaceRepo) FindByID(id uuid.UUID) (*models.Race, error) {
 	var race models.Race
-	if err := r.db.First(&race, "id = ?", id).Error; err != nil {
+	if err := r.db.Preload("Components").First(&race, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &race, nil
 }
 
-// FindByIDWithTraits returns a race with Traits and TraitOptions preloaded (for compendium detail view)
+// FindByIDWithTraits returns a race with Traits, TraitOptions, and Components preloaded (for compendium detail view)
 func (r *RaceRepo) FindByIDWithTraits(id uuid.UUID) (*models.Race, error) {
 	var race models.Race
-	if err := r.db.Preload("Traits.Options").First(&race, "id = ?", id).Error; err != nil {
+	if err := r.db.Preload("Traits.Options").Preload("Components").First(&race, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &race, nil

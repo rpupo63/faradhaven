@@ -13,6 +13,7 @@ type routeHandlers struct {
 	spellHandler     *spellHandler
 	beastHandler     *beastHandler
 	levelHandler     *levelHandler
+	weaponHandler    *weaponHandler
 }
 
 // ErrorResponse represents an error response from the API
@@ -82,12 +83,21 @@ type CharacterSheetResponse struct {
 	Character                *models.Character  `json:"character"`
 	Class                    *models.Class      `json:"class"`
 	ClassLevel               *models.ClassLevel `json:"class_level"`
-	TotalHP                  int                `json:"total_hp"`
-	AC                       int                `json:"ac"`      // 8 + ProficiencyBonus + DexMod
-	SaveDC                   int                `json:"save_dc"` // 8 + ProficiencyBonus + PrimaryAbilityMod
+	TotalHP                  int                `json:"total_hp"`   // Deprecated: use max_hp
+	MaxHP                    int                `json:"max_hp"`     // Character's maximum HP (persisted)
+	CurrentHP                int                `json:"current_hp"` // Character's current HP (persisted)
+	TempHP                   int                `json:"temp_hp"`    // Temporary HP
+	AC                       int                `json:"ac"`         // 8 + ProficiencyBonus + DexMod
+	SaveDC                   int                `json:"save_dc"`    // 8 + ProficiencyBonus + PrimaryAbilityMod
 	MaxSpellPoints           int                `json:"max_spell_points"`
 	CurrentSpellPoints       int                `json:"current_spell_points"`
 	SavingThrowProficiencies []string           `json:"saving_throw_proficiencies"` // ability ids from class.SavingThrows
+	AvailableComponents      []models.Component `json:"available_components"`       // combined class + race components for spell crafting
+	HitDiceTotal             int                `json:"hit_dice_total"`             // Total hit dice = Level
+	HitDiceRemaining         int                `json:"hit_dice_remaining"`         // Available hit dice = Level - HitDiceUsed
+	HitDie                   int                `json:"hit_die"`                    // Class hit die (e.g., 10 for d10)
+	MeleeAttackBonus         int                `json:"melee_attack_bonus"`         // Proficiency + STR mod
+	RangedAttackBonus        int                `json:"ranged_attack_bonus"`        // Proficiency + DEX mod
 }
 
 // Spell Request/Response Types
@@ -166,6 +176,44 @@ type CreateAttackRequest struct {
 	DamageDice  string            `json:"damage_dice"`
 	Reach       *string           `json:"reach,omitempty"`
 	Description *string           `json:"description,omitempty"`
+}
+
+// HP Management Request/Response Types
+
+// UpdateHPRequest is used to apply damage or healing
+type UpdateHPRequest struct {
+	Delta int `json:"delta"` // Positive = heal, negative = damage
+}
+
+// SetTempHPRequest sets temporary HP
+type SetTempHPRequest struct {
+	TempHP int `json:"temp_hp"`
+}
+
+// UseHitDiceRequest contains the rolled values for hit dice
+type UseHitDiceRequest struct {
+	Rolls []int `json:"rolls"` // Array of roll results (d{HitDie} + ConMod each)
+}
+
+// UseHitDiceResponse returns the result of using hit dice
+type UseHitDiceResponse struct {
+	CurrentHP        int   `json:"current_hp"`
+	MaxHP            int   `json:"max_hp"`
+	HPHealed         int   `json:"hp_healed"`
+	DiceUsed         int   `json:"dice_used"`
+	DiceResults      []int `json:"dice_results"`
+	HitDiceRemaining int   `json:"hit_dice_remaining"`
+}
+
+// RestResponse returns HP state after a rest
+type RestResponse struct {
+	CurrentHP          int `json:"current_hp"`
+	MaxHP              int `json:"max_hp"`
+	TempHP             int `json:"temp_hp"`
+	CurrentSpellPoints int `json:"current_spell_points"`
+	MaxSpellPoints     int `json:"max_spell_points"`
+	HitDiceRemaining   int `json:"hit_dice_remaining"`
+	HitDiceTotal       int `json:"hit_dice_total"`
 }
 
 // API Response Types

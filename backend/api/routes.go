@@ -17,6 +17,8 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		// Race compendium (reference data, no auth required)
 		r.Get("/api/races", handlers.characterHandler.getAllRaces())
 		r.Get("/api/races/{raceID}", handlers.characterHandler.getRaceByID())
+		// Weapon compendium (reference data, no auth required)
+		r.Get("/api/weapons", handlers.weaponHandler.getAllWeapons())
 	})
 
 	// Protected API routes (token required)
@@ -49,6 +51,13 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Post("/api/character/{characterID}/level-up", handlers.levelHandler.levelUp())
 		r.Post("/api/character/{characterID}/level-down", handlers.levelHandler.levelDown())
 		r.Get("/api/character/{characterID}/level-history", handlers.levelHandler.getLevelHistory())
+
+		// HP and hit dice management endpoints
+		r.Patch("/api/character/{characterID}/hp", handlers.levelHandler.updateHP())
+		r.Put("/api/character/{characterID}/temp-hp", handlers.levelHandler.setTempHP())
+		r.Post("/api/character/{characterID}/hit-dice", handlers.levelHandler.useHitDice())
+		r.Post("/api/character/{characterID}/rest/short", handlers.levelHandler.shortRest())
+		r.Post("/api/character/{characterID}/rest/long", handlers.levelHandler.longRest())
 
 		// Spell endpoints
 		r.Get("/api/spells", handlers.spellHandler.getAllSpells())

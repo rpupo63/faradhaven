@@ -3,13 +3,14 @@ package faradhaven_races
 // Khoravar returns the Khoravar race seed
 func Khoravar() FaradhavenRaceSeed {
 	return FaradhavenRaceSeed{
-		Name:         "Khoravar",
-		PhotoURL:     "https://photos-for-apps.s3.us-east-2.amazonaws.com/khoravar.jpg",
-		Description:  "Over the course of centuries, those descended from both humans and elves have developed their own communities and traditions in Khorvaire. The rise of House Lyrandar and House Medani has strengthened this identity. Members of these communities call themselves Khoravar, an Elvish term meaning \"children of Khorvaire,\" as they dislike the term \"half-elf.\"\n\nMany Khoravar espouse the idea of being \"the bridge between,\" believing they are called to facilitate communication and cooperation between members of different cultures or species. Khoravar who follow this philosophy often become bards, diplomats, mediators, or translators. Others, fascinated by their distant connection to the Fey, seek to build bridges between the Material Plane and the Feywild of Thelanis. These Khoravar often become druids or warlocks with archfey patrons.",
-		CreatureType: "Humanoid",
-		Size:         "Medium (about 4–6 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
-		BaseSpeed:    30,
-		Traits:       khoravarTraits(),
+		Name:           "Khoravar",
+		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/khoravar.jpg",
+		Description:    "Over the course of centuries, those descended from both humans and elves have developed their own communities and traditions in Khorvaire. The rise of House Lyrandar and House Medani has strengthened this identity. Members of these communities call themselves Khoravar, an Elvish term meaning \"children of Khorvaire,\" as they dislike the term \"half-elf.\"\n\nMany Khoravar espouse the idea of being \"the bridge between,\" believing they are called to facilitate communication and cooperation between members of different cultures or species. Khoravar who follow this philosophy often become bards, diplomats, mediators, or translators. Others, fascinated by their distant connection to the Fey, seek to build bridges between the Material Plane and the Feywild of Thelanis. These Khoravar often become druids or warlocks with archfey patrons.",
+		CreatureType:   "Humanoid",
+		Size:           "Medium (about 4–6 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
+		BaseSpeed:      30,
+		Traits:         khoravarTraits(),
+		ComponentNames: []string{"Taunt", "Self"},
 	}
 }
 
@@ -30,7 +31,7 @@ func khoravarTraits() []TraitSeed {
 		},
 		{
 			Name:        "Fey Gift",
-			Description: "You know the Friends cantrip. Whenever you finish a Long Rest, you can replace that cantrip with a different cantrip from the Cleric, Druid, or Wizard spell list. Intelligence, Wisdom, or Charisma is your spellcasting ability for the spell you cast with this trait (chosen when you select this species).",
+			Description: "You know the Taunt + Self component combination (magically enhancing your charisma to influence others). Whenever you finish a Long Rest, you can replace that combination with a different cantrip-tier component combination from the Cleric, Druid, or Wizard spell list. Intelligence, Wisdom, or Charisma is your spellcasting ability for the spell you cast with this trait (chosen when you select this species).",
 			LevelReq:    1,
 			ActionType:  "Passive",
 		},
