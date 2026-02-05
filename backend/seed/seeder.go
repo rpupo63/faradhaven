@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"time"
 
 	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/unified-personal-site-backend/seed/versioning"
 	"gorm.io/gorm"
 )
 
@@ -15,6 +17,9 @@ type Seed struct {
 	Name string
 	// Run executes the seed. Return nil if successful.
 	Run func(db *gorm.DB) error
+	// HashData returns the data to be hashed for version checking.
+	// If nil, the seed will always run.
+	HashData func() (interface{}, int)
 }
 
 // Seeder manages seed operations.
@@ -52,6 +57,8 @@ func (s *Seeder) ClearAllData() error {
 		"weapon_damages",
 
 		// Class child tables (not the classes themselves - characters reference them)
+		"class_starting_equipment_options",
+		"class_starting_equipment_choices",
 		"class_components",
 		"level_features",
 		"class_levels",
@@ -61,9 +68,6 @@ func (s *Seeder) ClearAllData() error {
 		"trait_options",
 		"traits",
 		"lineages",
-
-		// Drop the old seed_versions table if it exists
-		"seed_versions",
 	}
 
 	for _, table := range tablesToClear {
@@ -75,49 +79,91 @@ func (s *Seeder) ClearAllData() error {
 		}
 	}
 
+	// Also clear seed metadata to force full re-seed
+	if err := versioning.ClearSeedMetadata(s.db); err != nil {
+		log.Printf("  Note: Could not clear seed_metadata: %v", err)
+	}
+
 	log.Println("Child data cleared")
 	return nil
 }
 
 // ClearAndSeed clears all seeded data and runs all seeds from scratch.
-// This is a simple approach: delete everything, then reseed.
+// Each seed runs in its own transaction for atomic failure handling.
 func (s *Seeder) ClearAndSeed() error {
 	// Clear all existing seeded data
 	if err := s.ClearAllData(); err != nil {
 		return fmt.Errorf("failed to clear data: %w", err)
 	}
 
-	// Sort seeds by name for consistent ordering
-	sort.Slice(s.seeds, func(i, j int) bool {
-		return s.seeds[i].Name < s.seeds[j].Name
-	})
-
-	// Run all seeds
-	for _, seed := range s.seeds {
-		log.Printf("Running seed: %s", seed.Name)
-		if err := seed.Run(s.db); err != nil {
-			return fmt.Errorf("seed %s failed: %w", seed.Name, err)
-		}
-		log.Printf("Seed completed: %s", seed.Name)
-	}
-
-	return nil
+	return s.runSeeds(true) // Force all seeds to run
 }
 
 // RunAll runs all registered seeds (without clearing first).
-// Useful for seeding an empty database.
+// Uses version checking to skip unchanged seeds.
+// Useful for seeding an empty database or updating after changes.
 func (s *Seeder) RunAll() error {
+	return s.runSeeds(false) // Use version checking
+}
+
+// runSeeds executes all seeds with optional version checking.
+// Each seed runs in its own transaction.
+func (s *Seeder) runSeeds(force bool) error {
 	// Sort seeds by name for consistent ordering
 	sort.Slice(s.seeds, func(i, j int) bool {
 		return s.seeds[i].Name < s.seeds[j].Name
 	})
 
 	for _, seed := range s.seeds {
+		var contentHash string
+		var recordCount int
+
+		// Check if seed needs to run (version check)
+		if !force && seed.HashData != nil {
+			data, count := seed.HashData()
+			recordCount = count
+
+			hash, err := versioning.ComputeSeedHash(data)
+			if err != nil {
+				log.Printf("Warning: could not compute hash for %s: %v", seed.Name, err)
+			} else {
+				contentHash = hash
+				shouldRun, err := versioning.ShouldRunSeed(s.db, seed.Name, hash)
+				if err != nil {
+					log.Printf("Warning: could not check version for %s: %v", seed.Name, err)
+				} else if !shouldRun {
+					log.Printf("Skipping seed (unchanged): %s", seed.Name)
+					continue
+				}
+			}
+		}
+
 		log.Printf("Running seed: %s", seed.Name)
-		if err := seed.Run(s.db); err != nil {
+		start := time.Now()
+
+		// Run seed in a transaction
+		err := s.db.Transaction(func(tx *gorm.DB) error {
+			return seed.Run(tx)
+		})
+
+		duration := time.Since(start)
+
+		if err != nil {
+			// Record failed seed
+			if contentHash != "" {
+				_ = versioning.RecordSeedRun(s.db, seed.Name, contentHash, recordCount, duration, "failed")
+			}
 			return fmt.Errorf("seed %s failed: %w", seed.Name, err)
 		}
-		log.Printf("Seed completed: %s", seed.Name)
+
+		// Record successful seed
+		if contentHash != "" {
+			if err := versioning.RecordSeedRun(s.db, seed.Name, contentHash, recordCount, duration, "success"); err != nil {
+				log.Printf("Warning: could not record seed run for %s: %v", seed.Name, err)
+			}
+		}
+
+		log.Printf("Seed completed: %s (%dms)", seed.Name, duration.Milliseconds())
 	}
 
 	return nil

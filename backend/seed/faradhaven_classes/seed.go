@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/unified-personal-site-backend/seed/batch"
 	"github.com/rpupo63/unified-personal-site-backend/seed/uuids"
 	"gorm.io/gorm"
 )
@@ -23,6 +24,16 @@ func AllClasses() []FaradhavenClassSeed {
 		VaporBlade(),
 		Lorewright(),
 	}
+}
+
+// ClassComponentLink represents a class-component join table entry
+type ClassComponentLink struct {
+	ClassID     string `gorm:"type:uuid;primaryKey"`
+	ComponentID string `gorm:"type:uuid;primaryKey"`
+}
+
+func (ClassComponentLink) TableName() string {
+	return "class_components"
 }
 
 // proficiencyByLevel returns proficiency bonus for level 1-20 (D&D-style)
@@ -76,71 +87,6 @@ func parseFeature(feature string) (name, description string) {
 	return strings.TrimSpace(feature), ""
 }
 
-// createLevelFeatures creates structured LevelFeature records from the seed data
-// archetypeMap maps archetype name to its database record (for linking archetype-specific features)
-func createLevelFeatures(db *gorm.DB, cl models.ClassLevel, cs FaradhavenClassSeed, level int, archetypeMap map[string]*models.Archetype) error {
-	sortOrder := 0
-
-	// For level 1, include class features
-	if level == 1 {
-		for _, f := range cs.ClassFeatures {
-			name, desc := parseFeature(f)
-			lf := models.LevelFeature{
-				ClassLevelID: cl.ID,
-				Name:         name,
-				Description:  desc,
-				SortOrder:    sortOrder,
-			}
-			if err := db.Create(&lf).Error; err != nil {
-				return err
-			}
-			sortOrder++
-		}
-	}
-
-	// Add level-specific shared features (nil ArchetypeID = all archetypes get this)
-	if cs.LevelFeatures != nil {
-		if f, ok := cs.LevelFeatures[level]; ok && f != "" {
-			name, desc := parseFeature(f)
-			lf := models.LevelFeature{
-				ClassLevelID: cl.ID,
-				ArchetypeID:  nil, // shared by all archetypes
-				Name:         name,
-				Description:  desc,
-				SortOrder:    sortOrder,
-			}
-			if err := db.Create(&lf).Error; err != nil {
-				return err
-			}
-			sortOrder++
-		}
-	}
-
-	// Add archetype-specific features for this level
-	for _, as := range cs.Archetypes {
-		if f, ok := as.Features[level]; ok && f != "" {
-			archetype := archetypeMap[as.Name]
-			if archetype == nil {
-				continue
-			}
-			name, desc := parseFeature(f)
-			lf := models.LevelFeature{
-				ClassLevelID: cl.ID,
-				ArchetypeID:  &archetype.ID,
-				Name:         name,
-				Description:  desc,
-				SortOrder:    sortOrder,
-			}
-			if err := db.Create(&lf).Error; err != nil {
-				return err
-			}
-			sortOrder++
-		}
-	}
-
-	return nil
-}
-
 // buildLevel1Features formats class features, proficiencies, and other metadata for ClassLevel.Features
 func buildLevel1Features(cs FaradhavenClassSeed) string {
 	var b strings.Builder
@@ -159,186 +105,138 @@ func buildLevel1Features(cs FaradhavenClassSeed) string {
 	return b.String()
 }
 
-// seedEquipmentChoices persists the starting equipment choices for a class
-func seedEquipmentChoices(db *gorm.DB, classID uuid.UUID, className string, choices []EquipmentChoiceSeed) error {
-	for i, choiceSeed := range choices {
-		choiceID := uuids.EquipmentChoiceUUID(className, choiceSeed.Instruction)
+// SeedComponents creates Component rows for all spell system components.
+// This is run before classes to ensure components exist for linking.
+func SeedComponents(tx *gorm.DB) error {
+	componentSeeds := SpellSystemComponents()
+	components := make([]models.Component, 0, len(componentSeeds))
 
-		var choice models.ClassStartingEquipmentChoice
-		err := db.Where("id = ?", choiceID).First(&choice).Error
-		if err == gorm.ErrRecordNotFound {
-			choice = models.ClassStartingEquipmentChoice{
+	for _, comp := range componentSeeds {
+		componentID := uuids.ComponentUUID(comp.Name)
+		components = append(components, models.Component{
+			ID:          componentID,
+			Name:        comp.Name,
+			Symbol:      comp.Symbol,
+			Category:    comp.Category,
+			Description: comp.Description,
+			Element:     comp.Element,
+		})
+	}
+
+	// Batch upsert components (ON CONFLICT DO UPDATE)
+	if err := batch.UpsertBatchUpdateAll(tx, components, batch.DefaultBatchSize); err != nil {
+		return err
+	}
+	log.Printf("Upserted %d components", len(components))
+
+	return nil
+}
+
+// SeedFaradhavenClasses creates Class, ClassLevel, Archetype, LevelFeature, and ClassComponent rows.
+// Uses batch operations and deterministic UUIDs for efficient reseeding.
+func SeedFaradhavenClasses(tx *gorm.DB) error {
+	classSeeds := AllClasses()
+
+	// Step 1: Collect all entities into slices
+	classes := make([]models.Class, 0, len(classSeeds))
+	var allArchetypes []models.Archetype
+	var allClassLevels []models.ClassLevel
+	var allLevelFeatures []models.LevelFeature
+	var allEquipmentChoices []models.ClassStartingEquipmentChoice
+	var allEquipmentOptions []models.ClassStartingEquipmentOption
+	var allClassComponents []ClassComponentLink
+
+	// Build archetype map for level feature references
+	archetypeMap := make(map[string]uuid.UUID) // "ClassName:ArchetypeName" -> archetypeID
+
+	for _, cs := range classSeeds {
+		classID := uuids.ClassUUID(cs.Name)
+
+		// Map weapon/item names to UUID strings
+		weaponIDs := make([]string, len(cs.AutomaticWeaponNames))
+		for i, name := range cs.AutomaticWeaponNames {
+			weaponIDs[i] = uuids.WeaponUUID(name).String()
+		}
+		itemIDs := make([]string, len(cs.AutomaticItemNames))
+		for i, name := range cs.AutomaticItemNames {
+			itemIDs[i] = uuids.ItemUUID(name).String()
+		}
+
+		classes = append(classes, models.Class{
+			ID:                classID,
+			Name:              cs.Name,
+			Description:       cs.Description,
+			HitDie:            cs.HitDie,
+			PrimaryAbility:    cs.PrimaryAbility,
+			PhotoURL:          cs.PhotoURL,
+			ArchetypeLevel:    cs.ArchetypeLevel,
+			Proficiencies:     cs.Proficiencies,
+			SkillFocus:        pq.StringArray(cs.DnDSkillFocus),
+			SkillChoice:       pq.StringArray(cs.SkillChoice),
+			SkillChoiceCount:  2, // D&D 5e standard
+			Tools:             pq.StringArray(cs.Tools),
+			SavingThrows:      pq.StringArray(cs.SavingThrows),
+			StartingEquip:     pq.StringArray(cs.AutomaticEquipNames),
+			StartingWeaponIDs: pq.StringArray(weaponIDs),
+			StartingItemIDs:   pq.StringArray(itemIDs),
+		})
+
+		// Collect archetypes
+		for i, as := range cs.Archetypes {
+			archetypeID := uuids.ArchetypeUUID(cs.Name, as.Name)
+			archetypeMap[cs.Name+":"+as.Name] = archetypeID
+
+			allArchetypes = append(allArchetypes, models.Archetype{
+				ID:          archetypeID,
+				ClassID:     classID,
+				Name:        as.Name,
+				Description: as.Description,
+				SortOrder:   i,
+			})
+		}
+
+		// Collect equipment choices and options
+		for i, choiceSeed := range cs.EquipmentChoices {
+			choiceID := uuids.EquipmentChoiceUUID(cs.Name, choiceSeed.Instruction)
+
+			allEquipmentChoices = append(allEquipmentChoices, models.ClassStartingEquipmentChoice{
 				ID:          choiceID,
 				ClassID:     classID,
 				Instruction: choiceSeed.Instruction,
 				SortOrder:   i,
-			}
-			if err := db.Create(&choice).Error; err != nil {
-				return err
-			}
-		} else if err != nil {
-			return err
-		}
+			})
 
-		// Seed options for this choice
-		for _, optionSeed := range choiceSeed.Options {
-			optionID := uuids.EquipmentOptionUUID(choiceID, optionSeed.Description)
+			for _, optionSeed := range choiceSeed.Options {
+				optionID := uuids.EquipmentOptionUUID(choiceID, optionSeed.Description)
 
-			// Map WeaponNames and ItemNames to deterministic UUIDs
-			weaponIDs := make([]string, len(optionSeed.WeaponNames))
-			for i, name := range optionSeed.WeaponNames {
-				weaponIDs[i] = uuids.WeaponUUID(name).String()
-			}
+				optWeaponIDs := make([]string, len(optionSeed.WeaponNames))
+				for j, name := range optionSeed.WeaponNames {
+					optWeaponIDs[j] = uuids.WeaponUUID(name).String()
+				}
+				optItemIDs := make([]string, len(optionSeed.ItemNames))
+				for j, name := range optionSeed.ItemNames {
+					optItemIDs[j] = uuids.ItemUUID(name).String()
+				}
 
-			itemIDs := make([]string, len(optionSeed.ItemNames))
-			for i, name := range optionSeed.ItemNames {
-				itemIDs[i] = uuids.ItemUUID(name).String()
-			}
-
-			var option models.ClassStartingEquipmentOption
-			err := db.Where("id = ?", optionID).First(&option).Error
-			if err == gorm.ErrRecordNotFound {
-				option = models.ClassStartingEquipmentOption{
+				allEquipmentOptions = append(allEquipmentOptions, models.ClassStartingEquipmentOption{
 					ID:          optionID,
 					ChoiceID:    choiceID,
 					Description: optionSeed.Description,
 					Items:       pq.StringArray(optionSeed.Items),
-					WeaponIDs:   pq.StringArray(weaponIDs),
-					ItemIDs:     pq.StringArray(itemIDs),
-				}
-				if err := db.Create(&option).Error; err != nil {
-					return err
-				}
-			} else if err == nil {
-				// Update existing to include IDs
-				option.WeaponIDs = pq.StringArray(weaponIDs)
-				option.ItemIDs = pq.StringArray(itemIDs)
-				option.Items = pq.StringArray(optionSeed.Items)
-				if err := db.Save(&option).Error; err != nil {
-					return err
-				}
-			} else if err != nil {
-				return err
+					WeaponIDs:   pq.StringArray(optWeaponIDs),
+					ItemIDs:     pq.StringArray(optItemIDs),
+				})
 			}
 		}
-	}
-	return nil
-}
 
-// SeedFaradhavenClasses creates Class, ClassLevel (1-20), Archetype, and ClassComponent rows for all Faradhaven classes.
-// Uses deterministic UUIDs so reseeding doesn't break character references.
-func SeedFaradhavenClasses(db *gorm.DB) error {
-	for _, cs := range AllClasses() {
-		// Generate deterministic UUID for this class
-		classID := uuids.ClassUUID(cs.Name)
-
-		var c models.Class
-		err := db.Where("id = ?", classID).First(&c).Error
-		if err == nil {
-			// Map Automatic names to UUID strings
-			weaponIDs := make([]string, len(cs.AutomaticWeaponNames))
-			for i, name := range cs.AutomaticWeaponNames {
-				weaponIDs[i] = uuids.WeaponUUID(name).String()
-			}
-			itemIDs := make([]string, len(cs.AutomaticItemNames))
-			for i, name := range cs.AutomaticItemNames {
-				itemIDs[i] = uuids.ItemUUID(name).String()
-			}
-
-			// Update existing class with new fields
-			c.Name = cs.Name
-			c.Description = cs.Description
-			c.PhotoURL = cs.PhotoURL
-			c.ArchetypeLevel = cs.ArchetypeLevel
-			c.StartingEquip = pq.StringArray(cs.AutomaticEquipNames)
-			c.StartingWeaponIDs = pq.StringArray(weaponIDs)
-			c.StartingItemIDs = pq.StringArray(itemIDs)
-
-			if err := db.Save(&c).Error; err != nil {
-				return err
-			}
-			log.Printf("Updated class: %s", cs.Name)
-		} else if err == gorm.ErrRecordNotFound {
-			// Map Automatic names to UUID strings
-			weaponIDs := make([]string, len(cs.AutomaticWeaponNames))
-			for i, name := range cs.AutomaticWeaponNames {
-				weaponIDs[i] = uuids.WeaponUUID(name).String()
-			}
-			itemIDs := make([]string, len(cs.AutomaticItemNames))
-			for i, name := range cs.AutomaticItemNames {
-				itemIDs[i] = uuids.ItemUUID(name).String()
-			}
-
-			c = models.Class{
-				ID:               classID,
-				Name:             cs.Name,
-				Description:      cs.Description,
-				HitDie:           cs.HitDie,
-				PrimaryAbility:   cs.PrimaryAbility,
-				PhotoURL:         cs.PhotoURL,
-				ArchetypeLevel:   cs.ArchetypeLevel,
-				Proficiencies:    cs.Proficiencies,
-				SkillFocus:       pq.StringArray(cs.DnDSkillFocus),
-				SkillChoice:      pq.StringArray(cs.SkillChoice),
-				SkillChoiceCount: 2, // D&D 5e standard: choose 2 from SkillChoice
-				Tools:            pq.StringArray(cs.Tools),
-				SavingThrows:     pq.StringArray(cs.SavingThrows),
-				StartingEquip:    pq.StringArray(cs.AutomaticEquipNames),
-				StartingWeaponIDs: pq.StringArray(weaponIDs),
-				StartingItemIDs:   pq.StringArray(itemIDs),
-			}
-			if err := db.Create(&c).Error; err != nil {
-				return err
-			}
-			log.Printf("Created class: %s (ID: %s)", c.Name, c.ID)
-		} else {
-			return err
-		}
-
-		// Seed Equipment Choices
-		if err := seedEquipmentChoices(db, c.ID, c.Name, cs.EquipmentChoices); err != nil {
-			return err
-		}
-
-		// Create archetypes for this class with deterministic UUIDs
-		archetypeMap := make(map[string]*models.Archetype) // name -> archetype for later lookup
-		for i, as := range cs.Archetypes {
-			archetypeID := uuids.ArchetypeUUID(cs.Name, as.Name)
-
-			var archetype models.Archetype
-			err := db.Where("id = ?", archetypeID).First(&archetype).Error
-			if err == gorm.ErrRecordNotFound {
-				archetype = models.Archetype{
-					ID:          archetypeID,
-					ClassID:     c.ID,
-					Name:        as.Name,
-					Description: as.Description,
-					SortOrder:   i,
-				}
-				if err := db.Create(&archetype).Error; err != nil {
-					return err
-				}
-				log.Printf("  Created archetype: %s (ID: %s)", as.Name, archetypeID)
-			} else if err != nil {
-				return err
-			}
-			archetypeMap[as.Name] = &archetype
-		}
-
-		// ClassLevel 1-20
+		// Collect class levels (1-20) and their features
 		for level := 1; level <= 20; level++ {
-			var cl models.ClassLevel
-			err := db.Where("class_id = ? AND level = ?", c.ID, level).First(&cl).Error
-			if err == nil {
-				continue
-			}
-			if err != gorm.ErrRecordNotFound {
-				return err
-			}
-
+			classLevelID := uuids.ClassLevelUUID(cs.Name, level)
 			avgHitDie := (cs.HitDie + 1) / 2
-			cl = models.ClassLevel{
-				ClassID:                 c.ID,
+
+			cl := models.ClassLevel{
+				ID:                      classLevelID,
+				ClassID:                 classID,
 				Level:                   level,
 				HpGain:                  avgHitDie,
 				ProficiencyBonus:        proficiencyByLevel(level),
@@ -346,7 +244,7 @@ func SeedFaradhavenClasses(db *gorm.DB) error {
 				AbilityScoreImprovement: abilityScoreImprovementByLevel(level),
 			}
 
-			// Apply structured level progression data from seed
+			// Apply structured level progression data
 			if cs.LevelProgression != nil {
 				if lp, ok := cs.LevelProgression[level]; ok {
 					if lp.CantripsKnown != nil {
@@ -369,6 +267,7 @@ func SeedFaradhavenClasses(db *gorm.DB) error {
 				}
 			}
 
+			// Set Features text
 			if level == 1 {
 				cl.Features = buildLevel1Features(cs)
 				if cs.LevelFeatures != nil {
@@ -381,61 +280,134 @@ func SeedFaradhavenClasses(db *gorm.DB) error {
 					cl.Features = f
 				}
 			}
-			if err := db.Create(&cl).Error; err != nil {
-				return err
+
+			allClassLevels = append(allClassLevels, cl)
+
+			// Collect level features
+			sortOrder := 0
+
+			// Level 1: include class features
+			if level == 1 {
+				for _, f := range cs.ClassFeatures {
+					name, desc := parseFeature(f)
+					featureID := uuids.LevelFeatureUUID(classLevelID, name, sortOrder)
+					allLevelFeatures = append(allLevelFeatures, models.LevelFeature{
+						ID:           featureID,
+						ClassLevelID: classLevelID,
+						Name:         name,
+						Description:  desc,
+						SortOrder:    sortOrder,
+					})
+					sortOrder++
+				}
 			}
 
-			// Create structured LevelFeature records (including archetype-specific ones)
-			if err := createLevelFeatures(db, cl, cs, level, archetypeMap); err != nil {
-				return err
+			// Level-specific shared features (nil ArchetypeID = all archetypes get this)
+			if cs.LevelFeatures != nil {
+				if f, ok := cs.LevelFeatures[level]; ok && f != "" {
+					name, desc := parseFeature(f)
+					featureID := uuids.LevelFeatureUUID(classLevelID, name, sortOrder)
+					allLevelFeatures = append(allLevelFeatures, models.LevelFeature{
+						ID:           featureID,
+						ClassLevelID: classLevelID,
+						ArchetypeID:  nil, // shared by all archetypes
+						Name:         name,
+						Description:  desc,
+						SortOrder:    sortOrder,
+					})
+					sortOrder++
+				}
+			}
+
+			// Archetype-specific features for this level
+			for _, as := range cs.Archetypes {
+				if f, ok := as.Features[level]; ok && f != "" {
+					archetypeID := archetypeMap[cs.Name+":"+as.Name]
+					name, desc := parseFeature(f)
+					featureID := uuids.LevelFeatureUUID(classLevelID, name, sortOrder)
+					allLevelFeatures = append(allLevelFeatures, models.LevelFeature{
+						ID:           featureID,
+						ClassLevelID: classLevelID,
+						ArchetypeID:  &archetypeID,
+						Name:         name,
+						Description:  desc,
+						SortOrder:    sortOrder,
+					})
+					sortOrder++
+				}
 			}
 		}
 
-		// Components and ClassComponent links (from faradhaven_components.go)
+		// Collect class-component links
 		for _, m := range AllComponentClassMappings() {
-			if m.ClassName != cs.Name {
-				continue
-			}
-			comp := m.Component
-			// Generate deterministic UUID for this component
-			componentID := uuids.ComponentUUID(comp.Name)
-
-			var component models.Component
-			err := db.Where("id = ?", componentID).First(&component).Error
-			if err == gorm.ErrRecordNotFound {
-				component = models.Component{
-					ID:          componentID,
-					Name:        comp.Name,
-					Symbol:      comp.Symbol,
-					Category:    comp.Category,
-					Description: comp.Description,
-					Element:     comp.Element,
-				}
-				if err := db.Create(&component).Error; err != nil {
-					return err
-				}
-				log.Printf("  Created component: %s [%s] (%s) (ID: %s)", comp.Name, comp.Symbol, comp.Category, componentID)
-			} else if err != nil {
-				return err
-			}
-
-			// Check if ClassComponent link already exists
-			var classComponent models.ClassComponent
-			err = db.Where("class_id = ? AND component_id = ?", c.ID, componentID).First(&classComponent).Error
-			if err == gorm.ErrRecordNotFound {
-				classComponent = models.ClassComponent{
-					ClassID:     c.ID,
-					ComponentID: componentID,
-				}
-				if err := db.Create(&classComponent).Error; err != nil {
-					return err
-				}
-				log.Printf("  Linked component %s to class %s", comp.Name, cs.Name)
-			} else if err != nil {
-				return err
+			if m.ClassName == cs.Name {
+				componentID := uuids.ComponentUUID(m.Component.Name)
+				allClassComponents = append(allClassComponents, ClassComponentLink{
+					ClassID:     classID.String(),
+					ComponentID: componentID.String(),
+				})
 			}
 		}
 	}
+
+	// Step 2: Clear child tables (order matters for foreign keys)
+	tablesToClear := []string{
+		"class_starting_equipment_options",
+		"class_starting_equipment_choices",
+		"level_features",
+		"class_levels",
+		"class_components",
+	}
+	for _, table := range tablesToClear {
+		if err := tx.Exec("DELETE FROM " + table).Error; err != nil {
+			log.Printf("  Note: Could not clear %s: %v", table, err)
+		}
+	}
+
+	// Step 3: Batch upsert classes (ON CONFLICT DO UPDATE)
+	if err := batch.UpsertBatchUpdateAll(tx, classes, batch.DefaultBatchSize); err != nil {
+		return err
+	}
+	log.Printf("Upserted %d classes", len(classes))
+
+	// Step 4: Batch upsert archetypes (ON CONFLICT DO UPDATE)
+	if err := batch.UpsertBatchUpdateAll(tx, allArchetypes, batch.DefaultBatchSize); err != nil {
+		return err
+	}
+	log.Printf("Upserted %d archetypes", len(allArchetypes))
+
+	// Step 5: Batch insert class levels
+	if err := batch.InsertBatch(tx, allClassLevels, batch.DefaultBatchSize); err != nil {
+		return err
+	}
+	log.Printf("Inserted %d class levels", len(allClassLevels))
+
+	// Step 6: Batch insert level features
+	if err := batch.InsertBatch(tx, allLevelFeatures, batch.DefaultBatchSize); err != nil {
+		return err
+	}
+	log.Printf("Inserted %d level features", len(allLevelFeatures))
+
+	// Step 7: Batch insert equipment choices
+	if err := batch.InsertBatch(tx, allEquipmentChoices, batch.DefaultBatchSize); err != nil {
+		return err
+	}
+	log.Printf("Inserted %d equipment choices", len(allEquipmentChoices))
+
+	// Step 8: Batch insert equipment options
+	if err := batch.InsertBatch(tx, allEquipmentOptions, batch.DefaultBatchSize); err != nil {
+		return err
+	}
+	log.Printf("Inserted %d equipment options", len(allEquipmentOptions))
+
+	// Step 9: Batch insert class-component links
+	if len(allClassComponents) > 0 {
+		if err := tx.CreateInBatches(allClassComponents, batch.DefaultBatchSize).Error; err != nil {
+			return err
+		}
+		log.Printf("Inserted %d class-component links", len(allClassComponents))
+	}
+
 	return nil
 }
 

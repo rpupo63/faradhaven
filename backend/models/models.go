@@ -40,5 +40,8 @@ func AllModels() []interface{} {
 		&Weapon{},
 		&WeaponDamage{},
 		&Item{},
+
+		// Seed tracking
+		&SeedMetadata{},
 	}
 }

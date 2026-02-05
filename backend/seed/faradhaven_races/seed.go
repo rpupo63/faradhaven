@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/unified-personal-site-backend/seed/batch"
 	"github.com/rpupo63/unified-personal-site-backend/seed/uuids"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
@@ -37,11 +38,28 @@ func AllRaces() []FaradhavenRaceSeed {
 	}
 }
 
-// SeedFaradhavenRaces creates Race, Trait, TraitOption, and RaceComponent rows for all Faradhaven races.
+// RaceComponentLink represents a race-component join table entry
+type RaceComponentLink struct {
+	RaceID      string `gorm:"type:uuid;primaryKey"`
+	ComponentID string `gorm:"type:uuid;primaryKey"`
+}
+
+func (RaceComponentLink) TableName() string {
+	return "race_components"
+}
+
+// SeedFaradhavenRaces creates Race, Trait, TraitOption, and RaceComponent rows using batch operations.
 // Uses deterministic UUIDs so reseeding doesn't break character references.
-func SeedFaradhavenRaces(db *gorm.DB) error {
-	for _, rs := range AllRaces() {
-		// Generate deterministic UUID for this race
+func SeedFaradhavenRaces(tx *gorm.DB) error {
+	raceSeeds := AllRaces()
+
+	// Step 1: Collect all entities into slices
+	races := make([]models.Race, 0, len(raceSeeds))
+	var allTraits []models.Trait
+	var allTraitOptions []models.TraitOption
+	var allRaceComponents []RaceComponentLink
+
+	for _, rs := range raceSeeds {
 		raceID := uuids.RaceUUID(rs.Name)
 
 		// Marshal AbilityScoreBonuses to JSON
@@ -54,71 +72,43 @@ func SeedFaradhavenRaces(db *gorm.DB) error {
 			bonusesJSON = datatypes.JSON(b)
 		}
 
-		var r models.Race
-		err := db.Where("id = ?", raceID).First(&r).Error
-		switch {
-		case err == gorm.ErrRecordNotFound:
-			r = models.Race{
-				ID:                  raceID,
-				Name:                rs.Name,
-				Description:         rs.Description,
-				CreatureType:        rs.CreatureType,
-				Size:                rs.Size,
-				BaseSpeed:           rs.BaseSpeed,
-				PhotoURL:            rs.PhotoURL,
-				AbilityScoreBonuses: bonusesJSON,
-			}
-			if err := db.Create(&r).Error; err != nil {
-				return err
-			}
-			log.Printf("Created race: %s (ID: %s)", r.Name, r.ID)
-		case err == nil:
-			updates := map[string]interface{}{
-				"name":                  rs.Name,
-				"description":           rs.Description,
-				"creature_type":         rs.CreatureType,
-				"size":                  rs.Size,
-				"base_speed":            rs.BaseSpeed,
-				"photo_url":             rs.PhotoURL,
-				"ability_score_bonuses": bonusesJSON,
-			}
-			if err := db.Model(&r).Updates(updates).Error; err != nil {
-				return err
-			}
-			log.Printf("Updated race: %s", r.Name)
-			if err := db.Where("race_id = ?", r.ID).Delete(&models.Trait{}).Error; err != nil {
-				return err
-			}
-			// Clear existing race_components for re-seeding
-			if err := db.Exec("DELETE FROM race_components WHERE race_id = ?", r.ID).Error; err != nil {
-				return err
-			}
-		default:
-			return err
-		}
+		races = append(races, models.Race{
+			ID:                  raceID,
+			Name:                rs.Name,
+			Description:         rs.Description,
+			CreatureType:        rs.CreatureType,
+			Size:                rs.Size,
+			BaseSpeed:           rs.BaseSpeed,
+			PhotoURL:            rs.PhotoURL,
+			AbilityScoreBonuses: bonusesJSON,
+		})
 
+		// Collect traits
 		for _, ts := range rs.Traits {
-			t := models.Trait{
-				RaceID:         &r.ID,
+			traitID := uuids.TraitUUID(rs.Name, ts.Name)
+			levelReq := ts.LevelReq
+			if levelReq == 0 {
+				levelReq = 1
+			}
+
+			allTraits = append(allTraits, models.Trait{
+				ID:             traitID,
+				RaceID:         &raceID,
 				Name:           ts.Name,
 				Description:    ts.Description,
-				LevelReq:       ts.LevelReq,
+				LevelReq:       levelReq,
 				ActionType:     ts.ActionType,
 				UsesPerRest:    ts.UsesPerRest,
 				ResetCondition: ts.ResetCondition,
 				RangeValue:     ts.RangeValue,
 				AreaOfEffect:   ts.AreaOfEffect,
 				SaveAbility:    ts.SaveAbility,
-			}
-			if ts.LevelReq == 0 {
-				t.LevelReq = 1
-			}
-			if err := db.Create(&t).Error; err != nil {
-				return err
-			}
+			})
 
+			// Collect trait options
 			for _, opt := range ts.Options {
-				// Marshal Option Bonuses
+				optionID := uuids.TraitOptionUUID(traitID, opt.Name)
+
 				var optBonusesJSON datatypes.JSON
 				if opt.AbilityScoreBonuses != nil {
 					b, err := json.Marshal(opt.AbilityScoreBonuses)
@@ -128,39 +118,64 @@ func SeedFaradhavenRaces(db *gorm.DB) error {
 					optBonusesJSON = datatypes.JSON(b)
 				}
 
-				o := models.TraitOption{
-					TraitID:             t.ID,
+				allTraitOptions = append(allTraitOptions, models.TraitOption{
+					ID:                  optionID,
+					TraitID:             traitID,
 					Name:                opt.Name,
 					Description:         opt.Description,
 					AbilityScoreBonuses: optBonusesJSON,
-				}
-				if err := db.Create(&o).Error; err != nil {
-					return err
-				}
+				})
 			}
 		}
 
-		// Link components to race (for spell crafting)
+		// Collect race-component links
 		for _, compName := range rs.ComponentNames {
-			// Use deterministic component UUID
 			componentID := uuids.ComponentUUID(compName)
-
-			// Verify component exists
-			var component models.Component
-			if err := db.Where("id = ?", componentID).First(&component).Error; err != nil {
-				if err == gorm.ErrRecordNotFound {
-					log.Printf("  Warning: Component '%s' not found for race %s", compName, rs.Name)
-					continue
-				}
-				return err
-			}
-
-			// Insert into race_components join table
-			if err := db.Exec("INSERT INTO race_components (race_id, component_id) VALUES (?, ?) ON CONFLICT DO NOTHING", r.ID, componentID).Error; err != nil {
-				return err
-			}
-			log.Printf("  Linked component %s to race %s", compName, rs.Name)
+			allRaceComponents = append(allRaceComponents, RaceComponentLink{
+				RaceID:      raceID.String(),
+				ComponentID: componentID.String(),
+			})
 		}
 	}
+
+	// Step 2: Clear child tables (will be fully replaced)
+	// Order matters: delete children before parents due to foreign keys
+	if err := tx.Exec("DELETE FROM trait_options").Error; err != nil {
+		log.Printf("  Note: Could not clear trait_options: %v", err)
+	}
+	if err := tx.Exec("DELETE FROM traits").Error; err != nil {
+		log.Printf("  Note: Could not clear traits: %v", err)
+	}
+	if err := tx.Exec("DELETE FROM race_components").Error; err != nil {
+		log.Printf("  Note: Could not clear race_components: %v", err)
+	}
+
+	// Step 3: Batch upsert races (ON CONFLICT DO UPDATE)
+	if err := batch.UpsertBatchUpdateAll(tx, races, batch.DefaultBatchSize); err != nil {
+		return err
+	}
+	log.Printf("Upserted %d races", len(races))
+
+	// Step 4: Batch insert traits
+	if err := batch.InsertBatch(tx, allTraits, batch.DefaultBatchSize); err != nil {
+		return err
+	}
+	log.Printf("Inserted %d traits", len(allTraits))
+
+	// Step 5: Batch insert trait options
+	if err := batch.InsertBatch(tx, allTraitOptions, batch.DefaultBatchSize); err != nil {
+		return err
+	}
+	log.Printf("Inserted %d trait options", len(allTraitOptions))
+
+	// Step 6: Batch insert race-component links
+	// Use raw insert to handle the join table
+	if len(allRaceComponents) > 0 {
+		if err := tx.CreateInBatches(allRaceComponents, batch.DefaultBatchSize).Error; err != nil {
+			return err
+		}
+		log.Printf("Inserted %d race-component links", len(allRaceComponents))
+	}
+
 	return nil
 }
