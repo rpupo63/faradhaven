@@ -17,6 +17,8 @@ var (
 	ErrNoHistoryForLevel     = errors.New("no level-up history found for this level")
 	ErrInsufficientASIPoints = errors.New("ASI allocation exceeds available points")
 	ErrUnauthorized          = errors.New("unauthorized: character belongs to different user")
+	ErrArchetypeRequired     = errors.New("archetype selection required at this level")
+	ErrInvalidArchetype      = errors.New("invalid archetype for this class")
 )
 
 type LevelUpService struct {
@@ -24,6 +26,7 @@ type LevelUpService struct {
 	characterRepo *database.CharacterRepo
 	classRepo     *database.ClassRepo
 	historyRepo   *database.LevelUpHistoryRepo
+	archetypeRepo *database.ArchetypeRepo
 }
 
 func NewLevelUpService(
@@ -31,12 +34,14 @@ func NewLevelUpService(
 	characterRepo *database.CharacterRepo,
 	classRepo *database.ClassRepo,
 	historyRepo *database.LevelUpHistoryRepo,
+	archetypeRepo *database.ArchetypeRepo,
 ) *LevelUpService {
 	return &LevelUpService{
 		db:            db,
 		characterRepo: characterRepo,
 		classRepo:     classRepo,
 		historyRepo:   historyRepo,
+		archetypeRepo: archetypeRepo,
 	}
 }
 
@@ -47,6 +52,7 @@ type LevelUpRequest struct {
 	ASIAllocation   map[string]int `json:"asi_allocation,omitempty"`   // {"strength": 1, "dexterity": 1}
 	SpellsLearned   []string       `json:"spells_learned,omitempty"`   // new spell IDs
 	HPRollResult    *int           `json:"hp_roll_result,omitempty"`   // nil = use average, otherwise the rolled value
+	ArchetypeID     *uuid.UUID     `json:"archetype_id,omitempty"`     // required when reaching archetype level
 }
 
 // LevelUpResponse contains the result of a level-up operation
@@ -59,15 +65,17 @@ type LevelUpResponse struct {
 
 // LevelUpPreview returns what will be available at the next level
 type LevelUpPreview struct {
-	CurrentLevel       int                `json:"current_level"`
-	NextLevel          int                `json:"next_level"`
-	ClassLevel         *models.ClassLevel `json:"class_level"`
-	ASIPointsAvailable int                `json:"asi_points_available"`
-	NewSpellsAllowed   int                `json:"new_spells_allowed"`
-	HitDie             int                `json:"hit_die"`              // Class hit die (e.g., 10 for d10)
-	ConMod             int                `json:"con_mod"`              // Current CON modifier
-	HPGainAverage      int                `json:"hp_gain_average"`      // Average HP gain (hitDie/2 + 1 + conMod)
-	CurrentMaxHP       int                `json:"current_max_hp"`       // Current max HP before level up
+	CurrentLevel            int                 `json:"current_level"`
+	NextLevel               int                 `json:"next_level"`
+	ClassLevel              *models.ClassLevel  `json:"class_level"`
+	ASIPointsAvailable      int                 `json:"asi_points_available"`
+	NewSpellsAllowed        int                 `json:"new_spells_allowed"`
+	HitDie                  int                 `json:"hit_die"`                            // Class hit die (e.g., 10 for d10)
+	ConMod                  int                 `json:"con_mod"`                            // Current CON modifier
+	HPGainAverage           int                 `json:"hp_gain_average"`                    // Average HP gain (hitDie/2 + 1 + conMod)
+	CurrentMaxHP            int                 `json:"current_max_hp"`                     // Current max HP before level up
+	RequiresArchetypeChoice bool                `json:"requires_archetype_choice"`          // true if this level requires archetype selection
+	AvailableArchetypes     []*models.Archetype `json:"available_archetypes,omitempty"`     // archetypes to choose from (if required)
 }
 
 // LevelUp advances a character by one level, applying choices and saving history
@@ -107,7 +115,27 @@ func (s *LevelUpService) LevelUp(userID uuid.UUID, req LevelUpRequest) (*LevelUp
 		}
 	}
 
+	// 5b. Check if archetype selection is required
+	var archetypeSelected *uuid.UUID
+	if character.Class.ArchetypeLevel != nil && newLevel == *character.Class.ArchetypeLevel && character.ArchetypeID == nil {
+		// This is the archetype selection level and character doesn't have one yet
+		if req.ArchetypeID == nil {
+			return nil, ErrArchetypeRequired
+		}
+		// Validate the archetype belongs to this class
+		archetype, err := s.archetypeRepo.FindByID(*req.ArchetypeID)
+		if err != nil || archetype.ClassID != character.ClassID {
+			return nil, ErrInvalidArchetype
+		}
+		archetypeSelected = req.ArchetypeID
+	}
+
 	// 6. Create snapshot of current state BEFORE changes
+	var archetypeIDStr *string
+	if character.ArchetypeID != nil {
+		str := character.ArchetypeID.String()
+		archetypeIDStr = &str
+	}
 	snapshot := models.CharacterSnapshotData{
 		Level:              character.Level,
 		Strength:           character.Strength,
@@ -122,6 +150,7 @@ func (s *LevelUpService) LevelUp(userID uuid.UUID, req LevelUpRequest) (*LevelUp
 		MaxHP:              character.MaxHP,
 		TempHP:             character.TempHP,
 		HitDiceUsed:        character.HitDiceUsed,
+		ArchetypeID:        archetypeIDStr,
 	}
 	snapshotJSON, err := json.Marshal(snapshot)
 	if err != nil {
@@ -183,6 +212,11 @@ func (s *LevelUpService) LevelUp(userID uuid.UUID, req LevelUpRequest) (*LevelUp
 		// Reset spell points to new max
 		character.CurrentSpellPoints = newClassLevel.MaxSpellPoints
 
+		// Apply archetype selection if made at this level
+		if archetypeSelected != nil {
+			character.ArchetypeID = archetypeSelected
+		}
+
 		// Save character
 		if err := tx.Save(character).Error; err != nil {
 			return err
@@ -217,6 +251,7 @@ func (s *LevelUpService) LevelUp(userID uuid.UUID, req LevelUpRequest) (*LevelUp
 			ASIAllocation:     asiJSON,
 			SpellsLearned:     req.SpellsLearned,
 			FeaturesGained:    featuresGained,
+			ArchetypeSelected: archetypeSelected,
 			CharacterSnapshot: snapshotJSON,
 			SkillSnapshot:     skillSnapshot,
 		}
@@ -283,6 +318,16 @@ func (s *LevelUpService) LevelDown(userID uuid.UUID, characterID uuid.UUID) (*Le
 		character.MaxHP = snapshot.MaxHP
 		character.TempHP = snapshot.TempHP
 		character.HitDiceUsed = snapshot.HitDiceUsed
+
+		// Restore archetype from snapshot (nil if none was selected before this level)
+		if snapshot.ArchetypeID != nil {
+			archetypeID, err := uuid.Parse(*snapshot.ArchetypeID)
+			if err == nil {
+				character.ArchetypeID = &archetypeID
+			}
+		} else {
+			character.ArchetypeID = nil
+		}
 
 		if err := tx.Save(character).Error; err != nil {
 			return err
@@ -371,17 +416,44 @@ func (s *LevelUpService) GetLevelUpPreview(userID uuid.UUID, characterID uuid.UU
 		hpGainAvg = 1
 	}
 
+	// Check if archetype selection is required at the next level
+	requiresArchetype := false
+	var availableArchetypes []*models.Archetype
+	if character.Class.ArchetypeLevel != nil && nextLevel == *character.Class.ArchetypeLevel && character.ArchetypeID == nil {
+		requiresArchetype = true
+		availableArchetypes, _ = s.archetypeRepo.FindByClassID(character.ClassID)
+	}
+
+	// Filter level features based on character's archetype (if they have one)
+	if character.ArchetypeID != nil {
+		classLevel.LevelFeatures = filterFeaturesByArchetype(classLevel.LevelFeatures, character.ArchetypeID)
+	}
+
 	return &LevelUpPreview{
-		CurrentLevel:       character.Level,
-		NextLevel:          nextLevel,
-		ClassLevel:         classLevel,
-		ASIPointsAvailable: classLevel.AbilityScoreImprovement,
-		NewSpellsAllowed:   newSpellsAllowed,
-		HitDie:             character.Class.HitDie,
-		ConMod:             conMod,
-		HPGainAverage:      hpGainAvg,
-		CurrentMaxHP:       character.MaxHP,
+		CurrentLevel:            character.Level,
+		NextLevel:               nextLevel,
+		ClassLevel:              classLevel,
+		ASIPointsAvailable:      classLevel.AbilityScoreImprovement,
+		NewSpellsAllowed:        newSpellsAllowed,
+		HitDie:                  character.Class.HitDie,
+		ConMod:                  conMod,
+		HPGainAverage:           hpGainAvg,
+		CurrentMaxHP:            character.MaxHP,
+		RequiresArchetypeChoice: requiresArchetype,
+		AvailableArchetypes:     availableArchetypes,
 	}, nil
+}
+
+// filterFeaturesByArchetype returns features that are either shared (nil archetype) or match the given archetype
+func filterFeaturesByArchetype(features []models.LevelFeature, archetypeID *uuid.UUID) []models.LevelFeature {
+	var filtered []models.LevelFeature
+	for _, f := range features {
+		// Include shared features (nil ArchetypeID) or features matching the character's archetype
+		if f.ArchetypeID == nil || (archetypeID != nil && *f.ArchetypeID == *archetypeID) {
+			filtered = append(filtered, f)
+		}
+	}
+	return filtered
 }
 
 // findClassLevelWithFeatures fetches a ClassLevel with its LevelFeatures preloaded

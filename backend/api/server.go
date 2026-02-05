@@ -12,8 +12,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_classes"
-	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_races"
 	"github.com/rs/zerolog/log"
 )
 
@@ -86,18 +84,6 @@ func newRouter(database database.Database, opts ...func(*router)) *chi.Mux {
 
 	// Ensure at least one user exists (from AUTH_EMAIL/AUTH_PASSWORD if table empty)
 	EnsureFirstUserExists(database.UserRepo())
-	// Seed Faradhaven races (Race, Trait, TraitOption) with full trait data
-	if err := faradhaven_races.SeedFaradhavenRaces(database.DB()); err != nil {
-		log.Warn().Err(err).Msg("Seed Faradhaven races skipped or failed")
-	}
-	// Seed Faradhaven classes (Class, ClassLevel 1-20, ClassComponent) if tables are empty
-	if err := faradhaven_classes.SeedFaradhavenClassesIfEmpty(database.DB()); err != nil {
-		log.Warn().Err(err).Msg("Seed Faradhaven classes skipped or failed")
-	}
-	// Backfill AbilityScoreImprovement for existing ClassLevel rows (levels 4, 8, 12, 16, 19)
-	if err := faradhaven_classes.BackfillAbilityScoreImprovements(database.DB()); err != nil {
-		log.Warn().Err(err).Msg("Backfill ability score improvements skipped or failed")
-	}
 
 	// Initialize auth middleware (validates Bearer token against user.Token in DB)
 	authMiddleware := newAuthMiddleware(database.UserRepo())

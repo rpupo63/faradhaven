@@ -17,8 +17,17 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		// Race compendium (reference data, no auth required)
 		r.Get("/api/races", handlers.characterHandler.getAllRaces())
 		r.Get("/api/races/{raceID}", handlers.characterHandler.getRaceByID())
+		// Character creation options (combines races + classes, reference data)
+		r.Get("/api/characters/options", handlers.characterHandler.getCreationOptions())
 		// Weapon compendium (reference data, no auth required)
 		r.Get("/api/weapons", handlers.weaponHandler.getAllWeapons())
+		// Item compendium (reference data, no auth required)
+		r.Get("/api/items", handlers.itemHandler.getAllItems())
+		r.Get("/api/items/{itemID}", handlers.itemHandler.getItemByID())
+		// Component compendium (reference data for periodic table, no auth required)
+		r.Get("/api/components", handlers.componentHandler.getAllComponents())
+		r.Get("/api/components/{componentID}", handlers.componentHandler.getComponentByID())
+		r.Get("/api/components/category/{category}", handlers.componentHandler.getComponentsByCategory())
 	})
 
 	// Protected API routes (token required)
@@ -34,7 +43,7 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Put("/api/user/{userID}", handlers.userHandler.updateUser())
 		r.Delete("/api/user/{userID}", handlers.userHandler.deleteUser())
 
-		// Note: /api/races, /api/races/{raceID}, /api/classes, /api/classes/{classID} are also available publicly
+		// Note: /api/races, /api/races/{raceID}, /api/classes, /api/classes/{classID}, /api/characters/options are also available publicly
 
 		// Character endpoints
 		r.Get("/api/characters", handlers.characterHandler.getAllCharacters())

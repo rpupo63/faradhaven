@@ -4,17 +4,21 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/datatypes"
 )
 
 // Race represents a core species (e.g., Elf, Dragonborn, Kalashtar)
 type Race struct {
-	ID           uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid();not null"`
-	Name         string    `json:"name" gorm:"type:text;not null;uniqueIndex"`
-	Description  string    `json:"description" gorm:"type:text"`
-	CreatureType string    `json:"creature_type" gorm:"type:text;default:'Humanoid'"` // e.g., Aberration
-	Size         string    `json:"size" gorm:"type:text"`                             // "Medium", "Small or Medium"
-	BaseSpeed    int       `json:"base_speed" gorm:"type:int;default:30"`
-	PhotoURL     string    `json:"photo_url" gorm:"type:text"` // URL to race artwork/photo
+	ID           uuid.UUID      `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid();not null"`
+	Name         string         `json:"name" gorm:"type:text;not null;uniqueIndex"`
+	Description  string         `json:"description" gorm:"type:text"`
+	CreatureType string         `json:"creature_type" gorm:"type:text;default:'Humanoid'"` // e.g., Aberration
+	Size         string         `json:"size" gorm:"type:text"`                             // "Medium", "Small or Medium"
+	BaseSpeed    int            `json:"base_speed" gorm:"type:int;default:30"`
+	PhotoURL     string         `json:"photo_url" gorm:"type:text"` // URL to race artwork/photo
+
+	// Ability Score Bonuses (e.g., {"dexterity": 2, "charisma": 1})
+	AbilityScoreBonuses datatypes.JSON `json:"ability_score_bonuses" gorm:"type:jsonb"`
 
 	CreatedAt time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`

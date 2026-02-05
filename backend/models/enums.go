@@ -63,14 +63,6 @@ const (
 // COMPONENT ENUMS
 // =============================================================================
 
-// ComponentType indicates whether a component is base (core to the class) or modifier (enhancement)
-type ComponentType string
-
-const (
-	ComponentTypeBase     ComponentType = "base"
-	ComponentTypeModifier ComponentType = "modifier"
-)
-
 // ComponentCategory represents the magical school or category of a spell component
 type ComponentCategory string
 

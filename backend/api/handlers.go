@@ -13,6 +13,7 @@ func initializeHandlers(db database.Database) *routeHandlers {
 		db.CharacterRepo(),
 		db.ClassRepo(),
 		db.LevelUpHistoryRepo(),
+		db.ArchetypeRepo(),
 	)
 
 	return &routeHandlers{
@@ -23,5 +24,7 @@ func initializeHandlers(db database.Database) *routeHandlers {
 		beastHandler:     newBeastHandler(db.BeastRepo(), db.AttackRepo()),
 		levelHandler:     newLevelHandler(levelUpService),
 		weaponHandler:    newWeaponHandler(db.WeaponRepo()),
+		itemHandler:      newItemHandler(db.ItemRepo()),
+		componentHandler: newComponentHandler(db.ComponentRepo()),
 	}
 }

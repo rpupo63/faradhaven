@@ -14,6 +14,8 @@ type routeHandlers struct {
 	beastHandler     *beastHandler
 	levelHandler     *levelHandler
 	weaponHandler    *weaponHandler
+	itemHandler      *itemHandler
+	componentHandler *componentHandler
 }
 
 // ErrorResponse represents an error response from the API
@@ -40,25 +42,34 @@ type UpdateUserRequest struct {
 // Character Request/Response Types
 
 type CreateCharacterRequest struct {
-	UserID             uuid.UUID `json:"user_id"`
-	Name               string    `json:"name"`
-	RaceID             uuid.UUID `json:"race_id"`
-	ClassID            uuid.UUID `json:"class_id"`
-	Level              int       `json:"level"`
-	Spellbook          []string  `json:"spellbook"`
-	Strength           int       `json:"strength"`
-	Dexterity          int       `json:"dexterity"`
-	Constitution       int       `json:"constitution"`
-	Intelligence       int       `json:"intelligence"`
-	Wisdom             int       `json:"wisdom"`
-	Charisma           int       `json:"charisma"`
-	CurrentSpellPoints int       `json:"current_spell_points"`
-	SkillProficiencies []string  `json:"skill_proficiencies"` // D&D 5e skill ids (e.g. "persuasion", "stealth")
+	UserID             uuid.UUID   `json:"user_id"`
+	Name               string      `json:"name"`
+	RaceID             uuid.UUID   `json:"race_id"`
+	LineageID          *uuid.UUID  `json:"lineage_id"`
+	ClassID            uuid.UUID   `json:"class_id"`
+	Level              int         `json:"level"`
+	Spellbook          []string    `json:"spellbook"`
+	Strength           int         `json:"strength"`
+	Dexterity          int         `json:"dexterity"`
+	Constitution       int         `json:"constitution"`
+	Intelligence       int         `json:"intelligence"`
+	Wisdom             int         `json:"wisdom"`
+	Charisma           int         `json:"charisma"`
+	CurrentSpellPoints int         `json:"current_spell_points"`
+	SkillProficiencies []string    `json:"skill_proficiencies"` // D&D 5e skill ids (e.g. "persuasion", "stealth")
+	EquipmentChoices   []uuid.UUID `json:"equipment_choices"`   // IDs of selected ClassStartingEquipmentOption
+}
+
+type CreationOptionsResponse struct {
+	Races     []models.Race  `json:"races"`
+	Classes   []models.Class `json:"classes"`
+	PointsMax int            `json:"points_max"` // e.g. 27 for point buy
 }
 
 type UpdateCharacterRequest struct {
 	Name               *string    `json:"name,omitempty"`
 	RaceID             *uuid.UUID `json:"race_id,omitempty"`
+	LineageID          *uuid.UUID `json:"lineage_id,omitempty"`
 	ClassID            *uuid.UUID `json:"class_id,omitempty"`
 	Level              *int       `json:"level,omitempty"`
 	Spellbook          []string   `json:"spellbook,omitempty"`
@@ -98,6 +109,10 @@ type CharacterSheetResponse struct {
 	HitDie                   int                `json:"hit_die"`                    // Class hit die (e.g., 10 for d10)
 	MeleeAttackBonus         int                `json:"melee_attack_bonus"`         // Proficiency + STR mod
 	RangedAttackBonus        int                `json:"ranged_attack_bonus"`        // Proficiency + DEX mod
+	RaceTraits               []models.Trait     `json:"race_traits"`                // Race traits for the character's race
+	Lineage                  *models.Lineage    `json:"lineage,omitempty"`          // Character's lineage (sub-race)
+	InventoryWeapons         []models.Weapon    `json:"inventory_weapons"`          // Detailed weapon objects
+	InventoryItems           []models.Item      `json:"inventory_items"`            // Detailed item objects
 }
 
 // Spell Request/Response Types

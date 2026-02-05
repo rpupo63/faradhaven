@@ -14,13 +14,52 @@ func VaporBlade() FaradhavenClassSeed {
 			"Venom Coating: You apply component effects to your blades. Venom deals poison damage over time; Shadow grants advantage on Stealth and muffles your presence.",
 			"Shadow Step: When you are in dim light or darkness, you can spend spell points to slip between shadows and emerge unseen.",
 		},
-		DnDSkillFocus: []string{"Stealth", "Deception"},
-		Proficiencies: "Simple weapons, Light armor, Daggers, Shortswords, Rapiers",
-		SkillChoice:   []string{"Stealth", "Acrobatics", "Deception", "Perception"},
-		Tools:         []string{"Poisoner's Kit", "Thieves' Tools"},
-		SavingThrows:  []string{"Dexterity", "Intelligence"},
-		StartingEquip: []string{"Leather armor", "Two daggers or rapier", "Poisoner's kit", "Dark cloak"},
-		LevelFeatures: vaporBladeLevelFeatures(),
+		DnDSkillFocus:    []string{"Stealth", "Deception"},
+		Proficiencies:    "Simple weapons, Light armor, Daggers, Shortswords, Rapiers",
+		SkillChoice:      []string{"Stealth", "Acrobatics", "Deception", "Perception"},
+		Tools:            []string{"Poisoner's Kit", "Thieves' Tools"},
+		SavingThrows:     []string{"Dexterity", "Intelligence"},
+		AutomaticEquipNames: []string{"Dark cloak"},
+		AutomaticItemNames:  []string{"Leather armor", "Poisoner's kit", "Thieves' Tools"},
+		EquipmentChoices: []EquipmentChoiceSeed{
+			{
+				Instruction: "Choose your primary weapons",
+				Options: []EquipmentOptionSeed{
+					{Description: "A Rapier", WeaponNames: []string{"Rapier"}},
+					{Description: "Two Shortswords", WeaponNames: []string{"Shortsword", "Shortsword"}},
+				},
+			},
+			{
+				Instruction: "Choose your secondary weapons",
+				Options: []EquipmentOptionSeed{
+					{Description: "Two Daggers", WeaponNames: []string{"Dagger", "Dagger"}},
+					{Description: "A Shortbow and 20 arrows", Items: []string{"20 Arrows"}, WeaponNames: []string{"Shortbow"}},
+				},
+			},
+			{
+				Instruction: "Choose your pack",
+				Options: []EquipmentOptionSeed{
+					{Description: "A Burglar's Pack", ItemNames: []string{"Burglar's Pack"}},
+					{Description: "An Explorer's Pack", ItemNames: []string{"Explorer's Pack"}},
+				},
+			},
+		},
+		LevelFeatures:    vaporBladeLevelFeatures(),
+		LevelProgression: vaporBladeLevelProgression(),
+	}
+}
+
+func vaporBladeLevelProgression() map[int]ClassLevelSeed {
+	// Vapor Blade gets Extra Attack at 5 and Sneak Strike damage scales
+	// Sneak Strike: 2d6 at level 2, +2d6 with Death Mark at level 10, unlimited at 20
+	return map[int]ClassLevelSeed{
+		2:  {SneakAttackDice: 2},                      // Sneak Strike: 2d6
+		5:  {ExtraAttackCount: 1, SneakAttackDice: 2}, // Extra Attack
+		9:  {ExtraAttackCount: 1, SneakAttackDice: 3}, // Lethal Precision adds damage
+		10: {ExtraAttackCount: 1, SneakAttackDice: 4}, // Death Mark: +2d6
+		13: {ExtraAttackCount: 1, SneakAttackDice: 5}, // Venom Burst level
+		17: {ExtraAttackCount: 1, SneakAttackDice: 6}, // Perfect Kill level
+		20: {ExtraAttackCount: 1, SneakAttackDice: 7}, // Shadow-Stalker's Eclipse
 	}
 }
 

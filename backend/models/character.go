@@ -9,12 +9,14 @@ import (
 
 // Character represents a player character in the game
 type Character struct {
-	ID      uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid();not null"`
-	UserID  uuid.UUID `json:"user_id" gorm:"type:uuid;not null;index"`
-	Name    string    `json:"name" gorm:"type:text;not null"`
-	RaceID  uuid.UUID `json:"race_id" gorm:"type:uuid;not null;index"`
-	ClassID uuid.UUID `json:"class_id" gorm:"type:uuid;not null;index"`
-	Level   int       `json:"level" gorm:"type:int;not null;default:1"`
+	ID          uuid.UUID  `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid();not null"`
+	UserID      uuid.UUID  `json:"user_id" gorm:"type:uuid;not null;index"`
+	Name        string     `json:"name" gorm:"type:text;not null"`
+	RaceID      uuid.UUID  `json:"race_id" gorm:"type:uuid;not null;index"`
+	LineageID   *uuid.UUID `json:"lineage_id,omitempty" gorm:"type:uuid;index"`
+	ClassID     uuid.UUID  `json:"class_id" gorm:"type:uuid;not null;index"`
+	ArchetypeID *uuid.UUID `json:"archetype_id,omitempty" gorm:"type:uuid;index"` // nil until archetype is chosen
+	Level       int        `json:"level" gorm:"type:int;not null;default:1"`
 
 	// Stored spell IDs (persisted in DB as text array)
 	SpellbookIDs pq.StringArray `json:"spellbook_ids" gorm:"column:spellbook;type:text[]"`
@@ -38,6 +40,9 @@ type Character struct {
 	// Hit dice tracking: how many hit dice have been spent (total = Level)
 	HitDiceUsed int `json:"hit_dice_used" gorm:"type:int;default:0"`
 
+	// Inventory (Text Array) - Stores names of automatic/legacy items
+	Inventory pq.StringArray `json:"inventory" gorm:"type:text[]"`
+
 	CreatedAt time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
@@ -47,7 +52,12 @@ type Character struct {
 	User               User             `json:"-" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 	Race               Race             `json:"race" gorm:"foreignKey:RaceID;references:ID"`
 	Class              Class            `json:"class" gorm:"foreignKey:ClassID;references:ID"`
+	Archetype          *Archetype       `json:"archetype,omitempty" gorm:"foreignKey:ArchetypeID;references:ID"`
 	SkillProficiencies []CharacterSkill `json:"-" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
+
+	// Inventory Relationships
+	Weapons []Weapon `json:"weapons,omitempty" gorm:"many2many:character_weapons;constraint:OnDelete:CASCADE"`
+	Items   []Item   `json:"items,omitempty" gorm:"many2many:character_items;constraint:OnDelete:CASCADE"`
 
 	// ============================================================
 	// COMPUTED SUB-MODELS: Not stored in DB, populated in Go code

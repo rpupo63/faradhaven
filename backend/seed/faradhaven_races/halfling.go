@@ -9,6 +9,10 @@ func Halfling() FaradhavenRaceSeed {
 		CreatureType: "Humanoid",
 		Size:         "Small (about 2–3 feet tall)",
 		BaseSpeed:    30,
+		AbilityScoreBonuses: map[string]int{
+			"dexterity": 2,
+			"charisma":  1,
+		},
 		Traits:       halflingTraits(),
 	}
 }

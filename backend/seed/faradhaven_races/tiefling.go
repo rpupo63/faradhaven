@@ -9,6 +9,10 @@ func Tiefling() FaradhavenRaceSeed {
 		CreatureType:   "Humanoid",
 		Size:           "Medium (about 4–7 feet tall) or Small (about 3–4 feet tall), chosen when you select this species",
 		BaseSpeed:      30,
+		AbilityScoreBonuses: map[string]int{
+			"charisma":     2,
+			"intelligence": 1,
+		},
 		Traits:         tieflingTraits(),
 		ComponentNames: []string{"Arcanum", "Self", "Wither", "Projectile", "Beam", "Slow", "Extreme", "Soul", "Mend", "Curse", "Ignis", "Reflect", "Umbra", "Zone"},
 	}

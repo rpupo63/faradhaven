@@ -23,14 +23,21 @@ type Class struct {
 	SkillChoiceCount int            `json:"skill_choice_count" gorm:"type:int;default:2"` // how many to pick from SkillChoice
 	Tools            pq.StringArray `json:"tools" gorm:"type:text[]"`                     // tool proficiencies
 	SavingThrows     pq.StringArray `json:"saving_throws" gorm:"type:text[]"`             // ability saving throw proficiencies (ability names)
-	StartingEquip    pq.StringArray `json:"starting_equipment" gorm:"type:text[]"`        // starting equipment list
+	StartingEquip    pq.StringArray `json:"starting_equipment" gorm:"type:text[]"`        // starting equipment list (legacy/names)
+	StartingWeaponIDs pq.StringArray `json:"starting_weapon_ids" gorm:"type:text[]"`      // deterministic UUIDs of starting weapons
+	StartingItemIDs   pq.StringArray `json:"starting_item_ids" gorm:"type:text[]"`        // deterministic UUIDs of starting items
 
 	CreatedAt time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
+	// Level at which characters choose their archetype (nil = no archetypes for this class)
+	ArchetypeLevel *int `json:"archetype_level,omitempty" gorm:"type:int"`
+
 	// ============================================================
 	// RELATIONSHIPS: Loaded via Preload, stored via foreign keys
 	// ============================================================
-	Levels     []ClassLevel `json:"levels,omitempty" gorm:"foreignKey:ClassID;constraint:OnDelete:CASCADE"`
-	Components []Component  `json:"components,omitempty" gorm:"many2many:class_components;foreignKey:ID;joinForeignKey:ClassID;References:ID;joinReferences:ComponentID"`
+	Levels           []ClassLevel                   `json:"levels,omitempty" gorm:"foreignKey:ClassID;constraint:OnDelete:CASCADE"`
+	Components       []Component                    `json:"components,omitempty" gorm:"many2many:class_components;foreignKey:ID;joinForeignKey:ClassID;References:ID;joinReferences:ComponentID"`
+	Archetypes       []Archetype                    `json:"archetypes,omitempty" gorm:"foreignKey:ClassID;constraint:OnDelete:CASCADE"`
+	EquipmentChoices []ClassStartingEquipmentChoice `json:"equipment_choices,omitempty" gorm:"foreignKey:ClassID;constraint:OnDelete:CASCADE"`
 }

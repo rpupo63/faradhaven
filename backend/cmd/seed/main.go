@@ -14,12 +14,9 @@ import (
 
 func main() {
 	// CLI flags
-	listPending := flag.Bool("pending", false, "List pending seeds")
-	listApplied := flag.Bool("applied", false, "List applied seeds")
-	forceRun := flag.String("force", "", "Force run a specific seed by name")
-	resetSeed := flag.String("reset", "", "Reset a seed to allow re-running")
-	resetAll := flag.Bool("reset-all", false, "Reset all seeds (dangerous!)")
 	migrateOnly := flag.Bool("migrate-only", false, "Run migrations without seeding")
+	clearOnly := flag.Bool("clear-only", false, "Clear all seeded data without reseeding")
+	migrateUUIDs := flag.Bool("migrate-uuids", false, "Migrate existing entities to stable UUIDs (one-time)")
 	flag.Parse()
 
 	if err := godotenv.Load(); err != nil {
@@ -40,87 +37,41 @@ func main() {
 	if err := db.AutoMigrate(models.AllModels()...); err != nil {
 		log.Fatalf("Migration failed: %v", err)
 	}
+	fmt.Println("Migrations completed.")
 
 	if *migrateOnly {
-		fmt.Println("Migrations completed (seeding skipped).")
 		return
+	}
+
+	// One-time UUID migration (preserves character references)
+	if *migrateUUIDs || seed.NeedsUUIDMigration(db) {
+		fmt.Println("Migrating to stable UUIDs...")
+		if err := seed.MigrateToStableUUIDs(db); err != nil {
+			log.Fatalf("UUID migration failed: %v", err)
+		}
+		fmt.Println("UUID migration completed.")
+		if *migrateUUIDs {
+			return
+		}
 	}
 
 	// Initialize seeder with all registered seeds
 	seeder := seed.NewSeeder(db)
 	seeder.RegisterAll(seed.AllSeeds())
 
-	// Handle CLI commands
-	switch {
-	case *listPending:
-		pending, err := seeder.Pending()
-		if err != nil {
-			log.Fatalf("Failed to list pending seeds: %v", err)
+	if *clearOnly {
+		fmt.Println("Clearing seeded child data...")
+		if err := seeder.ClearAllData(); err != nil {
+			log.Fatalf("Failed to clear data: %v", err)
 		}
-		if len(pending) == 0 {
-			fmt.Println("No pending seeds.")
-		} else {
-			fmt.Println("Pending seeds:")
-			for _, name := range pending {
-				fmt.Printf("  - %s\n", name)
-			}
-		}
-		return
-
-	case *listApplied:
-		applied, err := seeder.Applied()
-		if err != nil {
-			log.Fatalf("Failed to list applied seeds: %v", err)
-		}
-		if len(applied) == 0 {
-			fmt.Println("No seeds applied yet.")
-		} else {
-			fmt.Println("Applied seeds:")
-			for _, sv := range applied {
-				fmt.Printf("  - %s (applied: %s)\n", sv.Name, sv.AppliedAt.Format("2006-01-02 15:04:05"))
-			}
-		}
-		return
-
-	case *forceRun != "":
-		if err := seeder.ForceRun(*forceRun); err != nil {
-			log.Fatalf("Force run failed: %v", err)
-		}
-		fmt.Printf("Force ran seed: %s\n", *forceRun)
-		return
-
-	case *resetSeed != "":
-		if err := seeder.Reset(*resetSeed); err != nil {
-			log.Fatalf("Reset failed: %v", err)
-		}
-		fmt.Printf("Reset seed: %s (will run on next seed)\n", *resetSeed)
-		return
-
-	case *resetAll:
-		fmt.Print("Are you sure you want to reset ALL seeds? This will cause them to re-run. (yes/no): ")
-		var confirm string
-		fmt.Scanln(&confirm)
-		if confirm != "yes" {
-			fmt.Println("Aborted.")
-			return
-		}
-		if err := seeder.ResetAll(); err != nil {
-			log.Fatalf("Reset all failed: %v", err)
-		}
-		fmt.Println("All seeds reset.")
+		fmt.Println("Child data cleared.")
 		return
 	}
 
-	// Default: run pending seeds
-	fmt.Println("Running pending seeds...")
-	applied, err := seeder.Run()
-	if err != nil {
+	// Default: clear child data and reseed
+	fmt.Println("Reseeding database...")
+	if err := seeder.ClearAndSeed(); err != nil {
 		log.Fatalf("Seeding failed: %v", err)
 	}
-
-	if applied == 0 {
-		fmt.Println("No new seeds to apply.")
-	} else {
-		fmt.Printf("Applied %d seed(s) successfully.\n", applied)
-	}
+	fmt.Println("Seeding completed successfully.")
 }

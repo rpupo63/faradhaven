@@ -9,6 +9,10 @@ func Orc() FaradhavenRaceSeed {
 		CreatureType: "Humanoid",
 		Size:         "Medium (about 6-7 feet tall)",
 		BaseSpeed:    30,
+		AbilityScoreBonuses: map[string]int{
+			"strength":     2,
+			"constitution": 1,
+		},
 		Traits:       orcTraits(),
 	}
 }

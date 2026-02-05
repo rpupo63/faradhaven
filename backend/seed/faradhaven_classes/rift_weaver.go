@@ -14,13 +14,61 @@ func RiftWeaver() FaradhavenClassSeed {
 			"Elemental Channeling: You do not have spell slots. Instead, you spend spell points to channel components drawn from elemental rifts. Your components manifest as fire, cold, lightning, or earth effects—blasts, cones, and area devastation.",
 			"Elemental Sight: You can perceive elemental auras within 30 feet—creatures or objects with fire, cold, lightning, or earth affinity appear as a faint glow. You have advantage on Arcana checks to identify elemental effects.",
 		},
-		DnDSkillFocus: []string{"Arcana", "Nature"},
-		Proficiencies: "Simple weapons, Daggers, Quarterstaffs, Light Armor",
-		SkillChoice:   []string{"Arcana", "History", "Nature", "Religion"},
-		Tools:         []string{"Arcane Focus (orb or wand)"},
-		SavingThrows:  []string{"Intelligence", "Wisdom"},
-		StartingEquip: []string{"Scholar's robes (light armor)", "Quarterstaff", "Orb or wand focus", "Spellbook (grimoire of elemental formulae)", "Explorer's pack"},
-		LevelFeatures: riftWeaverLevelFeatures(),
+		DnDSkillFocus:    []string{"Arcana", "Nature"},
+		Proficiencies:    "Simple weapons, Daggers, Quarterstaffs, Light Armor",
+		SkillChoice:      []string{"Arcana", "History", "Nature", "Religion"},
+		Tools:            []string{"Arcane Focus (orb or wand)"},
+		SavingThrows:     []string{"Intelligence", "Wisdom"},
+		AutomaticEquipNames: []string{"Spellbook (grimoire of elemental formulae)"},
+		AutomaticItemNames:  []string{"Scholar's robes (light armor)", "Explorer's pack"},
+		EquipmentChoices: []EquipmentChoiceSeed{
+			{
+				Instruction: "Choose your focus",
+				Options: []EquipmentOptionSeed{
+					{Description: "An Orb", ItemNames: []string{"Arcane Focus (Orb)"}},
+					{Description: "A Wand", ItemNames: []string{"Arcane Focus (Wand)"}},
+					{Description: "A Crystal", ItemNames: []string{"Arcane Focus (Crystal)"}},
+				},
+			},
+			{
+				Instruction: "Choose your weapon",
+				Options: []EquipmentOptionSeed{
+					{Description: "A Quarterstaff", WeaponNames: []string{"Quarterstaff"}},
+					{Description: "A Dagger", WeaponNames: []string{"Dagger"}},
+				},
+			},
+		},
+		LevelFeatures:    riftWeaverLevelFeatures(),
+		LevelProgression: riftWeaverLevelProgression(),
+	}
+}
+
+func riftWeaverLevelProgression() map[int]ClassLevelSeed {
+	// Rift Weaver is a full caster - cantrips and spells known scale with level
+	cantrips2, cantrips3, cantrips4, cantrips5 := 2, 3, 4, 5
+	spells2, spells3, spells4, spells5, spells6, spells7, spells8 := 2, 3, 4, 5, 6, 7, 8
+	spells9, spells10, spells11, spells12, spells13, spells14, spells15 := 9, 10, 11, 12, 13, 14, 15
+	return map[int]ClassLevelSeed{
+		1:  {CantripsKnown: &cantrips2, SpellsKnown: &spells2},
+		2:  {CantripsKnown: &cantrips2, SpellsKnown: &spells3},
+		3:  {CantripsKnown: &cantrips2, SpellsKnown: &spells4},
+		4:  {CantripsKnown: &cantrips3, SpellsKnown: &spells5},
+		5:  {CantripsKnown: &cantrips3, SpellsKnown: &spells6},
+		6:  {CantripsKnown: &cantrips3, SpellsKnown: &spells7},
+		7:  {CantripsKnown: &cantrips3, SpellsKnown: &spells8},
+		8:  {CantripsKnown: &cantrips3, SpellsKnown: &spells9},
+		9:  {CantripsKnown: &cantrips3, SpellsKnown: &spells10},
+		10: {CantripsKnown: &cantrips4, SpellsKnown: &spells11},
+		11: {CantripsKnown: &cantrips4, SpellsKnown: &spells12},
+		12: {CantripsKnown: &cantrips4, SpellsKnown: &spells12},
+		13: {CantripsKnown: &cantrips4, SpellsKnown: &spells13},
+		14: {CantripsKnown: &cantrips4, SpellsKnown: &spells13},
+		15: {CantripsKnown: &cantrips4, SpellsKnown: &spells14},
+		16: {CantripsKnown: &cantrips4, SpellsKnown: &spells14},
+		17: {CantripsKnown: &cantrips5, SpellsKnown: &spells15},
+		18: {CantripsKnown: &cantrips5, SpellsKnown: &spells15},
+		19: {CantripsKnown: &cantrips5, SpellsKnown: &spells15},
+		20: {CantripsKnown: &cantrips5, SpellsKnown: &spells15},
 	}
 }
 

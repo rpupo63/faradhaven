@@ -9,6 +9,9 @@ func Elf() FaradhavenRaceSeed {
 		CreatureType:   "Humanoid",
 		Size:           "Medium (about 5-6 feet tall)",
 		BaseSpeed:      30,
+		AbilityScoreBonuses: map[string]int{
+			"dexterity": 2,
+		},
 		Traits:         elfTraits(),
 		ComponentNames: []string{"Lux", "Summon", "Zone", "Umbra", "Arcanum", "Self", "Sight", "Teleport", "Vita", "Haste", "Invisible", "Pull", "Projectile", "Command", "Silence", "Mend", "Soul", "Slow", "Extreme"},
 	}
@@ -57,22 +60,27 @@ func elfLineageOptions() []TraitOptionSeed {
 		{
 			Name:        "Drow",
 			Description: "Level 1: The range of your Darkvision increases to 120 feet. You also know the Lux + Summon component combination (dancing motes of light). Level 3: Lux + Zone (revealing light that outlines creatures). Level 5: Umbra + Zone (an area of magical darkness).",
+			AbilityScoreBonuses: map[string]int{"charisma": 1},
 		},
 		{
 			Name:        "High Elf",
 			Description: "Level 1: You know the Arcanum + Self component combination (minor magical tricks). Whenever you finish a Long Rest, you can replace it with a different cantrip-tier component combination from the Wizard spell list. Level 3: Sight (detecting magical auras). Level 5: Teleport (short-range displacement through mist).",
+			AbilityScoreBonuses: map[string]int{"intelligence": 1},
 		},
 		{
 			Name:        "Wood Elf",
 			Description: "Level 1: Your Speed increases to 35 feet. You also know the Vita + Self component combination (minor nature magic). Level 3: Haste + Self (enhanced movement speed). Level 5: Invisible + Zone (you and nearby allies leave no trace of passage).",
+			AbilityScoreBonuses: map[string]int{"wisdom": 1},
 		},
 		{
 			Name:        "Lorwyn Elf",
 			Description: "Level 1: You know the Vita + Pull + Projectile component combination (a thorny vine that pulls targets toward you). Whenever you finish a Long Rest, you can replace it with a different cantrip-tier component combination from the Druid spell list. Level 3: Command (forcing a single action). Level 5: Silence + Zone (an area where sound cannot exist).",
+			AbilityScoreBonuses: map[string]int{"wisdom": 1},
 		},
 		{
 			Name:        "Shadowmoor Elf",
 			Description: "Level 1: The range of your Darkvision increases to 120 feet. You also know the Lux + Projectile component combination (a mote of starlight). Level 3: Mend + Self (bolstering courage and vitality). Level 5: Soul + Slow + Extreme (preserving the dead from decay).",
+			AbilityScoreBonuses: map[string]int{"charisma": 1},
 		},
 	}
 }

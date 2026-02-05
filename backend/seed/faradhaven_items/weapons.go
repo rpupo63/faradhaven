@@ -293,9 +293,113 @@ func ElectricWeapons() []WeaponSeed {
 	}
 }
 
+// StandardWeapons returns basic D&D 5e weapon seeds
+func StandardWeapons() []WeaponSeed {
+	return []WeaponSeed{
+		{
+			Name: "Dagger", Description: "A small, double-edged blade.", Category: "Simple Melee", Rarity: "Common", RangeType: "Melee", Cost: "2 gp", Weight: "1 lb.",
+			AttackModifier: "Dexterity", Properties: []string{"Finesse", "Light", "Thrown"}, RangeNormal: 20, RangeLong: 60,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d4", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Shortsword", Description: "A light, agile blade.", Category: "Simple Melee", Rarity: "Common", RangeType: "Melee", Cost: "10 gp", Weight: "2 lb.",
+			AttackModifier: "Dexterity", Properties: []string{"Finesse", "Light"}, RangeNormal: 5,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d6", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Longsword", Description: "A versatile, double-edged blade.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "15 gp", Weight: "3 lb.",
+			AttackModifier: "Strength", Properties: []string{"Versatile"}, RangeNormal: 5,
+			VersatileDamageDice: stringPtr("1d10"),
+			Damages: []WeaponDamageSeed{{DamageDice: "1d8", DamageType: "Slashing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Greataxe", Description: "A massive, two-handed axe.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "30 gp", Weight: "7 lb.",
+			AttackModifier: "Strength", Properties: []string{"Heavy", "Two-Handed"}, RangeNormal: 5,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d12", DamageType: "Slashing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Greatsword", Description: "A massive, two-handed sword.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "50 gp", Weight: "6 lb.",
+			AttackModifier: "Strength", Properties: []string{"Heavy", "Two-Handed"}, RangeNormal: 5,
+			Damages: []WeaponDamageSeed{{DamageDice: "2d6", DamageType: "Slashing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Mace", Description: "A heavy, bludgeoning weapon with a flanged head.", Category: "Simple Melee", Rarity: "Common", RangeType: "Melee", Cost: "5 gp", Weight: "4 lb.",
+			AttackModifier: "Strength", Properties: []string{}, RangeNormal: 5,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d6", DamageType: "Bludgeoning", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Light Hammer", Description: "A small hammer that can be thrown.", Category: "Simple Melee", Rarity: "Common", RangeType: "Melee", Cost: "2 gp", Weight: "2 lb.",
+			AttackModifier: "Strength", Properties: []string{"Light", "Thrown"}, RangeNormal: 20, RangeLong: 60,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d4", DamageType: "Bludgeoning", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Handaxe", Description: "A small axe designed for throwing or close combat.", Category: "Simple Melee", Rarity: "Common", RangeType: "Melee", Cost: "5 gp", Weight: "2 lb.",
+			AttackModifier: "Strength", Properties: []string{"Light", "Thrown"}, RangeNormal: 20, RangeLong: 60,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d6", DamageType: "Slashing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Spear", Description: "A simple polearm with a pointed tip.", Category: "Simple Melee", Rarity: "Common", RangeType: "Melee", Cost: "1 gp", Weight: "3 lb.",
+			AttackModifier: "Strength", Properties: []string{"Thrown", "Versatile"}, RangeNormal: 20, RangeLong: 60,
+			VersatileDamageDice: stringPtr("1d8"),
+			Damages: []WeaponDamageSeed{{DamageDice: "1d6", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Quarterstaff", Description: "A simple wooden staff.", Category: "Simple Melee", Rarity: "Common", RangeType: "Melee", Cost: "2 sp", Weight: "4 lb.",
+			AttackModifier: "Strength", Properties: []string{"Versatile"}, RangeNormal: 5,
+			VersatileDamageDice: stringPtr("1d8"),
+			Damages: []WeaponDamageSeed{{DamageDice: "1d6", DamageType: "Bludgeoning", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Rapier", Description: "A slender, pointed sword designed for precision.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "25 gp", Weight: "2 lb.",
+			AttackModifier: "Dexterity", Properties: []string{"Finesse"}, RangeNormal: 5,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d8", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Scimitar", Description: "A curved, single-edged blade.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "25 gp", Weight: "3 lb.",
+			AttackModifier: "Dexterity", Properties: []string{"Finesse", "Light"}, RangeNormal: 5,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d6", DamageType: "Slashing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Warhammer", Description: "A heavy, two-handed hammer.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "15 gp", Weight: "2 lb.",
+			AttackModifier: "Strength", Properties: []string{"Versatile"}, RangeNormal: 5,
+			VersatileDamageDice: stringPtr("1d10"),
+			Damages: []WeaponDamageSeed{{DamageDice: "1d8", DamageType: "Bludgeoning", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Battleaxe", Description: "A heavy, double-edged axe.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "10 gp", Weight: "4 lb.",
+			AttackModifier: "Strength", Properties: []string{"Versatile"}, RangeNormal: 5,
+			VersatileDamageDice: stringPtr("1d10"),
+			Damages: []WeaponDamageSeed{{DamageDice: "1d8", DamageType: "Slashing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Shortbow", Description: "A simple ranged weapon.", Category: "Simple Ranged", Rarity: "Common", RangeType: "Ranged", Cost: "25 gp", Weight: "2 lb.",
+			AttackModifier: "Dexterity", Properties: []string{"Ammunition", "Two-Handed"}, RangeNormal: 80, RangeLong: 320,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d6", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Longbow", Description: "A powerful ranged weapon.", Category: "Martial Ranged", Rarity: "Common", RangeType: "Ranged", Cost: "50 gp", Weight: "2 lb.",
+			AttackModifier: "Dexterity", Properties: []string{"Ammunition", "Heavy", "Two-Handed"}, RangeNormal: 150, RangeLong: 600,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d8", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Light Crossbow", Description: "A simple crossbow.", Category: "Simple Ranged", Rarity: "Common", RangeType: "Ranged", Cost: "25 gp", Weight: "5 lb.",
+			AttackModifier: "Dexterity", Properties: []string{"Ammunition", "Loading", "Two-Handed"}, RangeNormal: 80, RangeLong: 320,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d8", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Hand Crossbow", Description: "A small, one-handed crossbow.", Category: "Martial Ranged", Rarity: "Common", RangeType: "Ranged", Cost: "75 gp", Weight: "3 lb.",
+			AttackModifier: "Dexterity", Properties: []string{"Ammunition", "Light", "Loading"}, RangeNormal: 30, RangeLong: 120,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d6", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+	}
+}
+
+func stringPtr(s string) *string { return &s }
+
 // AllWeapons collects all weapon categories
 func AllWeapons() []WeaponSeed {
 	var all []WeaponSeed
+	all = append(all, StandardWeapons()...)
 	all = append(all, TransformativeWeapons()...)
 	all = append(all, HydraulicWeapons()...)
 	all = append(all, AlchemicalWeapons()...)

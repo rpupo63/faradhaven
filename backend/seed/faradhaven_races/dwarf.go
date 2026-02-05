@@ -9,6 +9,10 @@ func Dwarf() FaradhavenRaceSeed {
 		CreatureType: "Humanoid",
 		Size:         "Medium (about 4-5 feet tall)",
 		BaseSpeed:    30,
+		AbilityScoreBonuses: map[string]int{
+			"constitution": 2,
+			"wisdom":       1,
+		},
 		Traits:       dwarfTraits(),
 	}
 }

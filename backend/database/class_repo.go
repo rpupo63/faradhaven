@@ -12,6 +12,7 @@ type ClassRepository interface {
 	FindByIDWithLevels(id uuid.UUID) (*models.Class, error)
 	FindByName(name string) (*models.Class, error)
 	FindLevelByClassAndLevel(classID uuid.UUID, level int) (*models.ClassLevel, error)
+	FindEquipmentOptionsByIDs(ids []uuid.UUID) ([]models.ClassStartingEquipmentOption, error)
 	Add(class *models.Class) error
 	AddLevel(level *models.ClassLevel) error
 }
@@ -30,7 +31,9 @@ func (r *ClassRepo) FindAll() ([]*models.Class, error) {
 		return db.Where("level = ?", 1)
 	}).Preload("Levels.LevelFeatures", func(db *gorm.DB) *gorm.DB {
 		return db.Order("sort_order ASC")
-	}).Find(&classes).Error
+	}).Preload("EquipmentChoices", func(db *gorm.DB) *gorm.DB {
+		return db.Order("sort_order ASC")
+	}).Preload("EquipmentChoices.Options").Find(&classes).Error
 	return classes, err
 }
 
@@ -64,10 +67,21 @@ func (r *ClassRepo) FindByName(name string) (*models.Class, error) {
 
 func (r *ClassRepo) FindLevelByClassAndLevel(classID uuid.UUID, level int) (*models.ClassLevel, error) {
 	var cl models.ClassLevel
-	if err := r.db.First(&cl, "class_id = ? AND level = ?", classID, level).Error; err != nil {
+	if err := r.db.Preload("LevelFeatures", func(db *gorm.DB) *gorm.DB {
+		return db.Order("sort_order ASC")
+	}).First(&cl, "class_id = ? AND level = ?", classID, level).Error; err != nil {
 		return nil, err
 	}
 	return &cl, nil
+}
+
+func (r *ClassRepo) FindEquipmentOptionsByIDs(ids []uuid.UUID) ([]models.ClassStartingEquipmentOption, error) {
+	var options []models.ClassStartingEquipmentOption
+	if len(ids) == 0 {
+		return options, nil
+	}
+	err := r.db.Where("id IN ?", ids).Find(&options).Error
+	return options, err
 }
 
 func (r *ClassRepo) Add(class *models.Class) error {

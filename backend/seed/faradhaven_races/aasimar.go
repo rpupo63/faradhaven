@@ -9,6 +9,10 @@ func Aasimar() FaradhavenRaceSeed {
 		CreatureType:   "Humanoid",
 		Size:           "Medium (4–7 ft) or Small (2–4 ft)",
 		BaseSpeed:      30,
+		AbilityScoreBonuses: map[string]int{
+			"charisma": 2,
+			"wisdom":   1,
+		},
 		Traits:         aasimarTraits(),
 		ComponentNames: []string{"Lux", "Self", "Nova", "Umbra", "Fear", "Mend"},
 	}

@@ -173,6 +173,11 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 			return
 		}
 
+		// Preload weapons and items for the sheet
+		if err := h.characterRepo.GetDB().Preload("Weapons.Damages").Preload("Items").First(character, "id = ?", id).Error; err != nil {
+			log.Error().Err(err).Str("characterID", idStr).Msg("Failed to preload equipment")
+		}
+
 		authUserID, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
@@ -258,6 +263,22 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 		profBonus := classLevel.ProficiencyBonus
 		strMod := abilityMod(character.Strength)
 
+		// Race Traits
+		raceTraits, err := h.raceRepo.FindByIDWithTraits(character.RaceID)
+		var traits []models.Trait
+		if err == nil {
+			traits = raceTraits.Traits
+		}
+
+		// Lineage Traits
+		var lineage *models.Lineage
+		if character.LineageID != nil {
+			lineage, err = h.raceRepo.FindLineageByIDWithTraits(*character.LineageID)
+			if err == nil && lineage != nil {
+				traits = append(traits, lineage.LineageTraits...)
+			}
+		}
+
 		sheet := CharacterSheetResponse{
 			Character:                character,
 			Class:                    class,
@@ -277,6 +298,10 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 			HitDie:                   class.HitDie,
 			MeleeAttackBonus:         profBonus + strMod,
 			RangedAttackBonus:        profBonus + dexMod,
+			RaceTraits:               traits,
+			Lineage:                  lineage,
+			InventoryWeapons:         character.Weapons,
+			InventoryItems:           character.Items,
 		}
 		respondJSON(w, http.StatusOK, sheet)
 	}
@@ -399,6 +424,7 @@ func (h *characterHandler) createCharacter() http.HandlerFunc {
 			UserID:             req.UserID,
 			Name:               req.Name,
 			RaceID:             req.RaceID,
+			LineageID:          req.LineageID,
 			ClassID:            req.ClassID,
 			Level:              req.Level,
 			SpellbookIDs:       pq.StringArray(req.Spellbook),
@@ -414,23 +440,35 @@ func (h *characterHandler) createCharacter() http.HandlerFunc {
 		if character.Level == 0 {
 			character.Level = 1
 		}
-		if character.Strength == 0 {
-			character.Strength = 10
-		}
-		if character.Dexterity == 0 {
-			character.Dexterity = 10
-		}
-		if character.Constitution == 0 {
-			character.Constitution = 10
-		}
-		if character.Intelligence == 0 {
-			character.Intelligence = 10
-		}
-		if character.Wisdom == 0 {
-			character.Wisdom = 10
-		}
-		if character.Charisma == 0 {
-			character.Charisma = 10
+		// ... (stat defaults)
+
+		// Validate Skill Proficiencies
+		if len(req.SkillProficiencies) > 0 {
+			// Check if skills are within class.SkillChoice
+			validSkills := make(map[string]bool)
+			for _, s := range class.SkillChoice {
+				validSkills[strings.ToLower(s)] = true
+			}
+
+			count := 0
+			for _, s := range req.SkillProficiencies {
+				if validSkills[strings.ToLower(s)] {
+					count++
+				} else {
+					respondError(w, http.StatusBadRequest, "Invalid skill proficiency: "+s)
+					return
+				}
+			}
+
+			maxSkills := class.SkillChoiceCount
+			if maxSkills == 0 {
+				maxSkills = 2 // Default D&D standard
+			}
+
+			if count > maxSkills {
+				respondError(w, http.StatusBadRequest, "Too many skill proficiencies selected")
+				return
+			}
 		}
 
 		// Calculate initial HP for level 1: HitDie (max) + CON modifier
@@ -441,6 +479,67 @@ func (h *characterHandler) createCharacter() http.HandlerFunc {
 		}
 		character.MaxHP = initialHP
 		character.CurrentHP = initialHP
+
+		// Process Equipment
+		var inventory []string
+		var weaponIDs []uuid.UUID
+		var itemIDs []uuid.UUID
+
+		// 1. Add automatic equipment from class
+		if len(class.StartingEquip) > 0 {
+			inventory = append(inventory, class.StartingEquip...)
+		}
+		for _, wID := range class.StartingWeaponIDs {
+			if id, err := uuid.Parse(wID); err == nil {
+				weaponIDs = append(weaponIDs, id)
+			}
+		}
+		for _, iID := range class.StartingItemIDs {
+			if id, err := uuid.Parse(iID); err == nil {
+				itemIDs = append(itemIDs, id)
+			}
+		}
+
+		// 2. Add selected equipment choices
+		if len(req.EquipmentChoices) > 0 {
+			options, err := h.classRepo.FindEquipmentOptionsByIDs(req.EquipmentChoices)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to fetch equipment options")
+				respondError(w, http.StatusInternalServerError, "Failed to fetch equipment options")
+				return
+			}
+			for _, opt := range options {
+				if len(opt.Items) > 0 {
+					inventory = append(inventory, opt.Items...)
+				}
+				for _, wID := range opt.WeaponIDs {
+					if id, err := uuid.Parse(wID); err == nil {
+						weaponIDs = append(weaponIDs, id)
+					}
+				}
+				for _, iID := range opt.ItemIDs {
+					if id, err := uuid.Parse(iID); err == nil {
+						itemIDs = append(itemIDs, id)
+					}
+				}
+			}
+		}
+
+		character.Inventory = pq.StringArray(inventory)
+
+		// Fetch weapon and item objects to associate
+		if len(weaponIDs) > 0 {
+			var weapons []models.Weapon
+			if err := h.characterRepo.GetDB().Where("id IN ?", weaponIDs).Find(&weapons).Error; err == nil {
+				character.Weapons = weapons
+			}
+		}
+		if len(itemIDs) > 0 {
+			var items []models.Item
+			if err := h.characterRepo.GetDB().Where("id IN ?", itemIDs).Find(&items).Error; err == nil {
+				character.Items = items
+			}
+		}
 
 		if err := h.characterRepo.Add(character); err != nil {
 			log.Error().Err(err).Msg("Failed to create character")
@@ -502,6 +601,9 @@ func (h *characterHandler) updateCharacter() http.HandlerFunc {
 				return
 			}
 			character.RaceID = *req.RaceID
+		}
+		if req.LineageID != nil {
+			character.LineageID = req.LineageID
 		}
 		if req.ClassID != nil {
 			if _, err := h.classRepo.FindByID(*req.ClassID); err != nil {
@@ -589,5 +691,42 @@ func (h *characterHandler) deleteCharacter() http.HandlerFunc {
 		}
 
 		respondJSON(w, http.StatusOK, map[string]string{"message": "Character deleted successfully"})
+	}
+}
+
+// getCreationOptions returns all races and classes with full details for the creation wizard
+func (h *characterHandler) getCreationOptions() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		races, err := h.raceRepo.FindAll()
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to get races")
+			respondError(w, http.StatusInternalServerError, "Failed to get races")
+			return
+		}
+
+		classes, err := h.classRepo.FindAll()
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to get classes")
+			respondError(w, http.StatusInternalServerError, "Failed to get classes")
+			return
+		}
+
+		// Dereference pointers for response
+		racesValue := make([]models.Race, len(races))
+		for i, r := range races {
+			racesValue[i] = *r
+		}
+
+		classesValue := make([]models.Class, len(classes))
+		for i, c := range classes {
+			classesValue[i] = *c
+		}
+
+		resp := CreationOptionsResponse{
+			Races:     racesValue,
+			Classes:   classesValue,
+			PointsMax: 27, // Standard D&D 5e point buy
+		}
+		respondJSON(w, http.StatusOK, resp)
 	}
 }

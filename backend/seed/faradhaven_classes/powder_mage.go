@@ -1,50 +1,79 @@
 package faradhaven_classes
 
-// Fusilier returns the Powder Mage class seed
+// PowderMage returns the Powder Mage class seed
 func PowderMage() FaradhavenClassSeed {
 	return FaradhavenClassSeed{
 		Name:           "The Powder Mage",
-		Description:    "Etch spells directly onto bullet casings and fire magic through your Caster Gun. Cycle through ice shots, piercing rounds, and explosive shells to dominate at range with deadly precision.",
-		HitDie:         10,
+		Description:    "The 'Continuous Ignition' Powder Mage. Start speaking as soon as you declare the Cast action; whatever you say before the timer runs out is what happens. You aren't fighting to make the spell work, but to pack as much power into the casting window as possible.",
+		HitDie:         8,
 		PrimaryAbility: "dexterity",
 		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/powder_mage.jpg",
-		Archetype:      "Ranged DPS / Sniper",
-		Concept:        "The gun-mage. While the Tinkerer builds turrets, the Fusilier is a master of the Caster Gun. They etch spells onto bullet casings.",
+		Archetype:      "Speed Caster / Skirmisher",
+		Concept:        "Continuous Ignition: Real-time verbal casting under pressure.",
 		ClassFeatures: []string{
-			"Spell-Shot: You do not cast spells; you load them. Casting a spell is part of the Attack action with a firearm.",
-			"Chamber Roulette: You can prepare different shells (Ice shot, Net shot, Piercing shot) and cycle through them instantly.",
+			"Flash-Point Casting: Real-time casting window. Say words before the buzzer.",
+			"Kinetic Recoil: Use unspent power for movement.",
+			"Speed Dial: Instant cast of pre-saved component strings.",
 		},
-		DnDSkillFocus: []string{"Perception", "Investigation"},
-		Proficiencies: "Simple Weapons, Firearms (Pistols, Rifles, Blunderbusses), Medium Armor",
-		SkillChoice:   []string{"Perception", "Insight", "Survival", "Investigation"},
-		Tools:         []string{"Gunsmith's Tools"},
-		SavingThrows:  []string{"Dexterity", "Wisdom"},
-		StartingEquip: []string{"Heavy coat (padded armor)", "Flintlock Rifle or two Pistols", "Gunsmith's kit", "Ammo pouch"},
-		LevelFeatures: powderMageLevelFeatures(),
+		DnDSkillFocus:    []string{"Performance", "Acrobatics"},
+		Proficiencies:    "Light Armor, Simple Weapons",
+		SkillChoice:      []string{"Performance", "Acrobatics", "Arcana", "Sleight of Hand"},
+		Tools:            []string{"Alchemist's Supplies"},
+		SavingThrows:     []string{"Dexterity", "Charisma"},
+		AutomaticEquipNames: []string{"Component Pouch"},
+		AutomaticItemNames:  []string{"Light Armor", "Explorer's Pack"},
+		EquipmentChoices: []EquipmentChoiceSeed{
+			{
+				Instruction: "Choose your weapon",
+				Options: []EquipmentOptionSeed{
+					{Description: "A Dagger", WeaponNames: []string{"Dagger"}},
+					{Description: "A Shortsword", WeaponNames: []string{"Shortsword"}},
+				},
+			},
+			{
+				Instruction: "Choose your ranged weapon",
+				Options: []EquipmentOptionSeed{
+					{Description: "A Light Crossbow and 20 bolts", Items: []string{"20 Bolts"}, WeaponNames: []string{"Light Crossbow"}},
+					{Description: "A Shortbow and 20 arrows", Items: []string{"20 Arrows"}, WeaponNames: []string{"Shortbow"}},
+				},
+			},
+		},
+		LevelFeatures:    powderMageLevelFeatures(),
+		LevelProgression: powderMageLevelProgression(),
+	}
+}
+
+func powderMageLevelProgression() map[int]ClassLevelSeed {
+	// Powder Mage gains movement speed bonuses (like Unarmored Movement)
+	return map[int]ClassLevelSeed{
+		2:  {UnarmoredMovement: 10}, // Powder Sprint: +10 feet
+		6:  {UnarmoredMovement: 15}, // Recoil Mastery improves mobility
+		11: {UnarmoredMovement: 20}, // Room Clearer: enhanced movement
+		18: {UnarmoredMovement: 30}, // Sound Barrier: flying speed
 	}
 }
 
 func powderMageLevelFeatures() map[int]string {
 	return map[int]string{
-		1:  "Spell-Shot, Chamber Roulette — You gain the core class features. When you take the Attack action with a firearm, you can spend spell points to imbue your shot with a component (Ignite, Frost, Pierce, Seeker). The component effect triggers on a hit. You have advantage on Perception checks to spot hidden creatures beyond 30 feet.",
-		2:  "Steady Barrel — When you haven't moved this turn, you can spend 2 spell points to add your Dexterity modifier to the damage of your next firearm attack. You have advantage on that attack roll if the target is more than 30 feet away.",
-		3:  "Quick Reload — You can reload a firearm as a bonus action. When you use Chamber Roulette to switch shells, it no longer costs a bonus action; you can switch as part of the Attack action.",
-		4:  "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Dexterity cannot exceed 20.",
-		5:  "Extra Attack — When you take the Attack action, you can attack twice instead of once. Your second attack can use a different component shell.",
-		6:  "Ignite Mastery — When you hit with an Ignite-augmented shot, the target takes 1d4 fire damage at the start of their next turn. Frost-augmented shots reduce the target's speed by 10 feet until the end of their next turn.",
-		7:  "Pierce Through — When you use the Pierce modifier, your shot ignores half cover and three-quarters cover. You can spend 3 additional spell points to also ignore full cover if you can trace a line to the target.",
-		8:  "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Dexterity cannot exceed 20.",
-		9:  "Seeker Lock — When you use the Seeker modifier, the target has disadvantage on the saving throw (if any). Once per short rest, you can spend 5 spell points to make a Seeker shot that automatically hits (no attack roll) but deals half damage.",
-		10: "Overcharged Round — Once per short rest, you can spend 10 spell points as part of an attack to fire an overcharged shot. On a hit, the target takes an extra 2d6 damage of the component's type (fire for Ignite, cold for Frost, etc.) and must succeed on a Constitution save or be knocked prone.",
-		11: "Rapid Volley — When you use the Attack action and hit with both attacks, you can spend 5 spell points as a bonus action to make one additional firearm attack. You can use this feature a number of times per long rest equal to your Dexterity modifier.",
-		12: "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Dexterity cannot exceed 20.",
-		13: "Dual Component — When you fire a shot, you can spend 5 additional spell points to apply a second modifier component (Pierce or Seeker) to the same attack. Both effects trigger on a hit.",
-		14: "Dead Eye — Your firearm attacks score a critical hit on a roll of 19 or 20. When you score a critical hit with a component-augmented shot, you regain spell points equal to half the spell points spent on that shot (rounded down).",
-		15: "Evasive Reload — You can take the Disengage or Dodge action as a bonus action when you reload a firearm. You have resistance to opportunity attacks made against you when you move after firing.",
-		16: "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Dexterity cannot exceed 20.",
-		17: "Devastating Shot — Once per long rest, when you hit with a firearm attack, you can spend 15 spell points to maximize the damage dice of that attack (including component effects). The target must succeed on a Constitution save or be stunned until the end of your next turn.",
-		18: "Overcharged Mastery — Your Overcharged Round no longer requires a short rest. You can use it once per long rest. Additionally, your standard Overcharged Round damage increases to 3d6.",
-		19: "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Dexterity cannot exceed 20.",
-		20: "Fusilier's Precision — You are a master of the Caster Gun. You regain 20 spell points when you roll initiative and have none remaining. Your Steady Barrel no longer requires you to remain still, and you can use it once per turn without spending spell points. When you use Rapid Volley, the additional attack costs no spell points.",
+		1:  "Flash-Point Casting (2 Seconds) — The DM starts a timer when you cast. You list components; the spell resolves based on what you finish saying before the buzzer. The timer acts as a potency cap. (The Snap-Fire).",
+		2:  "Powder Sprint & Disengage — Movement speed increases by 10 feet. You can use Disengage or Dash as a bonus action.",
+		3:  "Speed Dial (The 'Pre-Mix') — Save one specific string of components. Once per short rest, cast this saved string as an action without using the timer.",
+		4:  "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1.",
+		5:  "Kinetic Recoil (Traversal) — When you finish a spell, unspent powder creates a blast. Move 10 feet in any direction immediately after resolution (no opportunity attacks). Timer increases to 3 Seconds (The Compound).",
+		6:  "Recoil Mastery — You can move along vertical surfaces during your Kinetic Recoil movement without falling during the move.",
+		7:  "Evasion — When you are subjected to an effect that allows you to make a Dexterity saving throw to take only half damage, you instead take no damage if you succeed on the saving throw, and only half damage if you fail.",
+		8:  "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1.",
+		9:  "Speed Dial Upgrade — You can now save 2 component strings.",
+		10: "Breath Control — You can hold your breath for up to 10 minutes. You have advantage on saving throws against inhaled gases and effects.",
+		11: "Room Clearer — As an action, move up to full speed. Any creature you pass within 5ft can be targeted by a single-component spell (e.g., 'Fire') if you say the word as you pass. Timer increases to 4 Seconds (The Sequence).",
+		12: "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1.",
+		13: "Sonic Boom — When you use Kinetic Recoil, you can choose to deal 3d6 thunder damage to all creatures within 5 feet of your starting position (Dexterity save for half).",
+		14: "Echoing Components — If you use the same component in two consecutive turns, that component is 'Active' automatically (no need to say it again), freeing up your timer.",
+		15: "Speed Dial Upgrade — You can now save 3 component strings.",
+		16: "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1.",
+		17: "Timer Upgrade (5 Seconds) — The Avalanche: You can output massive, multi-component 'Paragraph' spells.",
+		18: "Sound Barrier — You gain a flying speed equal to your walking speed, propelled by constant micro-blasts.",
+		19: "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1.",
+		20: "Manual Overdrive — Once per long rest, you ignore the timer for 1 minute.",
 	}
 }

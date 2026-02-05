@@ -13,6 +13,7 @@ import (
 	api "github.com/rpupo63/unified-personal-site-backend/api"
 	"github.com/rpupo63/unified-personal-site-backend/database"
 	"github.com/rpupo63/unified-personal-site-backend/internal/bootstrap"
+	"github.com/rpupo63/unified-personal-site-backend/seed"
 )
 
 // @title           Faradhaven API
@@ -50,10 +51,10 @@ func main() {
 	// 6. Wrap for Application
 	currentDB := database.New(db)
 
-	// 7. Run migrations based on GENERATE_MODELS env var
-	// GENERATE_MODELS=only  -> run migrations and exit (for CI/CD or standalone migration)
-	// GENERATE_MODELS=true  -> run migrations and continue to start server
-	// GENERATE_MODELS=false or unset -> skip migrations
+	// 7. Run migrations and seeding based on GENERATE_MODELS env var
+	// GENERATE_MODELS=only  -> run migrations/seeding and exit (for CI/CD or standalone)
+	// GENERATE_MODELS=true  -> run migrations/seeding and continue to start server
+	// GENERATE_MODELS=false or unset -> skip migrations and seeding
 	migrateMode := strings.ToLower(strings.TrimSpace(os.Getenv("GENERATE_MODELS")))
 	if migrateMode == "only" || migrateMode == "true" {
 		fmt.Println("Running database migrations...")
@@ -62,8 +63,27 @@ func main() {
 		}
 		fmt.Println("Migrations completed successfully")
 
+		// Migrate existing entities to stable/deterministic UUIDs (one-time migration)
+		// This preserves character references when reseeding
+		if seed.NeedsUUIDMigration(db) {
+			fmt.Println("Migrating to stable UUIDs...")
+			if err := seed.MigrateToStableUUIDs(db); err != nil {
+				log.Fatalf("Error migrating UUIDs: %v", err)
+			}
+			fmt.Println("UUID migration completed")
+		}
+
+		// Clear all seeded data and reseed from scratch
+		fmt.Println("Clearing and reseeding database...")
+		seeder := seed.NewSeeder(db)
+		seeder.RegisterAll(seed.AllSeeds())
+		if err := seeder.ClearAndSeed(); err != nil {
+			log.Fatalf("Error seeding database: %v", err)
+		}
+		fmt.Println("Seeding completed successfully")
+
 		if migrateMode == "only" {
-			fmt.Println("GENERATE_MODELS=only set, exiting after migrations.")
+			fmt.Println("GENERATE_MODELS=only set, exiting after migrations and seeding.")
 			return
 		}
 	}

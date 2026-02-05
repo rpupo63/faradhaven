@@ -1,9 +1,12 @@
 package faradhaven_races
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/unified-personal-site-backend/seed/uuids"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -35,32 +38,49 @@ func AllRaces() []FaradhavenRaceSeed {
 }
 
 // SeedFaradhavenRaces creates Race, Trait, TraitOption, and RaceComponent rows for all Faradhaven races.
-// Skips races that already exist by name.
+// Uses deterministic UUIDs so reseeding doesn't break character references.
 func SeedFaradhavenRaces(db *gorm.DB) error {
 	for _, rs := range AllRaces() {
+		// Generate deterministic UUID for this race
+		raceID := uuids.RaceUUID(rs.Name)
+
+		// Marshal AbilityScoreBonuses to JSON
+		var bonusesJSON datatypes.JSON
+		if rs.AbilityScoreBonuses != nil {
+			b, err := json.Marshal(rs.AbilityScoreBonuses)
+			if err != nil {
+				return err
+			}
+			bonusesJSON = datatypes.JSON(b)
+		}
+
 		var r models.Race
-		err := db.Where("name = ?", rs.Name).First(&r).Error
+		err := db.Where("id = ?", raceID).First(&r).Error
 		switch {
 		case err == gorm.ErrRecordNotFound:
 			r = models.Race{
-				Name:         rs.Name,
-				Description:  rs.Description,
-				CreatureType: rs.CreatureType,
-				Size:         rs.Size,
-				BaseSpeed:    rs.BaseSpeed,
-				PhotoURL:     rs.PhotoURL,
+				ID:                  raceID,
+				Name:                rs.Name,
+				Description:         rs.Description,
+				CreatureType:        rs.CreatureType,
+				Size:                rs.Size,
+				BaseSpeed:           rs.BaseSpeed,
+				PhotoURL:            rs.PhotoURL,
+				AbilityScoreBonuses: bonusesJSON,
 			}
 			if err := db.Create(&r).Error; err != nil {
 				return err
 			}
-			log.Printf("Created race: %s", r.Name)
+			log.Printf("Created race: %s (ID: %s)", r.Name, r.ID)
 		case err == nil:
 			updates := map[string]interface{}{
-				"description":   rs.Description,
-				"creature_type": rs.CreatureType,
-				"size":          rs.Size,
-				"base_speed":    rs.BaseSpeed,
-				"photo_url":     rs.PhotoURL,
+				"name":                  rs.Name,
+				"description":           rs.Description,
+				"creature_type":         rs.CreatureType,
+				"size":                  rs.Size,
+				"base_speed":            rs.BaseSpeed,
+				"photo_url":             rs.PhotoURL,
+				"ability_score_bonuses": bonusesJSON,
 			}
 			if err := db.Model(&r).Updates(updates).Error; err != nil {
 				return err
@@ -98,10 +118,21 @@ func SeedFaradhavenRaces(db *gorm.DB) error {
 			}
 
 			for _, opt := range ts.Options {
+				// Marshal Option Bonuses
+				var optBonusesJSON datatypes.JSON
+				if opt.AbilityScoreBonuses != nil {
+					b, err := json.Marshal(opt.AbilityScoreBonuses)
+					if err != nil {
+						return err
+					}
+					optBonusesJSON = datatypes.JSON(b)
+				}
+
 				o := models.TraitOption{
-					TraitID:     t.ID,
-					Name:        opt.Name,
-					Description: opt.Description,
+					TraitID:             t.ID,
+					Name:                opt.Name,
+					Description:         opt.Description,
+					AbilityScoreBonuses: optBonusesJSON,
 				}
 				if err := db.Create(&o).Error; err != nil {
 					return err
@@ -111,8 +142,12 @@ func SeedFaradhavenRaces(db *gorm.DB) error {
 
 		// Link components to race (for spell crafting)
 		for _, compName := range rs.ComponentNames {
+			// Use deterministic component UUID
+			componentID := uuids.ComponentUUID(compName)
+
+			// Verify component exists
 			var component models.Component
-			if err := db.Where("name = ?", compName).First(&component).Error; err != nil {
+			if err := db.Where("id = ?", componentID).First(&component).Error; err != nil {
 				if err == gorm.ErrRecordNotFound {
 					log.Printf("  Warning: Component '%s' not found for race %s", compName, rs.Name)
 					continue
@@ -121,7 +156,7 @@ func SeedFaradhavenRaces(db *gorm.DB) error {
 			}
 
 			// Insert into race_components join table
-			if err := db.Exec("INSERT INTO race_components (race_id, component_id) VALUES (?, ?) ON CONFLICT DO NOTHING", r.ID, component.ID).Error; err != nil {
+			if err := db.Exec("INSERT INTO race_components (race_id, component_id) VALUES (?, ?) ON CONFLICT DO NOTHING", r.ID, componentID).Error; err != nil {
 				return err
 			}
 			log.Printf("  Linked component %s to race %s", compName, rs.Name)

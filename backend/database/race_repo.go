@@ -11,6 +11,7 @@ type RaceRepository interface {
 	FindByID(id uuid.UUID) (*models.Race, error)
 	FindByIDWithTraits(id uuid.UUID) (*models.Race, error)
 	FindByName(name string) (*models.Race, error)
+	FindLineageByIDWithTraits(id uuid.UUID) (*models.Lineage, error)
 }
 
 type RaceRepo struct {
@@ -23,7 +24,7 @@ func NewRaceRepo(db *gorm.DB) *RaceRepo {
 
 func (r *RaceRepo) FindAll() ([]*models.Race, error) {
 	var races []*models.Race
-	err := r.db.Preload("Components").Find(&races).Error
+	err := r.db.Preload("Components").Preload("Traits.Options").Find(&races).Error
 	return races, err
 }
 
@@ -42,6 +43,14 @@ func (r *RaceRepo) FindByIDWithTraits(id uuid.UUID) (*models.Race, error) {
 		return nil, err
 	}
 	return &race, nil
+}
+
+func (r *RaceRepo) FindLineageByIDWithTraits(id uuid.UUID) (*models.Lineage, error) {
+	var lineage models.Lineage
+	if err := r.db.Preload("LineageTraits.Options").First(&lineage, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &lineage, nil
 }
 
 func (r *RaceRepo) FindByName(name string) (*models.Race, error) {

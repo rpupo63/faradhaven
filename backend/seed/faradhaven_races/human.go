@@ -9,6 +9,14 @@ func Human() FaradhavenRaceSeed {
 		CreatureType: "Humanoid",
 		Size:         "Medium (about 4-7 feet tall) or Small (about 2-4 feet tall), chosen when you select this species",
 		BaseSpeed:    30,
+		AbilityScoreBonuses: map[string]int{
+			"strength":     1,
+			"dexterity":    1,
+			"constitution": 1,
+			"intelligence": 1,
+			"wisdom":       1,
+			"charisma":     1,
+		},
 		Traits:       humanTraits(),
 	}
 }

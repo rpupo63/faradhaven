@@ -2,50 +2,117 @@ package faradhaven_classes
 
 // Mutagen returns the Mutagen class seed
 func Mutagen() FaradhavenClassSeed {
+	archetypeLevel := 3
+
 	return FaradhavenClassSeed{
 		Name:           "The Mutagen",
-		Description:    "Transform into a monstrous beast by metabolizing alchemical reagents, trading spell slots for raw biological mutations. You're the front-line juggernaut who grows claws, hardens skin, and regenerates mid-combat.",
-		HitDie:         12,
-		PrimaryAbility: "wisdom",
-		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/mutagen.jpg",
-		Archetype:      "Tank / Shock Trooper",
-		Concept:        "A survivor of industrial pollution or experimental alchemy who has learned to control the mutagenic beast within. They don't cast spells; they metabolize components to trigger biological mutations.",
+		Description:    "A volatile warrior who trades spell slots for mutation strains, risking madness to unleash primal power. You balance on the edge of a feral state, growing stronger as your humanity slips away.",
+		HitDie:         10,
+		PrimaryAbility: "Constitution",
+		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/mutagen.jpg", // Keeping existing URL or placeholder
+		Archetype:      "Biological Horror / Berserker",
+		Concept:        "A survivor of experimental alchemy or plague who metabolizes magic into physical change. They struggle to maintain control against the beast within.",
 		ClassFeatures: []string{
-			"Mutagenesis: You do not have spell slots. Instead, you ingest components (spending spell points) to grow claws, harden skin, heighten senses, or accelerate healing for a duration. Each mutation has its own duration based on the component used.",
-			"Primal Form: At level 1, you design a specific Beast Shape (Wolf, Bear, Rat, Insect). Your form influences your appearance in combat and grants thematic bonuses when you activate mutagens.",
-			"Metabolic Surge: Your body burns through alchemical reagents quickly. Mutagens are potent but shorter-lived than traditional magic—you trade longevity for raw physiological power.",
+			"The Madness Mechanic: Instead of Spell Slots, you use Mutation Strains. Every time you cast a spell (Mutation), you must make a Madness Save (Constitution). The DC starts at 10 and increases by +2 with each subsequent cast. Reset: The DC resets to 10 after a Short or Long Rest.",
+			"Feral Mode: On a failed Madness save, you enter a Feral State for 1 minute. You cannot cast spells, you lose the ability to distinguish friend from foe, and you must use your action to attack the nearest creature. You gain Resistance to Physical damage and deal extra damage (scaling with level) while Feral.",
+			"Internalized Arcana: You can only cast spells with a range of 'Self' or 'Touch'.",
 		},
-		DnDSkillFocus: []string{"Survival", "Perception"},
-		Proficiencies: "Simple weapons, Medium Armor (Hide/Leather only), Shields",
-		SkillChoice:   []string{"Nature", "Athletics", "Intimidation", "Insight"},
-		Tools:         []string{"Alchemist's Supplies (for stabilizing mutagens)"},
-		SavingThrows:  []string{"Constitution", "Wisdom"},
-		StartingEquip: []string{"Tattered traveler's clothes", "Heavy wooden shield", "Handaxe", "Iron flask (for mixing)"},
-		LevelFeatures: mutagenLevelFeatures(),
+		DnDSkillFocus:    []string{"Constitution", "Survival"},
+		Proficiencies:    "Light & Medium Armor, Simple & Martial Weapons",
+		SkillChoice:      []string{"Athletics", "Intimidation", "Survival", "Nature", "Medicine"},
+		Tools:            []string{"Alchemist's Supplies"},
+		SavingThrows:     []string{"Constitution", "Strength"},
+		AutomaticEquipNames: []string{"Alchemist's Supplies"},
+		AutomaticItemNames:  []string{"Scale Mail", "Explorer's Pack"},
+		EquipmentChoices: []EquipmentChoiceSeed{
+			{
+				Instruction: "Choose your martial weapon",
+				Options: []EquipmentOptionSeed{
+					{Description: "A Greataxe", WeaponNames: []string{"Greataxe"}},
+					{Description: "A Greatsword", WeaponNames: []string{"Greatsword"}},
+					{Description: "A Maul", WeaponNames: []string{"Maul"}},
+				},
+			},
+			{
+				Instruction: "Choose your secondary option",
+				Options: []EquipmentOptionSeed{
+					{Description: "Two Handaxes", WeaponNames: []string{"Handaxe", "Handaxe"}},
+					{Description: "A Light Crossbow and 20 bolts", Items: []string{"20 Bolts"}, WeaponNames: []string{"Light Crossbow"}},
+				},
+			},
+		},
+		LevelFeatures:    mutagenLevelFeatures(),
+		LevelProgression: mutagenLevelProgression(),
+		ArchetypeLevel:   &archetypeLevel,
+		Archetypes: []ArchetypeSeed{
+			{
+				Name:        "The Behemoth",
+				Description: "Focuses on raw physical power, size increases, and heavy armor plating. You become an unstoppable siege monster.",
+				Features: map[int]string{
+					3:  "Titan's Growth — You count as one size larger when determining carrying capacity and the weight you can push, drag, or lift. Your Feral Bonus Damage increases by +1.",
+					7:  "Living Fortress — While in Feral Mode, you gain a +1 bonus to AC and temporary hit points equal to your Constitution modifier at the start of each of your turns.",
+					11: "Siege Breaker — Your melee weapon attacks deal double damage to objects and structures. When you hit a creature with a melee weapon attack, you can push them up to 10 feet away.",
+					15: "Colossal Form — When you enter Feral Mode, your size doubles in all dimensions, and your weight is multiplied by eight. You deal an extra 1d4 damage on all melee attacks.",
+				},
+			},
+			{
+				Name:        "The Phase-Shifter",
+				Description: "Focuses on unstable molecular bonds, allowing for blink-steps, invisibility, and ethereal mutations.",
+				Features: map[int]string{
+					3:  "Blink Strike — When you take the Attack action, you can teleport up to 10 feet before each attack to an unoccupied space you can see.",
+					7:  "Ethereal Step — As a bonus action, you can turn invisible until the start of your next turn or until you attack or cast a spell.",
+					11: "Phase Dodge — When you are hit by an attack, you can use your reaction to roll 1d6. On a 4 or higher, the attack misses you as you phase out of reality.",
+					15: "Reality Tear — You can cast the 'Blink' spell on yourself without expending a spell slot or increasing your Madness DC. While blinking, your Feral Bonus Damage applies to your first attack after reappearing.",
+				},
+			},
+			{
+				Name:        "The Plague-Bearer",
+				Description: "Your mutations exude toxic clouds and life-steal mechanics. You are a walking biohazard.",
+				Features: map[int]string{
+					3:  "Toxic Aura — Creatures that start their turn within 5 feet of you take poison damage equal to your Constitution modifier.",
+					7:  "Parasitic Drain — When you deal damage to a creature with a melee attack while in Feral Mode, you regain hit points equal to half the damage dealt.",
+					11: "Contagion Carrier — You are immune to disease and poison damage. Your Toxic Aura range increases to 10 feet.",
+					15: "Viral Explosion — When you are reduced to 0 hit points, your body releases a cloud of virulent gas. Each creature within 20 feet of you must make a Constitution saving throw (DC 8 + your Constitution modifier + your Proficiency Bonus), taking 8d6 poison damage on a failed save, or half as much on a successful one.",
+				},
+			},
+		},
 	}
 }
 
 func mutagenLevelFeatures() map[int]string {
 	return map[int]string{
-		1:  "Primal Form — Choose your Beast Shape: Wolf (pack tactics, keen smell), Bear (raw power, thick fur), Rat (nimble, disease resistance), or Insect (chitin plating, climbing). When you use Mutagenesis, you partially assume traits of your form. Your unarmed strikes in Primal Form deal 1d6 + Strength modifier slashing damage (claws or fangs).",
-		2:  "Feral Senses — Your heightened senses from the mutagen grant advantage on Perception (Wisdom) and Survival (Wisdom) checks to track creatures by scent or sound. When using the Adrenaline component, you also gain darkvision out to 60 feet for the duration.",
-		3:  "Bestial Fury — When you have Feral Muscle active and are in Primal Form, you can use a bonus action to make one additional claw or bite attack. This attack deals 1d6 + Strength modifier damage.",
-		4:  "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Wisdom cannot exceed 20.",
-		5:  "Extra Attack — When you take the Attack action, you can attack twice instead of once. Your beast form is now fully combat-ready; you gain a +1 bonus to AC while Chitin/Hide is active.",
-		6:  "Thick Hide — When you use the Chitin/Hide component, you gain resistance to nonmagical bludgeoning, piercing, and slashing damage for the duration. Bear-form Chimeras gain an additional +1 temporary HP per level while this mutagen is active.",
-		7:  "Primal Resilience — Your body has adapted to the worst toxins. You have advantage on saving throws against poison and disease. When you use Regenerate, you can end one disease or the poisoned condition on yourself as part of the same action.",
-		8:  "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Wisdom cannot exceed 20.",
-		9:  "Hybrid Form — You can manifest partial beast traits without full transformation. As a bonus action, you can enter a 'half-form' that lasts 1 hour (no spell point cost). In half-form, you retain your claws (1d6 damage) and one minor trait from your Beast Shape, but you can still speak and use equipment. You can still layer full Mutagenesis effects on top.",
-		10: "Predator's Stride — When you use the Adrenaline component, difficult terrain no longer costs you extra movement. You can also take the Dash action as a bonus action once per turn while Adrenaline is active. Wolf-form Chimeras can move through an ally's space when charging.",
-		11: "Greater Mutagen — Your mutagens last twice as long. You can maintain two different mutagens simultaneously (e.g., Feral Muscle + Chitin/Hide). Each costs spell points separately. Your body has grown more efficient at processing reagents.",
-		12: "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Wisdom cannot exceed 20.",
-		13: "Alpha's Roar — Once per short rest, you can use an action to unleash a bestial roar. Each creature of your choice within 30 feet must succeed on a Wisdom saving throw or be frightened of you for 1 minute. A creature can repeat the save at the end of each of its turns. Creatures that succeed are immune to your Alpha's Roar for 24 hours.",
-		14: "Adaptive Biology — Your body has evolved from repeated exposure to mutagens. When you enter Primal Form, choose one damage type: acid, cold, fire, lightning, or poison. You have resistance to that damage type until you leave Primal Form. You can change this choice when you finish a long rest.",
-		15: "True Hybrid — You can remain in Hybrid Form indefinitely when not in combat. There is no duration limit for your half-form. When you use Primal Form in combat, your mutagen durations are not reduced by taking damage. Your claws and fangs are now considered magical for the purpose of overcoming resistance.",
-		16: "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Wisdom cannot exceed 20.",
-		17: "Primal Surge — When you use the Regenerate component on yourself, you can extend the healing to one willing creature you touch. That creature gains half the healing you receive (rounded down) for the duration. You can use this feature a number of times equal to your Wisdom modifier per long rest.",
-		18: "Indomitable Beast — When you are reduced to 0 hit points but not killed outright, you can make a Constitution saving throw (DC 10). On a success, you drop to 1 hit point instead and cannot be reduced below 1 hit point until the start of your next turn. Once you use this feature, you cannot use it again until you finish a long rest.",
-		19: "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Wisdom cannot exceed 20.",
-		20: "Master of the Form — You are the apex predator. Your mutagen durations are tripled (stacking with Greater Mutagen). When you enter Primal Form, you gain +1 AC and +1 to attack and damage rolls with natural weapons. Your natural weapon damage dice increase by one size (1d6 becomes 1d8). You have mastered the beast within.",
+		1:  "Internalized Arcana, Feral Mode — Feral Bonus Damage: +2. Madness Resistance (1/Day): You can choose to succeed on a failed Madness save.",
+		2:  "Biological Adaptation — Choose one: Darkvision (60ft), Climbing Speed (equal to walking), or Natural Armor (+1 AC). Feral Bonus Damage: +2.",
+		3:  "Mutagenic Archetype — Choose a path: The Behemoth, The Phase-Shifter, or The Plague-Bearer. Feral Bonus Damage: +2.",
+		4:  "Ability Score Improvement. Feral Bonus Damage: +2.",
+		5:  "Extra Attack. Madness Resistance (2/Day). Feral Bonus Damage: +3.",
+		6:  "Stabilized Bloodstream — Madness DC increases by only +1 per spell cast. Feral Bonus Damage: +3.",
+		7:  "Archetype Feature. Feral Bonus Damage: +3.",
+		8:  "Ability Score Improvement. Feral Bonus Damage: +3.",
+		9:  "Advanced Synthesis — You gain access to 3rd-level mutations (spells). Feral Bonus Damage: +4.",
+		10: "Mind of the Hive — Immunity to Frightened condition. Feral Bonus Damage: +4.",
+		11: "Archetype Feature. Feral Bonus Damage: +4.",
+		12: "Ability Score Improvement. Feral Bonus Damage: +4.",
+		13: "Rapid Cellular Repair — Regain hit points equal to 1d10 + Con modifier as a bonus action (Uses: Con modifier/Long Rest). Feral Bonus Damage: +5.",
+		14: "Controlled Ferocity — In Feral Mode, you no longer attack allies and can choose targets (melee only). Feral Bonus Damage: +5.",
+		15: "Archetype Feature. Feral Bonus Damage: +5.",
+		16: "Ability Score Improvement. Feral Bonus Damage: +5.",
+		17: "Apex Predator — Madness saves are made with Advantage permanently. Feral Bonus Damage: +6.",
+		18: "Unstoppable Mutation — You stop aging and cannot be aged magically. Feral Bonus Damage: +6.",
+		19: "Ability Score Improvement. Feral Bonus Damage: +6.",
+		20: "Perfect Organism — No DC Increase for 1st level spells. Feral Bonus Damage: +7.",
+	}
+}
+
+func mutagenLevelProgression() map[int]ClassLevelSeed {
+	// Mutagen gets Extra Attack at level 5
+	// Using RageDamageBonus to represent Feral Bonus Damage scaling
+	return map[int]ClassLevelSeed{
+		1:  {RageDamageBonus: 2},                      // Feral Bonus Damage: +2
+		5:  {ExtraAttackCount: 1, RageDamageBonus: 3}, // Extra Attack, Feral Bonus Damage: +3
+		9:  {ExtraAttackCount: 1, RageDamageBonus: 4}, // Feral Bonus Damage: +4
+		13: {ExtraAttackCount: 1, RageDamageBonus: 5}, // Feral Bonus Damage: +5
+		17: {ExtraAttackCount: 1, RageDamageBonus: 6}, // Feral Bonus Damage: +6
+		20: {ExtraAttackCount: 1, RageDamageBonus: 7}, // Feral Bonus Damage: +7
 	}
 }

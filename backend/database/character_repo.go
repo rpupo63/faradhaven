@@ -17,6 +17,7 @@ type CharacterRepository interface {
 	Update(character *models.Character) error
 	Delete(id uuid.UUID) error
 	ReplaceSkillProficiencies(characterID uuid.UUID, skillIDs []string) error
+	GetDB() *gorm.DB
 }
 
 type CharacterRepo struct {
@@ -27,17 +28,21 @@ func NewCharacterRepo(db *gorm.DB) *CharacterRepo {
 	return &CharacterRepo{db}
 }
 
+func (r *CharacterRepo) GetDB() *gorm.DB {
+	return r.db
+}
+
 // FindAll returns all characters
 func (r *CharacterRepo) FindAll() ([]*models.Character, error) {
 	var characters []*models.Character
-	err := r.db.Preload("Race").Preload("Class").Find(&characters).Error
+	err := r.db.Preload("Race").Preload("Class").Preload("Archetype").Find(&characters).Error
 	return characters, err
 }
 
 // FindByID returns a character by ID
 func (r *CharacterRepo) FindByID(id uuid.UUID) (*models.Character, error) {
 	var character models.Character
-	err := r.db.Preload("Race").Preload("Class").First(&character, "id = ?", id).Error
+	err := r.db.Preload("Race").Preload("Class").Preload("Archetype").First(&character, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +53,7 @@ func (r *CharacterRepo) FindByID(id uuid.UUID) (*models.Character, error) {
 // SkillProficiencyIDs populated, and Race.Traits.Options preloaded (for character sheet racial traits)
 func (r *CharacterRepo) FindByIDWithSkills(id uuid.UUID) (*models.Character, error) {
 	var character models.Character
-	if err := r.db.Preload("Race").Preload("Class").Preload("Race.Traits.Options").First(&character, "id = ?", id).Error; err != nil {
+	if err := r.db.Preload("Race").Preload("Class").Preload("Archetype").Preload("Race.Traits.Options").First(&character, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	var skills []models.CharacterSkill
@@ -66,7 +71,7 @@ func (r *CharacterRepo) FindByIDWithSkills(id uuid.UUID) (*models.Character, err
 // FindByUserID returns all characters for a user
 func (r *CharacterRepo) FindByUserID(userID uuid.UUID) ([]*models.Character, error) {
 	var characters []*models.Character
-	err := r.db.Preload("Race").Preload("Class").Where("user_id = ?", userID).Find(&characters).Error
+	err := r.db.Preload("Race").Preload("Class").Preload("Archetype").Where("user_id = ?", userID).Find(&characters).Error
 	return characters, err
 }
 

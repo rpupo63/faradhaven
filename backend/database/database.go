@@ -11,11 +11,14 @@ type Database struct {
 	characterRepo      *CharacterRepo
 	raceRepo           *RaceRepo
 	classRepo          *ClassRepo
+	archetypeRepo      *ArchetypeRepo
 	spellRepo          *SpellRepo
 	beastRepo          *BeastRepo
 	attackRepo         *AttackRepo
 	levelUpHistoryRepo *LevelUpHistoryRepo
 	weaponRepo         *WeaponRepo
+	itemRepo           *ItemRepo
+	componentRepo      *ComponentRepo
 }
 
 // New initializes a new Database struct with each repository using a shared GORM database instance
@@ -26,11 +29,14 @@ func New(db *gorm.DB) Database {
 		characterRepo:      NewCharacterRepo(db),
 		raceRepo:           NewRaceRepo(db),
 		classRepo:          NewClassRepo(db),
+		archetypeRepo:      NewArchetypeRepo(db),
 		spellRepo:          NewSpellRepo(db),
 		beastRepo:          NewBeastRepo(db),
 		attackRepo:         NewAttackRepo(db),
 		levelUpHistoryRepo: NewLevelUpHistoryRepo(db),
 		weaponRepo:         NewWeaponRepo(db),
+		itemRepo:           NewItemRepo(db),
+		componentRepo:      NewComponentRepo(db),
 	}
 }
 
@@ -52,6 +58,10 @@ func (d Database) ClassRepo() *ClassRepo {
 	return d.classRepo
 }
 
+func (d Database) ArchetypeRepo() *ArchetypeRepo {
+	return d.archetypeRepo
+}
+
 func (d Database) SpellRepo() *SpellRepo {
 	return d.spellRepo
 }
@@ -70,6 +80,14 @@ func (d Database) LevelUpHistoryRepo() *LevelUpHistoryRepo {
 
 func (d Database) WeaponRepo() *WeaponRepo {
 	return d.weaponRepo
+}
+
+func (d Database) ItemRepo() *ItemRepo {
+	return d.itemRepo
+}
+
+func (d Database) ComponentRepo() *ComponentRepo {
+	return d.componentRepo
 }
 
 // AutoMigrate runs GORM auto-migration for all models

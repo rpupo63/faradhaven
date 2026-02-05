@@ -9,6 +9,10 @@ func Dragonborn() FaradhavenRaceSeed {
 		CreatureType:   "Humanoid",
 		Size:           "Medium (about 5–7 feet tall)",
 		BaseSpeed:      30,
+		AbilityScoreBonuses: map[string]int{
+			"strength": 2,
+			"charisma": 1,
+		},
 		Traits:         dragonbornTraits(),
 		ComponentNames: []string{"Ignis", "Fulgur", "Cool", "Wither", "Aer", "Nova", "Channel"},
 	}
