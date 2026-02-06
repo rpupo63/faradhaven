@@ -159,6 +159,9 @@ func (h *userHandler) updateUser() http.HandlerFunc {
 		if req.Email != nil {
 			user.Email = *req.Email
 		}
+		if req.ActiveCharacterID != nil {
+			user.ActiveCharacterID = req.ActiveCharacterID
+		}
 
 		if err := h.userRepo.Update(user); err != nil {
 			log.Error().Err(err).Msg("Failed to update user")
@@ -167,6 +170,54 @@ func (h *userHandler) updateUser() http.HandlerFunc {
 		}
 
 		respondJSON(w, http.StatusOK, user)
+	}
+}
+
+// setActiveCharacter sets the user's active character for shop purchases
+func (h *userHandler) setActiveCharacter() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "userID")
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid user ID")
+			return
+		}
+
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		if authUserID != idStr {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		var req SetActiveCharacterRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		user, err := h.userRepo.FindByID(id)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "User not found")
+			return
+		}
+
+		// Update active character (can be nil to clear)
+		user.ActiveCharacterID = req.CharacterID
+
+		if err := h.userRepo.Update(user); err != nil {
+			log.Error().Err(err).Msg("Failed to set active character")
+			respondError(w, http.StatusInternalServerError, "Failed to set active character")
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"message":             "Active character updated",
+			"active_character_id": user.ActiveCharacterID,
+		})
 	}
 }
 

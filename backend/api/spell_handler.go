@@ -83,6 +83,26 @@ func (h *spellHandler) getSpellsByUser() http.HandlerFunc {
 	}
 }
 
+// getSpellsByCharacter returns all prepared spells for a character
+func (h *spellHandler) getSpellsByCharacter() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		characterIDStr := chi.URLParam(r, "characterID")
+		characterID, err := uuid.Parse(characterIDStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		spells, err := h.spellRepo.FindByCharacterID(characterID)
+		if err != nil {
+			log.Error().Err(err).Str("characterID", characterIDStr).Msg("Failed to get character spells")
+			respondError(w, http.StatusInternalServerError, "Failed to get character spells")
+			return
+		}
+		respondJSON(w, http.StatusOK, spells)
+	}
+}
+
 // createSpell creates a new spell
 func (h *spellHandler) createSpell() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -110,6 +130,7 @@ func (h *spellHandler) createSpell() http.HandlerFunc {
 
 		spell := &models.Spell{
 			UserID:      req.UserID,
+			CharacterID: req.CharacterID,
 			Name:        req.Name,
 			Description: req.Description,
 			SlotLevel:   req.SlotLevel,

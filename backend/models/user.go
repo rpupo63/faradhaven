@@ -16,8 +16,12 @@ type User struct {
 	CreatedAt    time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedAt    time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
+	// Active character for shop purchases and quick access
+	ActiveCharacterID *uuid.UUID `json:"active_character_id,omitempty" gorm:"type:uuid;index"`
+
 	// Relationships (HasMany: children hold FK; constraint ensures ON DELETE CASCADE)
-	Characters []Character `json:"characters,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	Spells     []Spell     `json:"spells,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	Beasts     []Beast     `json:"beasts,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	Characters      []Character `json:"characters,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	Spells          []Spell     `json:"spells,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	Beasts          []Beast     `json:"beasts,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	ActiveCharacter *Character  `json:"active_character,omitempty" gorm:"foreignKey:ActiveCharacterID;references:ID"`
 }

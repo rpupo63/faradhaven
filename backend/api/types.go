@@ -35,8 +35,13 @@ type CreateUserRequest struct {
 }
 
 type UpdateUserRequest struct {
-	Name  *string `json:"name,omitempty"`
-	Email *string `json:"email,omitempty"`
+	Name              *string    `json:"name,omitempty"`
+	Email             *string    `json:"email,omitempty"`
+	ActiveCharacterID *uuid.UUID `json:"active_character_id,omitempty"`
+}
+
+type SetActiveCharacterRequest struct {
+	CharacterID *uuid.UUID `json:"character_id"` // nil to clear active character
 }
 
 // Character Request/Response Types
@@ -56,8 +61,10 @@ type CreateCharacterRequest struct {
 	Wisdom             int         `json:"wisdom"`
 	Charisma           int         `json:"charisma"`
 	CurrentSpellPoints int         `json:"current_spell_points"`
-	SkillProficiencies []string    `json:"skill_proficiencies"` // D&D 5e skill ids (e.g. "persuasion", "stealth")
-	EquipmentChoices   []uuid.UUID `json:"equipment_choices"`   // IDs of selected ClassStartingEquipmentOption
+	Money              int64       `json:"money"`
+	SkillProficiencies []string    `json:"skill_proficiencies"`         // D&D 5e skill ids (e.g. "persuasion", "stealth")
+	EquipmentChoices   []uuid.UUID `json:"equipment_choices"`           // IDs of selected ClassStartingEquipmentOption
+	PrimaryWeaponID    *uuid.UUID  `json:"primary_weapon_id,omitempty"` // selected primary weapon for signature items
 }
 
 type CreationOptionsResponse struct {
@@ -80,6 +87,7 @@ type UpdateCharacterRequest struct {
 	Wisdom             *int       `json:"wisdom,omitempty"`
 	Charisma           *int       `json:"charisma,omitempty"`
 	CurrentSpellPoints *int       `json:"current_spell_points,omitempty"`
+	Money              *int64     `json:"money,omitempty"`
 	SkillProficiencies []string   `json:"skill_proficiencies,omitempty"` // D&D 5e skill ids
 }
 
@@ -91,34 +99,75 @@ type ClassWithLevelsResponse struct {
 
 // CharacterSheetResponse is the fully calculated character sheet (Class + ClassLevel joined)
 type CharacterSheetResponse struct {
-	Character                *models.Character  `json:"character"`
-	Class                    *models.Class      `json:"class"`
-	ClassLevel               *models.ClassLevel `json:"class_level"`
-	TotalHP                  int                `json:"total_hp"`   // Deprecated: use max_hp
-	MaxHP                    int                `json:"max_hp"`     // Character's maximum HP (persisted)
-	CurrentHP                int                `json:"current_hp"` // Character's current HP (persisted)
-	TempHP                   int                `json:"temp_hp"`    // Temporary HP
-	AC                       int                `json:"ac"`         // 8 + ProficiencyBonus + DexMod
-	SaveDC                   int                `json:"save_dc"`    // 8 + ProficiencyBonus + PrimaryAbilityMod
-	MaxSpellPoints           int                `json:"max_spell_points"`
-	CurrentSpellPoints       int                `json:"current_spell_points"`
-	SavingThrowProficiencies []string           `json:"saving_throw_proficiencies"` // ability ids from class.SavingThrows
-	AvailableComponents      []models.Component `json:"available_components"`       // combined class + race components for spell crafting
-	HitDiceTotal             int                `json:"hit_dice_total"`             // Total hit dice = Level
-	HitDiceRemaining         int                `json:"hit_dice_remaining"`         // Available hit dice = Level - HitDiceUsed
-	HitDie                   int                `json:"hit_die"`                    // Class hit die (e.g., 10 for d10)
-	MeleeAttackBonus         int                `json:"melee_attack_bonus"`         // Proficiency + STR mod
-	RangedAttackBonus        int                `json:"ranged_attack_bonus"`        // Proficiency + DEX mod
-	RaceTraits               []models.Trait     `json:"race_traits"`                // Race traits for the character's race
-	Lineage                  *models.Lineage    `json:"lineage,omitempty"`          // Character's lineage (sub-race)
-	InventoryWeapons         []models.Weapon    `json:"inventory_weapons"`          // Detailed weapon objects
-	InventoryItems           []models.Item      `json:"inventory_items"`            // Detailed item objects
+	Character                *models.Character         `json:"character"`
+	Class                    *models.Class             `json:"class"`
+	ClassLevel               *models.ClassLevel        `json:"class_level"`
+	TotalHP                  int                       `json:"total_hp"`   // Deprecated: use max_hp
+	MaxHP                    int                       `json:"max_hp"`     // Character's maximum HP (persisted)
+	CurrentHP                int                       `json:"current_hp"` // Character's current HP (persisted)
+	TempHP                   int                       `json:"temp_hp"`    // Temporary HP
+	AC                       int                       `json:"ac"`         // 8 + ProficiencyBonus + DexMod
+	SaveDC                   int                       `json:"save_dc"`    // 8 + ProficiencyBonus + PrimaryAbilityMod
+	MaxSpellPoints           int                       `json:"max_spell_points"`
+	CurrentSpellPoints       int                       `json:"current_spell_points"`
+	SavingThrowProficiencies []string                  `json:"saving_throw_proficiencies"` // ability ids from class.SavingThrows
+	AvailableComponents      []models.Component        `json:"available_components"`       // combined class + race components for spell crafting
+	HitDiceTotal             int                       `json:"hit_dice_total"`             // Total hit dice = Level
+	HitDiceRemaining         int                       `json:"hit_dice_remaining"`         // Available hit dice = Level - HitDiceUsed
+	HitDie                   int                       `json:"hit_die"`                    // Class hit die (e.g., 10 for d10)
+	Money                    int64                     `json:"money"`                      // Currency in copper pieces
+	MeleeAttackBonus         int                       `json:"melee_attack_bonus"`         // Proficiency + STR mod
+	RangedAttackBonus        int                       `json:"ranged_attack_bonus"`        // Proficiency + DEX mod
+	RaceTraits               []models.Trait            `json:"race_traits"`                // Race traits for the character's race
+	Lineage                  *models.Lineage           `json:"lineage,omitempty"`          // Character's lineage (sub-race)
+	InventoryWeapons         []CharacterWeaponResponse `json:"inventory_weapons"`          // Detailed weapon objects with modifiers
+	InventoryItems           []models.Item             `json:"inventory_items"`            // Detailed item objects
+
+	// --- Class-Specific Resources ---
+	ResourceType      string `json:"resource_type,omitempty"`
+	ResourceName      string `json:"resource_name,omitempty"`
+	CurrentStability  int    `json:"current_stability,omitempty"`
+	MaxStability      int    `json:"max_stability,omitempty"`
+	CurrentBloodIchor int    `json:"current_blood_ichor,omitempty"`
+	MaxBloodIchor     int    `json:"max_blood_ichor,omitempty"`
+	MadnessCastCount  int    `json:"madness_cast_count,omitempty"`
+	MadnessBaseDC     int    `json:"madness_base_dc,omitempty"`
+	FeralBonus        int    `json:"feral_bonus,omitempty"`
+	EchoSlots         int    `json:"echo_slots,omitempty"`
+	EchoSlotsUsed     int    `json:"echo_slots_used,omitempty"`
+	ConcurrencyLimit  int    `json:"concurrency_limit,omitempty"`
+	YieldDie          int    `json:"yield_die,omitempty"`
+	TimerDuration     int    `json:"timer_duration,omitempty"`
+	SpeedDialSlots    int    `json:"speed_dial_slots,omitempty"`
+	MaxSpellLevel     int    `json:"max_spell_level,omitempty"`
+	BiteDamageDice    int    `json:"bite_damage_dice,omitempty"`
+}
+
+type CharacterWeaponResponse struct {
+	CharacterWeaponID string                   `json:"character_weapon_id"`
+	Weapon            models.Weapon            `json:"weapon"`
+	IsPrimary         bool                     `json:"is_primary"`
+	CustomName        *string                  `json:"custom_name,omitempty"`
+	ActiveModifiers   []WeaponModifierResponse `json:"active_modifiers,omitempty"`
+}
+
+type WeaponModifierResponse struct {
+	ModifierType string            `json:"modifier_type"`
+	IsActive     bool              `json:"is_active"`
+	BonusDamage  []BonusDamageInfo `json:"bonus_damage,omitempty"`
+	Metadata     interface{}       `json:"metadata,omitempty"`
+}
+
+type BonusDamageInfo struct {
+	Dice       string `json:"dice"`
+	DamageType string `json:"damage_type"`
 }
 
 // Spell Request/Response Types
 
 type CreateSpellRequest struct {
 	UserID       uuid.UUID   `json:"user_id"`
+	CharacterID  *uuid.UUID  `json:"character_id,omitempty"` // Optional: character who prepared this spell
 	Name         string      `json:"name"`
 	Description  string      `json:"description"`
 	ComponentIDs []uuid.UUID `json:"component_ids"`
@@ -130,6 +179,19 @@ type UpdateSpellRequest struct {
 	Description  *string     `json:"description,omitempty"`
 	ComponentIDs []uuid.UUID `json:"component_ids,omitempty"`
 	SlotLevel    *int        `json:"slot_level,omitempty"`
+	CharacterID  *uuid.UUID  `json:"character_id,omitempty"`
+}
+
+// Purchase Request Types
+
+type PurchaseItemRequest struct {
+	ItemID   uuid.UUID `json:"item_id"`
+	ItemType string    `json:"item_type"` // "item" or "weapon"
+}
+
+// UpdateBackstoryRequest is used to update a character's backstory
+type UpdateBackstoryRequest struct {
+	Backstory string `json:"backstory"`
 }
 
 // Beast Request/Response Types
@@ -229,6 +291,13 @@ type RestResponse struct {
 	MaxSpellPoints     int `json:"max_spell_points"`
 	HitDiceRemaining   int `json:"hit_dice_remaining"`
 	HitDiceTotal       int `json:"hit_dice_total"`
+
+	// Class-specific resources (restored on rest)
+	CurrentStability  int `json:"current_stability,omitempty"`
+	MaxStability      int `json:"max_stability,omitempty"`
+	CurrentBloodIchor int `json:"current_blood_ichor,omitempty"`
+	MaxBloodIchor     int `json:"max_blood_ichor,omitempty"`
+	MadnessCastCount  int `json:"madness_cast_count,omitempty"`
 }
 
 // API Response Types

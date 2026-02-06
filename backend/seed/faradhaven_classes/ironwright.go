@@ -21,31 +21,27 @@ func Ironwright() FaradhavenClassSeed {
 		AutomaticItemNames:  []string{"Tinker's Tools"},
 		EquipmentChoices: []EquipmentChoiceSeed{
 			{
-				Instruction: "Choose your primary tool/weapon",
+				Instruction: "Choose your engineering tool",
 				Options: []EquipmentOptionSeed{
-					{Description: "A Heavy Wrench (counts as Mace)", WeaponNames: []string{"Mace"}},
-					{Description: "A Hammer (counts as Light Hammer)", WeaponNames: []string{"Light Hammer"}},
+					{Description: "A Heavy Wrench (Warhammer)", WeaponNames: []string{"Warhammer"}},
+					{Description: "Mechanized Oil Can and Hammer", ItemNames: []string{"Mechanized Oil Can"}, WeaponNames: []string{"Light Hammer"}},
 				},
 			},
 			{
-				Instruction: "Choose your ranged option",
+				Instruction: "Choose your salvage gear",
 				Options: []EquipmentOptionSeed{
-					{Description: "A Hand Crossbow and 20 bolts", Items: []string{"Hand Crossbow", "20 Bolts"}},
-					{Description: "Two Daggers", WeaponNames: []string{"Dagger", "Dagger"}},
-				},
-			},
-			{
-				Instruction: "Choose your pack",
-				Options: []EquipmentOptionSeed{
-					{Description: "A Scholar's Pack", ItemNames: []string{"Scholar's Pack"}},
-					{Description: "A Dungeoneer's Pack", ItemNames: []string{"Dungeoneer's Pack"}},
+					{Description: "Bag of Gears and Springs", ItemNames: []string{"Bag of Gears and Springs"}},
+					{Description: "Smelter's Gloves", ItemNames: []string{"Smelter's Gloves"}},
 				},
 			},
 		},
-		LevelFeatures:    ironwrightLevelFeatures(),
-		LevelProgression: ironwrightLevelProgression(),
-		ArchetypeLevel:   &archetypeLevel,
-		Archetypes:       ironwrightArchetypes(),
+		LevelFeatures:       ironwrightLevelFeatures(),
+		LevelProgression:    ironwrightLevelProgression(),
+		ArchetypeLevel:      &archetypeLevel,
+		Archetypes:          ironwrightArchetypes(),
+		ResourceType:        "components",
+		ResourceName:        "Components",
+		ResourceRestoreType: "special", // gathered from fallen creatures, not restored on rest
 	}
 }
 
@@ -74,7 +70,12 @@ func ironwrightLevelFeatures() map[int]string {
 
 func ironwrightLevelProgression() map[int]ClassLevelSeed {
 	return map[int]ClassLevelSeed{
-		5: {ExtraAttackCount: 1},
+		1:  {ConcurrencyLimit: 1, YieldDie: 4},
+		5:  {ExtraAttackCount: 1, ConcurrencyLimit: 2, YieldDie: 6},
+		9:  {ExtraAttackCount: 1, ConcurrencyLimit: 3, YieldDie: 8},
+		13: {ExtraAttackCount: 1, ConcurrencyLimit: 4, YieldDie: 10},
+		17: {ExtraAttackCount: 1, ConcurrencyLimit: 5, YieldDie: 12},
+		20: {ExtraAttackCount: 1, ConcurrencyLimit: 6, YieldDie: 12}, // 2d12 at 20
 	}
 }
 

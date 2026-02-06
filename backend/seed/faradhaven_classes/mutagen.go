@@ -26,24 +26,26 @@ func Mutagen() FaradhavenClassSeed {
 		AutomaticItemNames:  []string{"Scale Mail", "Explorer's Pack"},
 		EquipmentChoices: []EquipmentChoiceSeed{
 			{
-				Instruction: "Choose your martial weapon",
+				Instruction: "Choose your heavy weapon",
 				Options: []EquipmentOptionSeed{
 					{Description: "A Greataxe", WeaponNames: []string{"Greataxe"}},
 					{Description: "A Greatsword", WeaponNames: []string{"Greatsword"}},
-					{Description: "A Maul", WeaponNames: []string{"Maul"}},
 				},
 			},
 			{
-				Instruction: "Choose your secondary option",
+				Instruction: "Choose your survival gear",
 				Options: []EquipmentOptionSeed{
-					{Description: "Two Handaxes", WeaponNames: []string{"Handaxe", "Handaxe"}},
-					{Description: "A Light Crossbow and 20 bolts", Items: []string{"20 Bolts"}, WeaponNames: []string{"Light Crossbow"}},
+					{Description: "Stabilizer Serum and Dagger", ItemNames: []string{"Stabilizer Serum"}, WeaponNames: []string{"Dagger"}},
+					{Description: "Explorer's Pack", ItemNames: []string{"Explorer's Pack"}},
 				},
 			},
 		},
-		LevelFeatures:    mutagenLevelFeatures(),
-		LevelProgression: mutagenLevelProgression(),
-		ArchetypeLevel:   &archetypeLevel,
+		LevelFeatures:       mutagenLevelFeatures(),
+		LevelProgression:    mutagenLevelProgression(),
+		ArchetypeLevel:      &archetypeLevel,
+		ResourceType:        "madness",
+		ResourceName:        "Madness DC",
+		ResourceRestoreType: "short_rest", // DC resets on short or long rest
 		Archetypes: []ArchetypeSeed{
 			{
 				Name:        "The Behemoth",
@@ -106,13 +108,14 @@ func mutagenLevelFeatures() map[int]string {
 
 func mutagenLevelProgression() map[int]ClassLevelSeed {
 	// Mutagen gets Extra Attack at level 5
-	// Using RageDamageBonus to represent Feral Bonus Damage scaling
+	// RageDamageBonus represents Feral Bonus Damage scaling
+	// MadnessBaseDC is always 10, FeralBonus scales with level
 	return map[int]ClassLevelSeed{
-		1:  {RageDamageBonus: 2},                      // Feral Bonus Damage: +2
-		5:  {ExtraAttackCount: 1, RageDamageBonus: 3}, // Extra Attack, Feral Bonus Damage: +3
-		9:  {ExtraAttackCount: 1, RageDamageBonus: 4}, // Feral Bonus Damage: +4
-		13: {ExtraAttackCount: 1, RageDamageBonus: 5}, // Feral Bonus Damage: +5
-		17: {ExtraAttackCount: 1, RageDamageBonus: 6}, // Feral Bonus Damage: +6
-		20: {ExtraAttackCount: 1, RageDamageBonus: 7}, // Feral Bonus Damage: +7
+		1:  {MadnessBaseDC: 10, FeralBonus: 2, RageDamageBonus: 2},                      // Feral Bonus Damage: +2
+		5:  {MadnessBaseDC: 10, FeralBonus: 3, ExtraAttackCount: 1, RageDamageBonus: 3}, // Extra Attack, Feral Bonus Damage: +3
+		9:  {MadnessBaseDC: 10, FeralBonus: 4, ExtraAttackCount: 1, RageDamageBonus: 4}, // Feral Bonus Damage: +4
+		13: {MadnessBaseDC: 10, FeralBonus: 5, ExtraAttackCount: 1, RageDamageBonus: 5}, // Feral Bonus Damage: +5
+		17: {MadnessBaseDC: 10, FeralBonus: 6, ExtraAttackCount: 1, RageDamageBonus: 6}, // Feral Bonus Damage: +6
+		20: {MadnessBaseDC: 10, FeralBonus: 7, ExtraAttackCount: 1, RageDamageBonus: 7}, // Feral Bonus Damage: +7
 	}
 }

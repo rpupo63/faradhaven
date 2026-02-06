@@ -13,6 +13,7 @@ type ClassRepository interface {
 	FindByName(name string) (*models.Class, error)
 	FindLevelByClassAndLevel(classID uuid.UUID, level int) (*models.ClassLevel, error)
 	FindEquipmentOptionsByIDs(ids []uuid.UUID) ([]models.ClassStartingEquipmentOption, error)
+	FindWeaponRequirementByClassAndLevel(classID uuid.UUID, level int) (*models.ClassWeaponRequirement, error)
 	Add(class *models.Class) error
 	AddLevel(level *models.ClassLevel) error
 }
@@ -90,4 +91,13 @@ func (r *ClassRepo) Add(class *models.Class) error {
 
 func (r *ClassRepo) AddLevel(level *models.ClassLevel) error {
 	return r.db.Create(level).Error
+}
+
+// FindWeaponRequirementByClassAndLevel returns a weapon requirement if one exists for the given class and level
+func (r *ClassRepo) FindWeaponRequirementByClassAndLevel(classID uuid.UUID, level int) (*models.ClassWeaponRequirement, error) {
+	var req models.ClassWeaponRequirement
+	if err := r.db.First(&req, "class_id = ? AND selection_level = ?", classID, level).Error; err != nil {
+		return nil, err
+	}
+	return &req, nil
 }

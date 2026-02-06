@@ -25,6 +25,14 @@ type ArchetypeSeed struct {
 	Features    map[int]string // level -> feature text (path-specific features)
 }
 
+// WeaponRequirementSeed defines weapon selection requirements for seeding
+type WeaponRequirementSeed struct {
+	SelectionLevel    int      // Level at which selection is required (1 = character creation)
+	ModifierType      string   // e.g., "piston_core"
+	Description       string   // UI description for the selection
+	AllowedCategories []string // Weapon category restrictions (empty = all)
+}
+
 // ClassLevelSeed defines structured level progression data for seeding
 // These fields map directly to models.ClassLevel for level-up mechanics
 type ClassLevelSeed struct {
@@ -39,6 +47,18 @@ type ClassLevelSeed struct {
 	SuperiorityDice   int  // number of superiority dice (battlemaster-like)
 	SuperiorityDie    int  // superiority die size: 6, 8, 10, 12
 	BardicInspiration int  // die size for inspiration: 6, 8, 10, 12
+
+	// Faradhaven class resources
+	ConcurrencyLimit int // Ironwright: max active constructs at this level
+	YieldDie         int // Ironwright: scavenge die size (4,6,8,10,12)
+	TimerDuration    int // Powder Mage: casting seconds
+	SpeedDialSlots   int // Powder Mage: saved spell strings
+	MadnessBaseDC    int // Mutagen: starting DC (typically 10)
+	FeralBonus       int // Mutagen: feral damage bonus
+	EchoSlots        int // Lorewright: memory slots
+	MaxStability     int // Piston Brawler: stability pool max
+	MaxSpellLevel    int // Piston Brawler/Casters: spell level cap
+	BiteDamageDice   int // Sanguinist: bite dice count (1 = 1d6, 2 = 2d6)
 }
 
 // FaradhavenClassSeed defines the full class data for seeding
@@ -78,6 +98,14 @@ type FaradhavenClassSeed struct {
 
 	// Archetypes defines the available subclass paths for this class
 	Archetypes []ArchetypeSeed
+
+	// WeaponRequirement defines when this class requires primary weapon selection
+	WeaponRequirement *WeaponRequirementSeed
+
+	// Resource metadata
+	ResourceType        string // e.g., "spell_points", "stability", "blood_ichor", "components"
+	ResourceName        string // Display name for the resource
+	ResourceRestoreType string // "long_rest", "short_rest", "special", "none"
 }
 
 // ComponentSeed defines component data for seeding (used in faradhaven_components.go)

@@ -41,6 +41,11 @@ func AllModels() []interface{} {
 		&WeaponDamage{},
 		&Item{},
 
+		// Character weapon system (explicit join table with modifiers)
+		&CharacterWeapon{},
+		&WeaponModifier{},
+		&ClassWeaponRequirement{},
+
 		// Seed tracking
 		&SeedMetadata{},
 	}

@@ -12,6 +12,7 @@ type SpellRepository interface {
 	FindAll() ([]*models.Spell, error)
 	FindByID(id uuid.UUID) (*models.Spell, error)
 	FindByUserID(userID uuid.UUID) ([]*models.Spell, error)
+	FindByCharacterID(characterID uuid.UUID) ([]*models.Spell, error)
 	Add(spell *models.Spell, componentIDs []uuid.UUID) error
 	Update(spell *models.Spell) error
 	ReplaceComponents(spellID uuid.UUID, componentIDs []uuid.UUID) error
@@ -47,6 +48,13 @@ func (r *SpellRepo) FindByID(id uuid.UUID) (*models.Spell, error) {
 func (r *SpellRepo) FindByUserID(userID uuid.UUID) ([]*models.Spell, error) {
 	var spells []*models.Spell
 	err := r.db.Preload("Components").Where("user_id = ?", userID).Find(&spells).Error
+	return spells, err
+}
+
+// FindByCharacterID returns all spells prepared by a character with components preloaded
+func (r *SpellRepo) FindByCharacterID(characterID uuid.UUID) ([]*models.Spell, error) {
+	var spells []*models.Spell
+	err := r.db.Preload("Components").Where("character_id = ?", characterID).Find(&spells).Error
 	return spells, err
 }
 

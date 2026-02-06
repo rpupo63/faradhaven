@@ -28,24 +28,27 @@ func Lorewright() FaradhavenClassSeed {
 		AutomaticItemNames:  []string{"Leather armor", "Explorer's pack"},
 		EquipmentChoices: []EquipmentChoiceSeed{
 			{
-				Instruction: "Choose your hunting tool",
+				Instruction: "Choose your harvesting tool",
 				Options: []EquipmentOptionSeed{
-					{Description: "A Hunting Knife (counts as Dagger)", WeaponNames: []string{"Dagger"}},
-					{Description: "A Handaxe", WeaponNames: []string{"Handaxe"}},
+					{Description: "Specimen Preservation Jar and Knife", ItemNames: []string{"Specimen Preservation Jar"}, WeaponNames: []string{"Dagger"}},
+					{Description: "Anatomist's Kit", ItemNames: []string{"Anatomist's Kit"}},
 				},
 			},
 			{
-				Instruction: "Choose your secondary weapon",
+				Instruction: "Choose your weapon",
 				Options: []EquipmentOptionSeed{
 					{Description: "A Shortbow and 20 arrows", Items: []string{"Shortbow", "20 Arrows"}, WeaponNames: []string{"Shortbow"}},
 					{Description: "A Spear", WeaponNames: []string{"Spear"}},
 				},
 			},
 		},
-		LevelFeatures:    lorewrightLevelFeatures(),
-		LevelProgression: lorewrightLevelProgression(),
-		ArchetypeLevel:   &archetypeLevel,
-		Archetypes:       lorewrightArchetypes(),
+		LevelFeatures:       lorewrightLevelFeatures(),
+		LevelProgression:    lorewrightLevelProgression(),
+		ArchetypeLevel:      &archetypeLevel,
+		Archetypes:          lorewrightArchetypes(),
+		ResourceType:        "echo_slots",
+		ResourceName:        "Echo Slots",
+		ResourceRestoreType: "none", // Echoes are replaced, not restored
 	}
 }
 
@@ -74,14 +77,16 @@ func lorewrightArchetypes() []ArchetypeSeed {
 
 func lorewrightLevelProgression() map[int]ClassLevelSeed {
 	// Lorewright gets Extra Attack at level 5
-	// Using BardicInspiration to represent Madness Die scaling (d4 -> d6 -> d8 -> d10 -> d12 -> d20)
+	// BardicInspiration represents Madness Die scaling (d4 -> d6 -> d8 -> d10 -> d12 -> d20)
+	// EchoSlots scale: 0 at 1, 1 at 2, 2 at 5, 3 at 9, 4 at 13, 5 at 17
 	return map[int]ClassLevelSeed{
-		1:  {BardicInspiration: 4},                       // Madness Die: d4
-		5:  {ExtraAttackCount: 1, BardicInspiration: 6},  // Extra Attack, Madness Die: d6
-		9:  {ExtraAttackCount: 1, BardicInspiration: 8},  // Madness Die: d8
-		13: {ExtraAttackCount: 1, BardicInspiration: 10}, // Madness Die: d10
-		17: {ExtraAttackCount: 1, BardicInspiration: 12}, // Madness Die: d12
-		20: {ExtraAttackCount: 1, BardicInspiration: 20}, // Madness Die: d20
+		1:  {EchoSlots: 0, BardicInspiration: 4},                       // Madness Die: d4, no Echo Slots yet
+		2:  {EchoSlots: 1, BardicInspiration: 4},                       // 1 Echo Slot
+		5:  {EchoSlots: 2, ExtraAttackCount: 1, BardicInspiration: 6},  // Extra Attack, Madness Die: d6, 2 Echo Slots
+		9:  {EchoSlots: 3, ExtraAttackCount: 1, BardicInspiration: 8},  // Madness Die: d8, 3 Echo Slots
+		13: {EchoSlots: 4, ExtraAttackCount: 1, BardicInspiration: 10}, // Madness Die: d10, 4 Echo Slots
+		17: {EchoSlots: 5, ExtraAttackCount: 1, BardicInspiration: 12}, // Madness Die: d12, 5 Echo Slots
+		20: {EchoSlots: 5, ExtraAttackCount: 1, BardicInspiration: 20}, // Madness Die: d20, 5 Echo Slots (doubled capacity)
 	}
 }
 

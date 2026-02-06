@@ -65,6 +65,25 @@ func (s *LevelUpService) GetLevelUpPreview(userID uuid.UUID, characterID uuid.UU
 		availableArchetypes, _ = s.archetypeRepo.FindByClassID(character.ClassID)
 	}
 
+	// Check if weapon selection is required at the next level
+	requiresWeaponSelection := false
+	var weaponSelectionInfo *WeaponSelectionInfo
+	weaponReq, err := s.classRepo.FindWeaponRequirementByClassAndLevel(character.ClassID, nextLevel)
+	if err == nil && weaponReq != nil {
+		// Check if character already has a primary weapon with this modifier
+		// For now, we assume this is a new requirement at this level
+		requiresWeaponSelection = true
+
+		// Get eligible weapons based on categories
+		eligibleWeapons, _ := s.weaponRepo.FindByCategories([]string(weaponReq.AllowedCategories))
+
+		weaponSelectionInfo = &WeaponSelectionInfo{
+			Description:     weaponReq.Description,
+			ModifierType:    string(weaponReq.ModifierType),
+			EligibleWeapons: eligibleWeapons,
+		}
+	}
+
 	// Filter level features based on character's archetype (if they have one)
 	if character.ArchetypeID != nil {
 		classLevel.LevelFeatures = filterFeaturesByArchetype(classLevel.LevelFeatures, character.ArchetypeID)
@@ -82,5 +101,7 @@ func (s *LevelUpService) GetLevelUpPreview(userID uuid.UUID, characterID uuid.UU
 		CurrentMaxHP:            character.MaxHP,
 		RequiresArchetypeChoice: requiresArchetype,
 		AvailableArchetypes:     availableArchetypes,
+		RequiresWeaponSelection: requiresWeaponSelection,
+		WeaponSelectionInfo:     weaponSelectionInfo,
 	}, nil
 }

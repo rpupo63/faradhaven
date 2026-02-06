@@ -24,32 +24,41 @@ func PowderMage() FaradhavenClassSeed {
 		AutomaticItemNames:  []string{"Light Armor", "Explorer's Pack"},
 		EquipmentChoices: []EquipmentChoiceSeed{
 			{
-				Instruction: "Choose your weapon",
+				Instruction: "Choose your firearm",
 				Options: []EquipmentOptionSeed{
-					{Description: "A Dagger", WeaponNames: []string{"Dagger"}},
-					{Description: "A Shortsword", WeaponNames: []string{"Shortsword"}},
+					{Description: "A Pepperbox Revolver", WeaponNames: []string{"Pepperbox Revolver"}},
+					{Description: "A Steam-Pressure Rifle", WeaponNames: []string{"Steam-Pressure Rifle"}},
 				},
 			},
 			{
-				Instruction: "Choose your ranged weapon",
+				Instruction: "Choose your casting gear",
 				Options: []EquipmentOptionSeed{
-					{Description: "A Light Crossbow and 20 bolts", Items: []string{"20 Bolts"}, WeaponNames: []string{"Light Crossbow"}},
-					{Description: "A Shortbow and 20 arrows", Items: []string{"20 Arrows"}, WeaponNames: []string{"Shortbow"}},
+					{Description: "Clockwork Chronometer", ItemNames: []string{"Clockwork Chronometer"}},
+					{Description: "Aetheric Component Pouch", ItemNames: []string{"Aetheric Component Pouch"}},
 				},
 			},
 		},
-		LevelFeatures:    powderMageLevelFeatures(),
-		LevelProgression: powderMageLevelProgression(),
+		LevelFeatures:       powderMageLevelFeatures(),
+		LevelProgression:    powderMageLevelProgression(),
+		ResourceType:        "timer",
+		ResourceName:        "Casting Timer",
+		ResourceRestoreType: "none", // Timer is always available, not a consumable
 	}
 }
 
 func powderMageLevelProgression() map[int]ClassLevelSeed {
-	// Powder Mage gains movement speed bonuses (like Unarmored Movement)
+	// Powder Mage gains movement speed bonuses and timer/speed dial upgrades
 	return map[int]ClassLevelSeed{
-		2:  {UnarmoredMovement: 10}, // Powder Sprint: +10 feet
-		6:  {UnarmoredMovement: 15}, // Recoil Mastery improves mobility
-		11: {UnarmoredMovement: 20}, // Room Clearer: enhanced movement
-		18: {UnarmoredMovement: 30}, // Sound Barrier: flying speed
+		1:  {TimerDuration: 2},                                        // Flash-Point Casting: 2 seconds
+		2:  {TimerDuration: 2, UnarmoredMovement: 10},                  // Powder Sprint: +10 feet
+		3:  {TimerDuration: 2, UnarmoredMovement: 10, SpeedDialSlots: 1}, // Speed Dial: 1 saved string
+		5:  {TimerDuration: 3, UnarmoredMovement: 10, SpeedDialSlots: 1}, // Timer increases to 3 seconds
+		6:  {TimerDuration: 3, UnarmoredMovement: 15, SpeedDialSlots: 1}, // Recoil Mastery
+		9:  {TimerDuration: 3, UnarmoredMovement: 15, SpeedDialSlots: 2}, // Speed Dial: 2 saved strings
+		11: {TimerDuration: 4, UnarmoredMovement: 20, SpeedDialSlots: 2}, // Timer increases to 4 seconds
+		15: {TimerDuration: 4, UnarmoredMovement: 20, SpeedDialSlots: 3}, // Speed Dial: 3 saved strings
+		17: {TimerDuration: 5, UnarmoredMovement: 20, SpeedDialSlots: 3}, // Timer increases to 5 seconds
+		18: {TimerDuration: 5, UnarmoredMovement: 30, SpeedDialSlots: 3}, // Sound Barrier: flying speed
 	}
 }
 

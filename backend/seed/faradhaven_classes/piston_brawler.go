@@ -24,29 +24,45 @@ func PistonBrawler() FaradhavenClassSeed {
 		AutomaticItemNames:  []string{"Scale mail", "Explorer's pack", "Tinker's tools"},
 		EquipmentChoices: []EquipmentChoiceSeed{
 			{
-				Instruction: "Choose your weapon to upgrade",
+				Instruction: "Choose your primary Piston-weapon",
 				Options: []EquipmentOptionSeed{
-					{Description: "A Warhammer", WeaponNames: []string{"Warhammer"}},
-					{Description: "A Longsword", WeaponNames: []string{"Longsword"}},
-					{Description: "A Battleaxe", WeaponNames: []string{"Battleaxe"}},
+					{Description: "Atlas Gauntlets (Heavy Piston Fists)", WeaponNames: []string{"Atlas Gauntlets"}},
+					{Description: "A Greatsword (Heavy Blade)", WeaponNames: []string{"Greatsword"}},
+					{Description: "A Warhammer (Versatile Crusher)", WeaponNames: []string{"Warhammer"}},
 				},
 			},
 			{
-				Instruction: "Choose your shield or sidearm",
+				Instruction: "Choose your maintenance gear",
 				Options: []EquipmentOptionSeed{
-					{Description: "A Shield", ItemNames: []string{"Standard Shield"}},
-					{Description: "Two Light Hammers", WeaponNames: []string{"Light Hammer", "Light Hammer"}},
+					{Description: "A Shield and Pressure Gauge", ItemNames: []string{"Standard Shield", "Stability Pressure Gauge"}},
+					{Description: "Piston Core Assembly Kit", ItemNames: []string{"Piston Core Assembly Kit"}},
 				},
 			},
 		},
-		LevelFeatures:    pistonBrawlerLevelFeatures(),
-		LevelProgression: pistonBrawlerLevelProgression(),
+		LevelFeatures:       pistonBrawlerLevelFeatures(),
+		LevelProgression:    pistonBrawlerLevelProgression(),
+		ResourceType:        "stability",
+		ResourceName:        "Stability",
+		ResourceRestoreType: "special", // Reset by weapon/action, not rest
+		WeaponRequirement: &WeaponRequirementSeed{
+			SelectionLevel:    1,
+			ModifierType:      "piston_core",
+			Description:       "Choose a weapon to integrate your Piston Core. This mechanical device converts kinetic energy into magical output, permanently bonding with your chosen weapon.",
+			AllowedCategories: []string{"Martial Melee", "Simple Melee", "Martial Ranged", "Simple Ranged"},
+		},
 	}
 }
 
 func pistonBrawlerLevelProgression() map[int]ClassLevelSeed {
+	// Stability formula: 10 + (Level * 2), seeded per-level for display
+	// MaxSpellLevel tracks the spell level cap for Fixed Spells
 	return map[int]ClassLevelSeed{
-		5: {ExtraAttackCount: 1},
+		1:  {MaxStability: 12, MaxSpellLevel: 1},                       // 10 + (1*2) = 12
+		5:  {MaxStability: 20, MaxSpellLevel: 2, ExtraAttackCount: 1},  // 10 + (5*2) = 20
+		9:  {MaxStability: 28, MaxSpellLevel: 3, ExtraAttackCount: 1},  // 10 + (9*2) = 28
+		13: {MaxStability: 36, MaxSpellLevel: 4, ExtraAttackCount: 1},  // 10 + (13*2) = 36
+		17: {MaxStability: 44, MaxSpellLevel: 5, ExtraAttackCount: 1},  // 10 + (17*2) = 44
+		20: {MaxStability: 50, MaxSpellLevel: 9, ExtraAttackCount: 1},  // Perfect Machine: no max (use 50 as display)
 	}
 }
 

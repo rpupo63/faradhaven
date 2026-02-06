@@ -99,6 +99,7 @@ func (h *characterHandler) createCharacter() http.HandlerFunc {
 			Wisdom:             req.Wisdom,
 			Charisma:           req.Charisma,
 			CurrentSpellPoints: req.CurrentSpellPoints,
+			Money:              req.Money,
 		}
 
 		if character.Level == 0 {
@@ -141,6 +142,16 @@ func (h *characterHandler) createCharacter() http.HandlerFunc {
 		}
 		character.MaxHP = initialHP
 		character.CurrentHP = initialHP
+
+		// Initialize class-specific resources
+		if class.ResourceType == "stability" {
+			// Find level 1 max stability
+			if cl, err := h.classRepo.FindLevelByClassAndLevel(class.ID, 1); err == nil {
+				character.CurrentStability = cl.MaxStability
+			}
+		} else if class.ResourceType == "blood_ichor" {
+			character.CurrentBloodIchor = h.resourceService.ComputeMaxBloodIchor(character)
+		}
 
 		// Process Equipment
 		var inventory []string
@@ -207,6 +218,33 @@ func (h *characterHandler) createCharacter() http.HandlerFunc {
 			log.Error().Err(err).Msg("Failed to create character")
 			respondError(w, http.StatusInternalServerError, "Failed to create character")
 			return
+		}
+
+		// Handle Primary Weapon and Modifiers (v2)
+		if req.PrimaryWeaponID != nil {
+			var cw models.CharacterWeapon
+			if err := h.characterRepo.GetDB().Table("character_weapons_v2").
+				Where("character_id = ? AND weapon_id = ?", character.ID, *req.PrimaryWeaponID).
+				First(&cw).Error; err == nil {
+				
+				cw.IsPrimary = true
+				h.characterRepo.GetDB().Table("character_weapons_v2").Save(&cw)
+
+				// Check for level 1 weapon requirements
+				weaponReq, _ := h.classRepo.FindWeaponRequirementByClassAndLevel(character.ClassID, 1)
+				if weaponReq != nil {
+					modifier := models.WeaponModifier{
+						CharacterWeaponID: cw.ID,
+						ModifierType:      weaponReq.ModifierType,
+						IsPermanent:       true,
+						IsActive:          true,
+					}
+					if weaponReq.ModifierType == models.ModifierTypePistonCore {
+						modifier.Metadata = models.PistonCoreMetadata(character.Level)
+					}
+					h.characterRepo.GetDB().Create(&modifier)
+				}
+			}
 		}
 
 		if len(req.SkillProficiencies) > 0 {

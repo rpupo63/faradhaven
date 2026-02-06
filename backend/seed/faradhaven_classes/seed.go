@@ -145,6 +145,7 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 	var allEquipmentChoices []models.ClassStartingEquipmentChoice
 	var allEquipmentOptions []models.ClassStartingEquipmentOption
 	var allClassComponents []ClassComponentLink
+	var allWeaponRequirements []models.ClassWeaponRequirement
 
 	// Build archetype map for level feature references
 	archetypeMap := make(map[string]uuid.UUID) // "ClassName:ArchetypeName" -> archetypeID
@@ -163,22 +164,25 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 		}
 
 		classes = append(classes, models.Class{
-			ID:                classID,
-			Name:              cs.Name,
-			Description:       cs.Description,
-			HitDie:            cs.HitDie,
-			PrimaryAbility:    cs.PrimaryAbility,
-			PhotoURL:          cs.PhotoURL,
-			ArchetypeLevel:    cs.ArchetypeLevel,
-			Proficiencies:     cs.Proficiencies,
-			SkillFocus:        pq.StringArray(cs.DnDSkillFocus),
-			SkillChoice:       pq.StringArray(cs.SkillChoice),
-			SkillChoiceCount:  2, // D&D 5e standard
-			Tools:             pq.StringArray(cs.Tools),
-			SavingThrows:      pq.StringArray(cs.SavingThrows),
-			StartingEquip:     pq.StringArray(cs.AutomaticEquipNames),
-			StartingWeaponIDs: pq.StringArray(weaponIDs),
-			StartingItemIDs:   pq.StringArray(itemIDs),
+			ID:                  classID,
+			Name:                cs.Name,
+			Description:         cs.Description,
+			HitDie:              cs.HitDie,
+			PrimaryAbility:      cs.PrimaryAbility,
+			PhotoURL:            cs.PhotoURL,
+			ArchetypeLevel:      cs.ArchetypeLevel,
+			Proficiencies:       cs.Proficiencies,
+			SkillFocus:          pq.StringArray(cs.DnDSkillFocus),
+			SkillChoice:         pq.StringArray(cs.SkillChoice),
+			SkillChoiceCount:    2, // D&D 5e standard
+			Tools:               pq.StringArray(cs.Tools),
+			SavingThrows:        pq.StringArray(cs.SavingThrows),
+			StartingEquip:       pq.StringArray(cs.AutomaticEquipNames),
+			StartingWeaponIDs:   pq.StringArray(weaponIDs),
+			StartingItemIDs:     pq.StringArray(itemIDs),
+			ResourceType:        cs.ResourceType,
+			ResourceName:        cs.ResourceName,
+			ResourceRestoreType: cs.ResourceRestoreType,
 		})
 
 		// Collect archetypes
@@ -192,6 +196,20 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 				Name:        as.Name,
 				Description: as.Description,
 				SortOrder:   i,
+			})
+		}
+
+		// Collect weapon requirement if defined
+		if cs.WeaponRequirement != nil {
+			wr := cs.WeaponRequirement
+			reqID := uuids.WeaponRequirementUUID(cs.Name, wr.ModifierType, wr.SelectionLevel)
+			allWeaponRequirements = append(allWeaponRequirements, models.ClassWeaponRequirement{
+				ID:                reqID,
+				ClassID:           classID,
+				SelectionLevel:    wr.SelectionLevel,
+				ModifierType:      models.ModifierType(wr.ModifierType),
+				Description:       wr.Description,
+				AllowedCategories: pq.StringArray(wr.AllowedCategories),
 			})
 		}
 
@@ -264,6 +282,18 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 					cl.SuperiorityDice = lp.SuperiorityDice
 					cl.SuperiorityDie = lp.SuperiorityDie
 					cl.BardicInspiration = lp.BardicInspiration
+
+					// Faradhaven class resources
+					cl.ConcurrencyLimit = lp.ConcurrencyLimit
+					cl.YieldDie = lp.YieldDie
+					cl.TimerDuration = lp.TimerDuration
+					cl.SpeedDialSlots = lp.SpeedDialSlots
+					cl.MadnessBaseDC = lp.MadnessBaseDC
+					cl.FeralBonus = lp.FeralBonus
+					cl.EchoSlots = lp.EchoSlots
+					cl.MaxStability = lp.MaxStability
+					cl.MaxSpellLevel = lp.MaxSpellLevel
+					cl.BiteDamageDice = lp.BiteDamageDice
 				}
 			}
 
@@ -357,6 +387,7 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 		"level_features",
 		"class_levels",
 		"class_components",
+		"class_weapon_requirements",
 	}
 	for _, table := range tablesToClear {
 		if err := tx.Exec("DELETE FROM " + table).Error; err != nil {
@@ -406,6 +437,14 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 			return err
 		}
 		log.Printf("Inserted %d class-component links", len(allClassComponents))
+	}
+
+	// Step 10: Batch insert weapon requirements
+	if len(allWeaponRequirements) > 0 {
+		if err := batch.InsertBatch(tx, allWeaponRequirements, batch.DefaultBatchSize); err != nil {
+			return err
+		}
+		log.Printf("Inserted %d weapon requirements", len(allWeaponRequirements))
 	}
 
 	return nil

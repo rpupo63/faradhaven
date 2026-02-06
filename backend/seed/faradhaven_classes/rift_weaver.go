@@ -25,21 +25,23 @@ func RiftWeaver() FaradhavenClassSeed {
 			{
 				Instruction: "Choose your focus",
 				Options: []EquipmentOptionSeed{
-					{Description: "An Orb", ItemNames: []string{"Arcane Focus (Orb)"}},
-					{Description: "A Wand", ItemNames: []string{"Arcane Focus (Wand)"}},
-					{Description: "A Crystal", ItemNames: []string{"Arcane Focus (Crystal)"}},
+					{Description: "Aetheric Tuning Fork", ItemNames: []string{"Aetheric Tuning Fork"}},
+					{Description: "Arcane Focus (Orb)", ItemNames: []string{"Arcane Focus (Orb)"}},
 				},
 			},
 			{
-				Instruction: "Choose your weapon",
+				Instruction: "Choose your elemental protection",
 				Options: []EquipmentOptionSeed{
-					{Description: "A Quarterstaff", WeaponNames: []string{"Quarterstaff"}},
-					{Description: "A Dagger", WeaponNames: []string{"Dagger"}},
+					{Description: "Smelter's Gloves (Fire Resist)", ItemNames: []string{"Smelter's Gloves"}},
+					{Description: "Protective Goggles (Vision)", ItemNames: []string{"Protective Goggles"}},
 				},
 			},
 		},
 		LevelFeatures:    riftWeaverLevelFeatures(),
 		LevelProgression: riftWeaverLevelProgression(),
+		ResourceType:        "spell_points",
+		ResourceName:        "Spell Points",
+		ResourceRestoreType: "long_rest",
 	}
 }
 

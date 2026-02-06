@@ -26,31 +26,27 @@ func Sanguinist() FaradhavenClassSeed {
 		AutomaticItemNames:  []string{"Leather armor", "Healer's kit"},
 		EquipmentChoices: []EquipmentChoiceSeed{
 			{
-				Instruction: "Choose your weapon",
+				Instruction: "Choose your surgical weapon",
 				Options: []EquipmentOptionSeed{
-					{Description: "A Rapier", WeaponNames: []string{"Rapier"}},
-					{Description: "A Scimitar", WeaponNames: []string{"Scimitar"}},
+					{Description: "A Saw Cleaver (Trick Weapon)", WeaponNames: []string{"Saw Cleaver"}},
+					{Description: "A Rapier (Precision)", WeaponNames: []string{"Rapier"}},
 				},
 			},
 			{
-				Instruction: "Choose your sidearm",
+				Instruction: "Choose your harvesting kit",
 				Options: []EquipmentOptionSeed{
-					{Description: "A Light Crossbow and 20 bolts", Items: []string{"20 Bolts"}, WeaponNames: []string{"Light Crossbow"}},
-					{Description: "Two Daggers", WeaponNames: []string{"Dagger", "Dagger"}},
-				},
-			},
-			{
-				Instruction: "Choose your pack",
-				Options: []EquipmentOptionSeed{
-					{Description: "An Explorer's Pack", ItemNames: []string{"Explorer's Pack"}},
-					{Description: "A Priest's Pack", ItemNames: []string{"Explorer's Pack"}}, // Using Explorer's pack as placeholder for Priest's pack for now
+					{Description: "Sanguine Extraction Pump", ItemNames: []string{"Sanguine Extraction Pump"}},
+					{Description: "Medical Kit and 3 Blood Vials", ItemNames: []string{"Healer's Kit", "Empty Blood Vial", "Empty Blood Vial", "Empty Blood Vial"}},
 				},
 			},
 		},
-		LevelFeatures:    sanguinistLevelFeatures(),
-		LevelProgression: sanguinistLevelProgression(),
-		ArchetypeLevel:   &archetypeLevel,
-		Archetypes:       sanguinistArchetypes(),
+		LevelFeatures:       sanguinistLevelFeatures(),
+		LevelProgression:    sanguinistLevelProgression(),
+		ArchetypeLevel:      &archetypeLevel,
+		Archetypes:          sanguinistArchetypes(),
+		ResourceType:        "blood_ichor",
+		ResourceName:        "Blood Ichor",
+		ResourceRestoreType: "long_rest", // Regain all Ichor after a Long Rest
 	}
 }
 
@@ -80,7 +76,9 @@ func sanguinistLevelFeatures() map[int]string {
 
 func sanguinistLevelProgression() map[int]ClassLevelSeed {
 	return map[int]ClassLevelSeed{
-		5: {ExtraAttackCount: 1},
+		1:  {BiteDamageDice: 1},
+		5:  {BiteDamageDice: 1, ExtraAttackCount: 1},
+		15: {BiteDamageDice: 2, ExtraAttackCount: 1},
 	}
 }
 

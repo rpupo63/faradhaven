@@ -23,29 +23,25 @@ func VaporBlade() FaradhavenClassSeed {
 		AutomaticItemNames:  []string{"Leather armor", "Poisoner's kit", "Thieves' Tools"},
 		EquipmentChoices: []EquipmentChoiceSeed{
 			{
-				Instruction: "Choose your primary weapons",
+				Instruction: "Choose your blade",
 				Options: []EquipmentOptionSeed{
-					{Description: "A Rapier", WeaponNames: []string{"Rapier"}},
-					{Description: "Two Shortswords", WeaponNames: []string{"Shortsword", "Shortsword"}},
+					{Description: "Folding Blade (Concealable)", WeaponNames: []string{"Folding Blade"}},
+					{Description: "Two Daggers and Smoke Pellet", WeaponNames: []string{"Dagger", "Dagger"}, ItemNames: []string{"Vapor-Smoke Pellet"}},
 				},
 			},
 			{
-				Instruction: "Choose your secondary weapons",
+				Instruction: "Choose your stealth gear",
 				Options: []EquipmentOptionSeed{
-					{Description: "Two Daggers", WeaponNames: []string{"Dagger", "Dagger"}},
-					{Description: "A Shortbow and 20 arrows", Items: []string{"20 Arrows"}, WeaponNames: []string{"Shortbow"}},
-				},
-			},
-			{
-				Instruction: "Choose your pack",
-				Options: []EquipmentOptionSeed{
-					{Description: "A Burglar's Pack", ItemNames: []string{"Burglar's Pack"}},
-					{Description: "An Explorer's Pack", ItemNames: []string{"Explorer's Pack"}},
+					{Description: "Dark Cloak", ItemNames: []string{"Dark Cloak"}},
+					{Description: "Burglar's Pack", ItemNames: []string{"Burglar's Pack"}},
 				},
 			},
 		},
 		LevelFeatures:    vaporBladeLevelFeatures(),
 		LevelProgression: vaporBladeLevelProgression(),
+		ResourceType:        "spell_points",
+		ResourceName:        "Spell Points",
+		ResourceRestoreType: "long_rest",
 	}
 }
 

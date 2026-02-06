@@ -22,11 +22,13 @@ var (
 )
 
 type LevelUpService struct {
-	db            *gorm.DB
-	characterRepo *database.CharacterRepo
-	classRepo     *database.ClassRepo
-	historyRepo   *database.LevelUpHistoryRepo
-	archetypeRepo *database.ArchetypeRepo
+	db              *gorm.DB
+	characterRepo   *database.CharacterRepo
+	classRepo       *database.ClassRepo
+	historyRepo     *database.LevelUpHistoryRepo
+	archetypeRepo   *database.ArchetypeRepo
+	weaponRepo      *database.WeaponRepo
+	resourceService *ResourceService
 }
 
 func NewLevelUpService(
@@ -35,13 +37,17 @@ func NewLevelUpService(
 	classRepo *database.ClassRepo,
 	historyRepo *database.LevelUpHistoryRepo,
 	archetypeRepo *database.ArchetypeRepo,
+	weaponRepo *database.WeaponRepo,
+	resourceService *ResourceService,
 ) *LevelUpService {
 	return &LevelUpService{
-		db:            db,
-		characterRepo: characterRepo,
-		classRepo:     classRepo,
-		historyRepo:   historyRepo,
-		archetypeRepo: archetypeRepo,
+		db:              db,
+		characterRepo:   characterRepo,
+		classRepo:       classRepo,
+		historyRepo:     historyRepo,
+		archetypeRepo:   archetypeRepo,
+		weaponRepo:      weaponRepo,
+		resourceService: resourceService,
 	}
 }
 
@@ -53,6 +59,7 @@ type LevelUpRequest struct {
 	SpellsLearned   []string       `json:"spells_learned,omitempty"`   // new spell IDs
 	HPRollResult    *int           `json:"hp_roll_result,omitempty"`   // nil = use average, otherwise the rolled value
 	ArchetypeID     *uuid.UUID     `json:"archetype_id,omitempty"`     // required when reaching archetype level
+	PrimaryWeaponID *uuid.UUID     `json:"primary_weapon_id,omitempty"` // selected primary weapon for signature items
 }
 
 // LevelUpResponse contains the result of a level-up operation
@@ -65,17 +72,26 @@ type LevelUpResponse struct {
 
 // LevelUpPreview returns what will be available at the next level
 type LevelUpPreview struct {
-	CurrentLevel            int                 `json:"current_level"`
-	NextLevel               int                 `json:"next_level"`
-	ClassLevel              *models.ClassLevel  `json:"class_level"`
-	ASIPointsAvailable      int                 `json:"asi_points_available"`
-	NewSpellsAllowed        int                 `json:"new_spells_allowed"`
-	HitDie                  int                 `json:"hit_die"`                            // Class hit die (e.g., 10 for d10)
-	ConMod                  int                 `json:"con_mod"`                            // Current CON modifier
-	HPGainAverage           int                 `json:"hp_gain_average"`                    // Average HP gain (hitDie/2 + 1 + conMod)
-	CurrentMaxHP            int                 `json:"current_max_hp"`                     // Current max HP before level up
-	RequiresArchetypeChoice bool                `json:"requires_archetype_choice"`          // true if this level requires archetype selection
-	AvailableArchetypes     []*models.Archetype `json:"available_archetypes,omitempty"`     // archetypes to choose from (if required)
+	CurrentLevel            int                   `json:"current_level"`
+	NextLevel               int                   `json:"next_level"`
+	ClassLevel              *models.ClassLevel    `json:"class_level"`
+	ASIPointsAvailable      int                   `json:"asi_points_available"`
+	NewSpellsAllowed        int                   `json:"new_spells_allowed"`
+	HitDie                  int                   `json:"hit_die"`                            // Class hit die (e.g., 10 for d10)
+	ConMod                  int                   `json:"con_mod"`                            // Current CON modifier
+	HPGainAverage           int                   `json:"hp_gain_average"`                    // Average HP gain (hitDie/2 + 1 + conMod)
+	CurrentMaxHP            int                   `json:"current_max_hp"`                     // Current max HP before level up
+	RequiresArchetypeChoice bool                  `json:"requires_archetype_choice"`          // true if this level requires archetype selection
+	AvailableArchetypes     []*models.Archetype   `json:"available_archetypes,omitempty"`     // archetypes to choose from (if required)
+	RequiresWeaponSelection bool                  `json:"requires_weapon_selection"`          // true if this level requires weapon selection
+	WeaponSelectionInfo     *WeaponSelectionInfo  `json:"weapon_selection_info,omitempty"`    // info for weapon selection (if required)
+}
+
+// WeaponSelectionInfo contains information for the weapon selection step during level-up
+type WeaponSelectionInfo struct {
+	Description     string           `json:"description"`      // UI description for the selection
+	ModifierType    string           `json:"modifier_type"`    // e.g., "piston_core"
+	EligibleWeapons []models.Weapon  `json:"eligible_weapons"` // Weapons the character can choose from
 }
 
 // LevelUp advances a character by one level, applying choices and saving history
@@ -212,9 +228,45 @@ func (s *LevelUpService) LevelUp(userID uuid.UUID, req LevelUpRequest) (*LevelUp
 		// Reset spell points to new max
 		character.CurrentSpellPoints = newClassLevel.MaxSpellPoints
 
+		// Update class-specific resource pools
+		if character.Class.ResourceType == "stability" {
+			character.CurrentStability = newClassLevel.MaxStability
+		} else if character.Class.ResourceType == "blood_ichor" {
+			character.CurrentBloodIchor = s.resourceService.ComputeMaxBloodIchor(character)
+		}
+
 		// Apply archetype selection if made at this level
 		if archetypeSelected != nil {
 			character.ArchetypeID = archetypeSelected
+		}
+
+		// Apply weapon selection if made at this level (e.g., Piston Core)
+		if req.PrimaryWeaponID != nil {
+			var cw models.CharacterWeapon
+			// TableName is character_weapons_v2
+			if err := tx.Table("character_weapons_v2").Where("character_id = ? AND weapon_id = ?", character.ID, *req.PrimaryWeaponID).First(&cw).Error; err == nil {
+				cw.IsPrimary = true
+				if err := tx.Table("character_weapons_v2").Save(&cw).Error; err != nil {
+					return err
+				}
+
+				// If it's a class requirement, add the corresponding modifier
+				weaponReq, _ := s.classRepo.FindWeaponRequirementByClassAndLevel(character.ClassID, newLevel)
+				if weaponReq != nil {
+					modifier := models.WeaponModifier{
+						CharacterWeaponID: cw.ID,
+						ModifierType:      weaponReq.ModifierType,
+						IsPermanent:       true,
+						IsActive:          true,
+					}
+					if weaponReq.ModifierType == models.ModifierTypePistonCore {
+						modifier.Metadata = models.PistonCoreMetadata(newLevel)
+					}
+					if err := tx.Create(&modifier).Error; err != nil {
+						return err
+					}
+				}
+			}
 		}
 
 		// Save character

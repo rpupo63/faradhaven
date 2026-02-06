@@ -32,6 +32,12 @@ type Character struct {
 	// Spell point pool: current points (max comes from ClassLevel)
 	CurrentSpellPoints int `json:"current_spell_points" gorm:"type:int;default:0"`
 
+	// Class-specific resource tracking (current values; max comes from ClassLevel)
+	CurrentStability  int `json:"current_stability" gorm:"type:int;default:0"`   // Piston Brawler
+	CurrentBloodIchor int `json:"current_blood_ichor" gorm:"type:int;default:0"` // Sanguinist
+	MadnessCastCount  int `json:"madness_cast_count" gorm:"type:int;default:0"`  // Mutagen: casts since rest
+	EchoSlotsUsed     int `json:"echo_slots_used" gorm:"type:int;default:0"`     // Lorewright
+
 	// HP tracking (persisted, not computed)
 	CurrentHP int `json:"current_hp" gorm:"type:int;default:0"`
 	MaxHP     int `json:"max_hp" gorm:"type:int;default:0"`
@@ -39,6 +45,13 @@ type Character struct {
 
 	// Hit dice tracking: how many hit dice have been spent (total = Level)
 	HitDiceUsed int `json:"hit_dice_used" gorm:"type:int;default:0"`
+
+	// Currency (in Copper Pieces)
+	// 1 gp = 100 cp, 1 sp = 10 cp, 1 pp = 1000 cp
+	Money int64 `json:"money" gorm:"type:bigint;default:0"`
+
+	// Character backstory (rich text stored as HTML)
+	Backstory string `json:"backstory" gorm:"type:text"`
 
 	// Inventory (Text Array) - Stores names of automatic/legacy items
 	Inventory pq.StringArray `json:"inventory" gorm:"type:text[]"`
@@ -56,8 +69,9 @@ type Character struct {
 	SkillProficiencies []CharacterSkill `json:"-" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
 
 	// Inventory Relationships
-	Weapons []Weapon `json:"weapons,omitempty" gorm:"many2many:character_weapons;constraint:OnDelete:CASCADE"`
-	Items   []Item   `json:"items,omitempty" gorm:"many2many:character_items;constraint:OnDelete:CASCADE"`
+	CharacterWeapons []CharacterWeapon `json:"character_weapons,omitempty" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
+	Weapons          []Weapon          `json:"weapons,omitempty" gorm:"many2many:character_weapons_v2;constraint:OnDelete:CASCADE"`
+	Items            []Item            `json:"items,omitempty" gorm:"many2many:character_items;constraint:OnDelete:CASCADE"`
 
 	// ============================================================
 	// COMPUTED SUB-MODELS: Not stored in DB, populated in Go code

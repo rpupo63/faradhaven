@@ -73,6 +73,20 @@ func main() {
 			fmt.Println("UUID migration completed")
 		}
 
+		// Migrate character weapons to V2 (explicit join table)
+		fmt.Println("Migrating character weapons to v2...")
+		if err := seed.MigrateCharacterWeaponsV2(db); err != nil {
+			log.Fatalf("Error migrating character weapons: %v", err)
+		}
+		fmt.Println("Character weapons migration completed")
+
+		// Initialize class-specific resources for existing characters
+		fmt.Println("Initializing character resources...")
+		if err := seed.InitializeCharacterResources(db); err != nil {
+			log.Fatalf("Error initializing character resources: %v", err)
+		}
+		fmt.Println("Character resources initialization completed")
+
 		// Clear all seeded data and reseed from scratch
 		fmt.Println("Clearing and reseeding database...")
 		seeder := seed.NewSeeder(db)

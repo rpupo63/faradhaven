@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -27,8 +28,12 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 			return
 		}
 
-		// Preload weapons and items for the sheet
-		if err := h.characterRepo.GetDB().Preload("Weapons.Damages").Preload("Items").First(character, "id = ?", id).Error; err != nil {
+		// Preload weapons with modifiers and items for the sheet
+		if err := h.characterRepo.GetDB().
+			Preload("CharacterWeapons.Weapon.Damages").
+			Preload("CharacterWeapons.Modifiers").
+			Preload("Items").
+			First(character, "id = ?", id).Error; err != nil {
 			log.Error().Err(err).Str("characterID", idStr).Msg("Failed to preload equipment")
 		}
 
@@ -133,6 +138,50 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 			}
 		}
 
+		// Map CharacterWeapons to response format
+		inventoryWeapons := make([]CharacterWeaponResponse, 0, len(character.CharacterWeapons))
+		for _, cw := range character.CharacterWeapons {
+			activeModifiers := make([]WeaponModifierResponse, 0, len(cw.Modifiers))
+			for _, m := range cw.Modifiers {
+				bonusDamage := []BonusDamageInfo{}
+
+				// Compute bonus damage based on modifier type and character stats
+				if m.ModifierType == models.ModifierTypePistonCore && m.IsActive {
+					intMod := abilityMod(character.Intelligence)
+					if intMod > 0 {
+						bonusDamage = append(bonusDamage, BonusDamageInfo{
+							Dice:       fmt.Sprintf("%+d", intMod),
+							DamageType: "Fixed", // Adds to base damage
+						})
+					}
+				} else if m.ModifierType == models.ModifierTypeVenomCoating && m.IsActive {
+					dice := "1d4"
+					if character.Level >= 6 {
+						dice = "2d4"
+					}
+					bonusDamage = append(bonusDamage, BonusDamageInfo{
+						Dice:       dice,
+						DamageType: "Poison",
+					})
+				}
+
+				activeModifiers = append(activeModifiers, WeaponModifierResponse{
+					ModifierType: string(m.ModifierType),
+					IsActive:     m.IsActive,
+					BonusDamage:  bonusDamage,
+					Metadata:     m.Metadata,
+				})
+			}
+
+			inventoryWeapons = append(inventoryWeapons, CharacterWeaponResponse{
+				CharacterWeaponID: cw.ID.String(),
+				Weapon:            cw.Weapon,
+				IsPrimary:         cw.IsPrimary,
+				CustomName:        cw.CustomName,
+				ActiveModifiers:   activeModifiers,
+			})
+		}
+
 		sheet := CharacterSheetResponse{
 			Character:                character,
 			Class:                    class,
@@ -150,12 +199,32 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 			HitDiceTotal:             character.Level,
 			HitDiceRemaining:         character.Level - character.HitDiceUsed,
 			HitDie:                   class.HitDie,
+			Money:                    character.Money,
 			MeleeAttackBonus:         profBonus + strMod,
 			RangedAttackBonus:        profBonus + dexMod,
 			RaceTraits:               traits,
 			Lineage:                  lineage,
-			InventoryWeapons:         character.Weapons,
+			InventoryWeapons:         inventoryWeapons,
 			InventoryItems:           character.Items,
+
+			// --- Class-Specific Resources ---
+			ResourceType:      class.ResourceType,
+			ResourceName:      class.ResourceName,
+			CurrentStability:  character.CurrentStability,
+			MaxStability:      classLevel.MaxStability,
+			CurrentBloodIchor: character.CurrentBloodIchor,
+			MaxBloodIchor:     h.resourceService.ComputeMaxBloodIchor(character),
+			MadnessCastCount:  character.MadnessCastCount,
+			MadnessBaseDC:     classLevel.MadnessBaseDC,
+			FeralBonus:        classLevel.FeralBonus,
+			EchoSlots:         classLevel.EchoSlots,
+			EchoSlotsUsed:     character.EchoSlotsUsed,
+			ConcurrencyLimit:  classLevel.ConcurrencyLimit,
+			YieldDie:          classLevel.YieldDie,
+			TimerDuration:     classLevel.TimerDuration,
+			SpeedDialSlots:    classLevel.SpeedDialSlots,
+			MaxSpellLevel:     classLevel.MaxSpellLevel,
+			BiteDamageDice:    classLevel.BiteDamageDice,
 		}
 		respondJSON(w, http.StatusOK, sheet)
 	}

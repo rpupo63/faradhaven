@@ -18,7 +18,7 @@ func newWeaponHandler(repo *database.WeaponRepo) *weaponHandler {
 // getAllWeapons handles GET /api/weapons
 func (h *weaponHandler) getAllWeapons() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		weapons, err := h.repo.GetAllWeapons()
+		weapons, err := h.repo.FindAll()
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to get weapons")
 			respondError(w, http.StatusInternalServerError, "Failed to get weapons")

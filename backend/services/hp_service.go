@@ -132,6 +132,9 @@ func (s *LevelUpService) ShortRest(userID uuid.UUID, characterID uuid.UUID) (*mo
 		character.CurrentSpellPoints = classLevel.MaxSpellPoints
 	}
 
+	// Restore class-specific resources
+	s.resourceService.RestoreClassResources(character, "short_rest", classLevel)
+
 	if err := s.db.Save(character).Error; err != nil {
 		return nil, fmt.Errorf("failed to short rest: %w", err)
 	}
@@ -169,6 +172,9 @@ func (s *LevelUpService) LongRest(userID uuid.UUID, characterID uuid.UUID) (*mod
 	if err == nil && classLevel != nil {
 		character.CurrentSpellPoints = classLevel.MaxSpellPoints
 	}
+
+	// Restore class-specific resources
+	s.resourceService.RestoreClassResources(character, "long_rest", classLevel)
 
 	if err := s.db.Save(character).Error; err != nil {
 		return nil, fmt.Errorf("failed to long rest: %w", err)

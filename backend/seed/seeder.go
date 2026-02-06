@@ -57,6 +57,7 @@ func (s *Seeder) ClearAllData() error {
 		"weapon_damages",
 
 		// Class child tables (not the classes themselves - characters reference them)
+		"class_weapon_requirements",
 		"class_starting_equipment_options",
 		"class_starting_equipment_choices",
 		"class_components",

@@ -6,16 +6,23 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/rpupo63/unified-personal-site-backend/database"
 	"github.com/rpupo63/unified-personal-site-backend/services"
 	"github.com/rs/zerolog/log"
 )
 
 type levelHandler struct {
-	levelUpService *services.LevelUpService
+	levelUpService  *services.LevelUpService
+	classRepo       *database.ClassRepo
+	resourceService *services.ResourceService
 }
 
-func newLevelHandler(levelUpService *services.LevelUpService) *levelHandler {
-	return &levelHandler{levelUpService: levelUpService}
+func newLevelHandler(levelUpService *services.LevelUpService, classRepo *database.ClassRepo, resourceService *services.ResourceService) *levelHandler {
+	return &levelHandler{
+		levelUpService:  levelUpService,
+		classRepo:       classRepo,
+		resourceService: resourceService,
+	}
 }
 
 // levelUp handles POST /api/character/{characterID}/level-up
@@ -355,10 +362,13 @@ func (h *levelHandler) shortRest() http.HandlerFunc {
 			return
 		}
 
-		// Get max spell points from class level
+		// Get class level for max values
+		classLevel, _ := h.classRepo.FindLevelByClassAndLevel(character.ClassID, character.Level)
 		maxSP := 0
-		if character.CurrentSpellPoints > 0 {
-			maxSP = character.CurrentSpellPoints
+		maxStability := 0
+		if classLevel != nil {
+			maxSP = classLevel.MaxSpellPoints
+			maxStability = classLevel.MaxStability
 		}
 
 		resp := RestResponse{
@@ -369,6 +379,11 @@ func (h *levelHandler) shortRest() http.HandlerFunc {
 			MaxSpellPoints:     maxSP,
 			HitDiceRemaining:   character.Level - character.HitDiceUsed,
 			HitDiceTotal:       character.Level,
+			CurrentStability:   character.CurrentStability,
+			MaxStability:       maxStability,
+			CurrentBloodIchor:  character.CurrentBloodIchor,
+			MaxBloodIchor:      h.resourceService.ComputeMaxBloodIchor(character),
+			MadnessCastCount:   character.MadnessCastCount,
 		}
 		respondJSON(w, http.StatusOK, resp)
 	}
@@ -406,10 +421,13 @@ func (h *levelHandler) longRest() http.HandlerFunc {
 			return
 		}
 
-		// Get max spell points from class level
+		// Get class level for max values
+		classLevel, _ := h.classRepo.FindLevelByClassAndLevel(character.ClassID, character.Level)
 		maxSP := 0
-		if character.CurrentSpellPoints > 0 {
-			maxSP = character.CurrentSpellPoints
+		maxStability := 0
+		if classLevel != nil {
+			maxSP = classLevel.MaxSpellPoints
+			maxStability = classLevel.MaxStability
 		}
 
 		resp := RestResponse{
@@ -420,6 +438,11 @@ func (h *levelHandler) longRest() http.HandlerFunc {
 			MaxSpellPoints:     maxSP,
 			HitDiceRemaining:   character.Level - character.HitDiceUsed,
 			HitDiceTotal:       character.Level,
+			CurrentStability:   character.CurrentStability,
+			MaxStability:       maxStability,
+			CurrentBloodIchor:  character.CurrentBloodIchor,
+			MaxBloodIchor:      h.resourceService.ComputeMaxBloodIchor(character),
+			MadnessCastCount:   character.MadnessCastCount,
 		}
 		respondJSON(w, http.StatusOK, resp)
 	}

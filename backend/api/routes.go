@@ -41,6 +41,7 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Get("/api/user/{userID}/full", handlers.userHandler.getUserFull())
 		r.Post("/api/user", handlers.userHandler.createUser())
 		r.Put("/api/user/{userID}", handlers.userHandler.updateUser())
+		r.Put("/api/user/{userID}/active-character", handlers.userHandler.setActiveCharacter())
 		r.Delete("/api/user/{userID}", handlers.userHandler.deleteUser())
 
 		// Note: /api/races, /api/races/{raceID}, /api/classes, /api/classes/{classID}, /api/characters/options are also available publicly
@@ -54,6 +55,11 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Post("/api/character", handlers.characterHandler.createCharacter())
 		r.Put("/api/character/{characterID}", handlers.characterHandler.updateCharacter())
 		r.Delete("/api/character/{characterID}", handlers.characterHandler.deleteCharacter())
+		r.Post("/api/character/{characterID}/purchase", handlers.characterHandler.purchaseItem())
+
+		// Character backstory endpoints
+		r.Get("/api/character/{characterID}/backstory", handlers.characterHandler.getBackstory())
+		r.Put("/api/character/{characterID}/backstory", handlers.characterHandler.updateBackstory())
 
 		// Level-up/Level-down endpoints
 		r.Get("/api/character/{characterID}/level-up/preview", handlers.levelHandler.getLevelUpPreview())
@@ -72,6 +78,7 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Get("/api/spells", handlers.spellHandler.getAllSpells())
 		r.Get("/api/spell/{spellID}", handlers.spellHandler.getSpell())
 		r.Get("/api/user/{userID}/spells", handlers.spellHandler.getSpellsByUser())
+		r.Get("/api/character/{characterID}/spells", handlers.spellHandler.getSpellsByCharacter())
 		r.Post("/api/spell", handlers.spellHandler.createSpell())
 		r.Put("/api/spell/{spellID}", handlers.spellHandler.updateSpell())
 		r.Delete("/api/spell/{spellID}", handlers.spellHandler.deleteSpell())
