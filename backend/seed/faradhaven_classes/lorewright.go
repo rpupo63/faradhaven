@@ -82,10 +82,23 @@ func lorewrightLevelProgression() map[int]ClassLevelSeed {
 	return map[int]ClassLevelSeed{
 		1:  {EchoSlots: 0, BardicInspiration: 4},                       // Madness Die: d4, no Echo Slots yet
 		2:  {EchoSlots: 1, BardicInspiration: 4},                       // 1 Echo Slot
+		3:  {EchoSlots: 1, BardicInspiration: 4},
+		4:  {EchoSlots: 1, BardicInspiration: 4},
 		5:  {EchoSlots: 2, ExtraAttackCount: 1, BardicInspiration: 6},  // Extra Attack, Madness Die: d6, 2 Echo Slots
+		6:  {EchoSlots: 2, ExtraAttackCount: 1, BardicInspiration: 6},
+		7:  {EchoSlots: 2, ExtraAttackCount: 1, BardicInspiration: 6},
+		8:  {EchoSlots: 2, ExtraAttackCount: 1, BardicInspiration: 6},
 		9:  {EchoSlots: 3, ExtraAttackCount: 1, BardicInspiration: 8},  // Madness Die: d8, 3 Echo Slots
+		10: {EchoSlots: 3, ExtraAttackCount: 1, BardicInspiration: 8},
+		11: {EchoSlots: 3, ExtraAttackCount: 1, BardicInspiration: 8},
+		12: {EchoSlots: 3, ExtraAttackCount: 1, BardicInspiration: 8},
 		13: {EchoSlots: 4, ExtraAttackCount: 1, BardicInspiration: 10}, // Madness Die: d10, 4 Echo Slots
+		14: {EchoSlots: 4, ExtraAttackCount: 1, BardicInspiration: 10},
+		15: {EchoSlots: 4, ExtraAttackCount: 1, BardicInspiration: 10},
+		16: {EchoSlots: 4, ExtraAttackCount: 1, BardicInspiration: 10},
 		17: {EchoSlots: 5, ExtraAttackCount: 1, BardicInspiration: 12}, // Madness Die: d12, 5 Echo Slots
+		18: {EchoSlots: 5, ExtraAttackCount: 1, BardicInspiration: 12},
+		19: {EchoSlots: 5, ExtraAttackCount: 1, BardicInspiration: 12},
 		20: {EchoSlots: 5, ExtraAttackCount: 1, BardicInspiration: 20}, // Madness Die: d20, 5 Echo Slots (doubled capacity)
 	}
 }

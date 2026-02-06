@@ -71,10 +71,24 @@ func ironwrightLevelFeatures() map[int]string {
 func ironwrightLevelProgression() map[int]ClassLevelSeed {
 	return map[int]ClassLevelSeed{
 		1:  {ConcurrencyLimit: 1, YieldDie: 4},
+		2:  {ConcurrencyLimit: 1, YieldDie: 4},
+		3:  {ConcurrencyLimit: 1, YieldDie: 4},
+		4:  {ConcurrencyLimit: 1, YieldDie: 4},
 		5:  {ExtraAttackCount: 1, ConcurrencyLimit: 2, YieldDie: 6},
+		6:  {ExtraAttackCount: 1, ConcurrencyLimit: 2, YieldDie: 6},
+		7:  {ExtraAttackCount: 1, ConcurrencyLimit: 2, YieldDie: 6},
+		8:  {ExtraAttackCount: 1, ConcurrencyLimit: 2, YieldDie: 6},
 		9:  {ExtraAttackCount: 1, ConcurrencyLimit: 3, YieldDie: 8},
+		10: {ExtraAttackCount: 1, ConcurrencyLimit: 3, YieldDie: 8},
+		11: {ExtraAttackCount: 1, ConcurrencyLimit: 3, YieldDie: 8},
+		12: {ExtraAttackCount: 1, ConcurrencyLimit: 3, YieldDie: 8},
 		13: {ExtraAttackCount: 1, ConcurrencyLimit: 4, YieldDie: 10},
+		14: {ExtraAttackCount: 1, ConcurrencyLimit: 4, YieldDie: 10},
+		15: {ExtraAttackCount: 1, ConcurrencyLimit: 4, YieldDie: 10},
+		16: {ExtraAttackCount: 1, ConcurrencyLimit: 4, YieldDie: 10},
 		17: {ExtraAttackCount: 1, ConcurrencyLimit: 5, YieldDie: 12},
+		18: {ExtraAttackCount: 1, ConcurrencyLimit: 5, YieldDie: 12},
+		19: {ExtraAttackCount: 1, ConcurrencyLimit: 5, YieldDie: 12},
 		20: {ExtraAttackCount: 1, ConcurrencyLimit: 6, YieldDie: 12}, // 2d12 at 20
 	}
 }

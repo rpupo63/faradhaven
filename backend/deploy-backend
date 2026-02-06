@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-HEALTH_URL="http://localhost:8080/healthcheck"
+HEALTH_URL="https://api.faradhaven.xyz/healthcheck"
 MAX_RETRIES=10
 RETRY_DELAY=2
 
@@ -21,11 +21,11 @@ ssh racknerd-backend '
     sudo systemctl restart faradhaven
 '
 
-echo "Checking deployment health..."
+echo "Checking deployment health at $HEALTH_URL..."
 for i in $(seq 1 $MAX_RETRIES); do
-    if ssh racknerd-backend "curl -sf $HEALTH_URL" > /dev/null 2>&1; then
+    if curl -sf "$HEALTH_URL" > /dev/null 2>&1; then
         echo "Health check passed!"
-        ssh racknerd-backend "curl -s $HEALTH_URL" | jq .
+        curl -s "$HEALTH_URL" | jq .
         echo "Deploy complete!"
         exit 0
     fi

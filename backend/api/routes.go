@@ -28,6 +28,9 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Get("/api/components", handlers.componentHandler.getAllComponents())
 		r.Get("/api/components/{componentID}", handlers.componentHandler.getComponentByID())
 		r.Get("/api/components/category/{category}", handlers.componentHandler.getComponentsByCategory())
+		// Effect compendium (reference data, no auth required)
+		r.Get("/api/effects", handlers.effectHandler.getAllEffects())
+		r.Get("/api/effects/{effectID}", handlers.effectHandler.getEffectByID())
 	})
 
 	// Protected API routes (token required)

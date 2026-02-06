@@ -112,10 +112,24 @@ func mutagenLevelProgression() map[int]ClassLevelSeed {
 	// MadnessBaseDC is always 10, FeralBonus scales with level
 	return map[int]ClassLevelSeed{
 		1:  {MadnessBaseDC: 10, FeralBonus: 2, RageDamageBonus: 2},                      // Feral Bonus Damage: +2
+		2:  {MadnessBaseDC: 10, FeralBonus: 2, RageDamageBonus: 2},
+		3:  {MadnessBaseDC: 10, FeralBonus: 2, RageDamageBonus: 2},
+		4:  {MadnessBaseDC: 10, FeralBonus: 2, RageDamageBonus: 2},
 		5:  {MadnessBaseDC: 10, FeralBonus: 3, ExtraAttackCount: 1, RageDamageBonus: 3}, // Extra Attack, Feral Bonus Damage: +3
+		6:  {MadnessBaseDC: 10, FeralBonus: 3, ExtraAttackCount: 1, RageDamageBonus: 3},
+		7:  {MadnessBaseDC: 10, FeralBonus: 3, ExtraAttackCount: 1, RageDamageBonus: 3},
+		8:  {MadnessBaseDC: 10, FeralBonus: 3, ExtraAttackCount: 1, RageDamageBonus: 3},
 		9:  {MadnessBaseDC: 10, FeralBonus: 4, ExtraAttackCount: 1, RageDamageBonus: 4}, // Feral Bonus Damage: +4
+		10: {MadnessBaseDC: 10, FeralBonus: 4, ExtraAttackCount: 1, RageDamageBonus: 4},
+		11: {MadnessBaseDC: 10, FeralBonus: 4, ExtraAttackCount: 1, RageDamageBonus: 4},
+		12: {MadnessBaseDC: 10, FeralBonus: 4, ExtraAttackCount: 1, RageDamageBonus: 4},
 		13: {MadnessBaseDC: 10, FeralBonus: 5, ExtraAttackCount: 1, RageDamageBonus: 5}, // Feral Bonus Damage: +5
+		14: {MadnessBaseDC: 10, FeralBonus: 5, ExtraAttackCount: 1, RageDamageBonus: 5},
+		15: {MadnessBaseDC: 10, FeralBonus: 5, ExtraAttackCount: 1, RageDamageBonus: 5},
+		16: {MadnessBaseDC: 10, FeralBonus: 5, ExtraAttackCount: 1, RageDamageBonus: 5},
 		17: {MadnessBaseDC: 10, FeralBonus: 6, ExtraAttackCount: 1, RageDamageBonus: 6}, // Feral Bonus Damage: +6
+		18: {MadnessBaseDC: 10, FeralBonus: 6, ExtraAttackCount: 1, RageDamageBonus: 6},
+		19: {MadnessBaseDC: 10, FeralBonus: 6, ExtraAttackCount: 1, RageDamageBonus: 6},
 		20: {MadnessBaseDC: 10, FeralBonus: 7, ExtraAttackCount: 1, RageDamageBonus: 7}, // Feral Bonus Damage: +7
 	}
 }

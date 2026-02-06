@@ -29,5 +29,6 @@ func initializeHandlers(db database.Database) *routeHandlers {
 		weaponHandler:    newWeaponHandler(db.WeaponRepo()),
 		itemHandler:      newItemHandler(db.ItemRepo()),
 		componentHandler: newComponentHandler(db.ComponentRepo()),
+		effectHandler:    newEffectHandler(db.EffectRepo()),
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -74,7 +75,7 @@ func newRouter(database database.Database, opts ...func(*router)) *chi.Mux {
 	chiRouter.Use(corsMiddleware(acceptedOrigins))
 
 	// Root endpoint - Message of the Day
-	chiRouter.Get("/", rootHandler())
+	chiRouter.Get("/", rootHandler(router.startupTime))
 
 	// Healthcheck endpoint - accessible from any origin
 	chiRouter.Get("/healthcheck", healthcheckHandler(router.startupTime))
@@ -112,20 +113,42 @@ func (s Server) ShutdownGracefully(timeout time.Duration) {
 	}
 }
 
+// formatUptime returns a human-readable uptime string
+func formatUptime(d time.Duration) string {
+	days := int(d.Hours()) / 24
+	hours := int(d.Hours()) % 24
+	minutes := int(d.Minutes()) % 60
+	seconds := int(d.Seconds()) % 60
+
+	if days > 0 {
+		return fmt.Sprintf("%dd %dh %dm %ds", days, hours, minutes, seconds)
+	}
+	if hours > 0 {
+		return fmt.Sprintf("%dh %dm %ds", hours, minutes, seconds)
+	}
+	if minutes > 0 {
+		return fmt.Sprintf("%dm %ds", minutes, seconds)
+	}
+	return fmt.Sprintf("%ds", seconds)
+}
+
 // rootHandler returns a handler function for the root endpoint
-func rootHandler() http.HandlerFunc {
+func rootHandler(startupTime time.Time) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Powered-By", "Faradhaven")
 
 		quotes := []string{
-			"SYSTEM STATUS: ONLINE.\nWelcome to Faradhaven.",
 			"The forge awaits your spells.",
 			"Beasts stir in the shadows.",
 			"Your spellbook is ready.",
+			"Adventure calls from distant lands.",
 		}
 
 		rand.Seed(time.Now().UnixNano())
 		selectedQuote := quotes[rand.Intn(len(quotes))]
+
+		uptime := time.Since(startupTime)
+		uptimeStr := formatUptime(uptime)
 
 		userAgent := r.Header.Get("User-Agent")
 		if !strings.Contains(userAgent, "curl") {
@@ -133,20 +156,42 @@ func rootHandler() http.HandlerFunc {
 			html := fmt.Sprintf(`
         <html>
         <body style="background:#1e1e2e; color:#cdd6f4; font-family: monospace; display:flex; align-items:center; justify-content:center; height:100vh;">
-            <div style="border: 1px solid #fab387; padding: 20px; border-radius: 5px;">
+            <div style="border: 1px solid #fab387; padding: 20px; border-radius: 5px; min-width: 400px;">
                 <p style="color:#fab387;">faradhaven:~# ./status</p>
-                <p>%s</p>
+                <p style="color:#a6e3a1;">● SYSTEM STATUS: ONLINE</p>
+                <p style="margin: 4px 0; color:#89b4fa;">Started: %s</p>
+                <p style="margin: 4px 0; color:#89b4fa;">Uptime:  %s</p>
+                <p style="margin: 4px 0; color:#89b4fa;">Runtime: Go %s</p>
+                <hr style="border-color:#45475a; margin: 12px 0;">
+                <p style="color:#f9e2af; font-style:italic;">"%s"</p>
                 <span style="animation: blink 1s infinite;">_</span>
             </div>
             <style>@keyframes blink{50%%{opacity:0;}}</style>
         </body>
-        </html>`, selectedQuote)
+        </html>`,
+				startupTime.Format("2006-01-02 15:04:05 MST"),
+				uptimeStr,
+				runtime.Version()[2:], // Strip "go" prefix
+				selectedQuote)
 			w.Write([]byte(html))
 			return
 		}
 
+		// CLI/curl output
+		cliOutput := fmt.Sprintf(`SYSTEM STATUS: ONLINE
+Started: %s
+Uptime:  %s
+Runtime: Go %s
+
+"%s"
+`,
+			startupTime.Format("2006-01-02 15:04:05 MST"),
+			uptimeStr,
+			runtime.Version()[2:],
+			selectedQuote)
+
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.Write([]byte(selectedQuote + "\n"))
+		w.Write([]byte(cliOutput))
 	}
 }
 
@@ -163,10 +208,31 @@ func healthcheckHandler(startupTime time.Time) http.HandlerFunc {
 			return
 		}
 
+		// Get memory stats
+		var memStats runtime.MemStats
+		runtime.ReadMemStats(&memStats)
+
+		uptime := time.Since(startupTime)
+
 		response := map[string]interface{}{
-			"current_time":   time.Now().Format(time.RFC3339),
-			"startup_time":   startupTime.Format(time.RFC3339),
-			"uptime_seconds": int(time.Since(startupTime).Seconds()),
+			"status":       "healthy",
+			"current_time": time.Now().Format(time.RFC3339),
+			"startup_time": startupTime.Format(time.RFC3339),
+			"uptime":       formatUptime(uptime),
+			"uptime_seconds": int(uptime.Seconds()),
+			"runtime": map[string]interface{}{
+				"go_version":   runtime.Version(),
+				"os":           runtime.GOOS,
+				"arch":         runtime.GOARCH,
+				"num_cpu":      runtime.NumCPU(),
+				"num_goroutine": runtime.NumGoroutine(),
+			},
+			"memory": map[string]interface{}{
+				"alloc_mb":       float64(memStats.Alloc) / 1024 / 1024,
+				"total_alloc_mb": float64(memStats.TotalAlloc) / 1024 / 1024,
+				"sys_mb":         float64(memStats.Sys) / 1024 / 1024,
+				"num_gc":         memStats.NumGC,
+			},
 		}
 
 		if err := json.NewEncoder(w).Encode(response); err != nil {

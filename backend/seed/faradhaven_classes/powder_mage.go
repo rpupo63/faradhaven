@@ -52,13 +52,23 @@ func powderMageLevelProgression() map[int]ClassLevelSeed {
 		1:  {TimerDuration: 2},                                        // Flash-Point Casting: 2 seconds
 		2:  {TimerDuration: 2, UnarmoredMovement: 10},                  // Powder Sprint: +10 feet
 		3:  {TimerDuration: 2, UnarmoredMovement: 10, SpeedDialSlots: 1}, // Speed Dial: 1 saved string
+		4:  {TimerDuration: 2, UnarmoredMovement: 10, SpeedDialSlots: 1},
 		5:  {TimerDuration: 3, UnarmoredMovement: 10, SpeedDialSlots: 1}, // Timer increases to 3 seconds
 		6:  {TimerDuration: 3, UnarmoredMovement: 15, SpeedDialSlots: 1}, // Recoil Mastery
+		7:  {TimerDuration: 3, UnarmoredMovement: 15, SpeedDialSlots: 1},
+		8:  {TimerDuration: 3, UnarmoredMovement: 15, SpeedDialSlots: 1},
 		9:  {TimerDuration: 3, UnarmoredMovement: 15, SpeedDialSlots: 2}, // Speed Dial: 2 saved strings
+		10: {TimerDuration: 3, UnarmoredMovement: 15, SpeedDialSlots: 2},
 		11: {TimerDuration: 4, UnarmoredMovement: 20, SpeedDialSlots: 2}, // Timer increases to 4 seconds
+		12: {TimerDuration: 4, UnarmoredMovement: 20, SpeedDialSlots: 2},
+		13: {TimerDuration: 4, UnarmoredMovement: 20, SpeedDialSlots: 2},
+		14: {TimerDuration: 4, UnarmoredMovement: 20, SpeedDialSlots: 2},
 		15: {TimerDuration: 4, UnarmoredMovement: 20, SpeedDialSlots: 3}, // Speed Dial: 3 saved strings
+		16: {TimerDuration: 4, UnarmoredMovement: 20, SpeedDialSlots: 3},
 		17: {TimerDuration: 5, UnarmoredMovement: 20, SpeedDialSlots: 3}, // Timer increases to 5 seconds
 		18: {TimerDuration: 5, UnarmoredMovement: 30, SpeedDialSlots: 3}, // Sound Barrier: flying speed
+		19: {TimerDuration: 5, UnarmoredMovement: 30, SpeedDialSlots: 3},
+		20: {TimerDuration: 5, UnarmoredMovement: 30, SpeedDialSlots: 3},
 	}
 }
 

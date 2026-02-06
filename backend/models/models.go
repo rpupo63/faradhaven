@@ -40,6 +40,7 @@ func AllModels() []interface{} {
 		&Weapon{},
 		&WeaponDamage{},
 		&Item{},
+		&Effect{},
 
 		// Character weapon system (explicit join table with modifiers)
 		&CharacterWeapon{},

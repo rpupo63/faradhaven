@@ -18,6 +18,9 @@ func (s *LevelUpService) UpdateHP(userID uuid.UUID, characterID uuid.UUID, delta
 		return nil, ErrUnauthorized
 	}
 
+	// Initialize HP if this is a legacy character
+	s.ensureHPInitialized(character)
+
 	// Apply delta
 	character.CurrentHP += delta
 
@@ -47,6 +50,9 @@ func (s *LevelUpService) SetTempHP(userID uuid.UUID, characterID uuid.UUID, temp
 	if character.UserID != userID {
 		return nil, ErrUnauthorized
 	}
+
+	// Initialize HP if this is a legacy character
+	s.ensureHPInitialized(character)
 
 	// Temp HP doesn't stack, only use new value if higher (player choice in 5e)
 	if tempHP < 0 {
@@ -81,6 +87,9 @@ func (s *LevelUpService) UseHitDice(userID uuid.UUID, characterID uuid.UUID, rol
 		return nil, ErrUnauthorized
 	}
 
+	// Initialize HP if this is a legacy character
+	s.ensureHPInitialized(character)
+
 	// Calculate available hit dice
 	available := character.Level - character.HitDiceUsed
 	if len(rolls) > available {
@@ -99,6 +108,8 @@ func (s *LevelUpService) UseHitDice(userID uuid.UUID, characterID uuid.UUID, rol
 	// Apply healing
 	character.HitDiceUsed += len(rolls)
 	character.CurrentHP += totalHealing
+	
+	// Clamp to MaxHP (healing doesn't affect TempHP usually, unless special features)
 	if character.CurrentHP > character.MaxHP {
 		character.CurrentHP = character.MaxHP
 	}
@@ -126,6 +137,9 @@ func (s *LevelUpService) ShortRest(userID uuid.UUID, characterID uuid.UUID) (*mo
 		return nil, ErrUnauthorized
 	}
 
+	// Initialize HP if this is a legacy character
+	s.ensureHPInitialized(character)
+
 	// Restore spell points to max
 	classLevel, err := s.classRepo.FindLevelByClassAndLevel(character.ClassID, character.Level)
 	if err == nil && classLevel != nil {
@@ -142,7 +156,7 @@ func (s *LevelUpService) ShortRest(userID uuid.UUID, characterID uuid.UUID) (*mo
 	return character, nil
 }
 
-// LongRest performs a long rest: restore HP to max, restore half hit dice (minimum 1), restore spell points
+// LongRest performs a long rest: restore HP to max, restore all hit dice, restore spell points
 func (s *LevelUpService) LongRest(userID uuid.UUID, characterID uuid.UUID) (*models.Character, error) {
 	character, err := s.characterRepo.FindByID(characterID)
 	if err != nil {
@@ -153,19 +167,15 @@ func (s *LevelUpService) LongRest(userID uuid.UUID, characterID uuid.UUID) (*mod
 		return nil, ErrUnauthorized
 	}
 
+	// Initialize HP if this is a legacy character
+	s.ensureHPInitialized(character)
+
 	// Restore HP to max
 	character.CurrentHP = character.MaxHP
 	character.TempHP = 0 // Temp HP goes away after long rest
 
-	// Restore half hit dice (rounded down, minimum 1)
-	diceToRestore := character.Level / 2
-	if diceToRestore < 1 {
-		diceToRestore = 1
-	}
-	character.HitDiceUsed -= diceToRestore
-	if character.HitDiceUsed < 0 {
-		character.HitDiceUsed = 0
-	}
+	// Restore all hit dice
+	character.HitDiceUsed = 0
 
 	// Restore spell points to max
 	classLevel, err := s.classRepo.FindLevelByClassAndLevel(character.ClassID, character.Level)
@@ -181,4 +191,29 @@ func (s *LevelUpService) LongRest(userID uuid.UUID, characterID uuid.UUID) (*mod
 	}
 
 	return character, nil
+}
+
+// ensureHPInitialized calculates and sets MaxHP/CurrentHP for characters that don't have them yet
+func (s *LevelUpService) ensureHPInitialized(character *models.Character) {
+	if character.MaxHP > 0 {
+		return
+	}
+
+	conMod := models.AbilityModifier(character.Constitution)
+	avgHitDie := (character.Class.HitDie + 1) / 2
+	baseHP := character.Class.HitDie
+	
+	totalHP := baseHP + (avgHitDie * (character.Level - 1)) + (conMod * character.Level)
+	if character.Level < 1 {
+		totalHP = baseHP + conMod
+	}
+	
+	if totalHP < 1 {
+		totalHP = 1
+	}
+
+	character.MaxHP = totalHP
+	if character.CurrentHP == 0 {
+		character.CurrentHP = totalHP
+	}
 }

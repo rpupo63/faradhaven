@@ -49,12 +49,25 @@ func vaporBladeLevelProgression() map[int]ClassLevelSeed {
 	// Vapor Blade gets Extra Attack at 5 and Sneak Strike damage scales
 	// Sneak Strike: 2d6 at level 2, +2d6 with Death Mark at level 10, unlimited at 20
 	return map[int]ClassLevelSeed{
+		1:  {SneakAttackDice: 0},
 		2:  {SneakAttackDice: 2},                      // Sneak Strike: 2d6
+		3:  {SneakAttackDice: 2},
+		4:  {SneakAttackDice: 2},
 		5:  {ExtraAttackCount: 1, SneakAttackDice: 2}, // Extra Attack
+		6:  {ExtraAttackCount: 1, SneakAttackDice: 2},
+		7:  {ExtraAttackCount: 1, SneakAttackDice: 2},
+		8:  {ExtraAttackCount: 1, SneakAttackDice: 2},
 		9:  {ExtraAttackCount: 1, SneakAttackDice: 3}, // Lethal Precision adds damage
 		10: {ExtraAttackCount: 1, SneakAttackDice: 4}, // Death Mark: +2d6
+		11: {ExtraAttackCount: 1, SneakAttackDice: 4},
+		12: {ExtraAttackCount: 1, SneakAttackDice: 4},
 		13: {ExtraAttackCount: 1, SneakAttackDice: 5}, // Venom Burst level
+		14: {ExtraAttackCount: 1, SneakAttackDice: 5},
+		15: {ExtraAttackCount: 1, SneakAttackDice: 5},
+		16: {ExtraAttackCount: 1, SneakAttackDice: 5},
 		17: {ExtraAttackCount: 1, SneakAttackDice: 6}, // Perfect Kill level
+		18: {ExtraAttackCount: 1, SneakAttackDice: 6},
+		19: {ExtraAttackCount: 1, SneakAttackDice: 6},
 		20: {ExtraAttackCount: 1, SneakAttackDice: 7}, // Shadow-Stalker's Eclipse
 	}
 }

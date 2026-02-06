@@ -2,6 +2,7 @@ package seed
 
 import (
 	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_classes"
+	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_effects"
 	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_items"
 	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_races"
 )
@@ -55,6 +56,14 @@ func AllSeeds() []Seed {
 					Classes    interface{}
 					Components interface{}
 				}{classes, components}, len(classes)
+			},
+		},
+		{
+			Name: "05_effects",
+			Run:  faradhaven_effects.SeedFaradhavenEffects,
+			HashData: func() (interface{}, int) {
+				data := faradhaven_effects.AllEffects()
+				return data, len(data)
 			},
 		},
 	}

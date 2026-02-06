@@ -25,6 +25,7 @@ var (
 	NamespaceTraitOption  = uuid.MustParse("56789012-5678-9012-5678-901256789012")
 	NamespaceWeaponDamage       = uuid.MustParse("67890123-6789-0123-6789-012367890123")
 	NamespaceWeaponRequirement  = uuid.MustParse("78901234-7890-1234-7890-123478901234")
+	NamespaceEffect             = uuid.MustParse("89012345-8901-2345-8901-234589012345")
 )
 
 // RaceUUID generates a deterministic UUID for a race by name.
@@ -108,4 +109,9 @@ func WeaponDamageUUID(weaponID uuid.UUID, damageDice, damageType, damageCategory
 // Key: ClassName + ModifierType + SelectionLevel
 func WeaponRequirementUUID(className, modifierType string, selectionLevel int) uuid.UUID {
 	return uuid.NewSHA1(NamespaceWeaponRequirement, []byte(fmt.Sprintf("%s:%s:%d", className, modifierType, selectionLevel)))
+}
+
+// EffectUUID generates a deterministic UUID for an effect by name.
+func EffectUUID(name string) uuid.UUID {
+	return uuid.NewSHA1(NamespaceEffect, []byte(name))
 }

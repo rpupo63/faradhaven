@@ -53,6 +53,9 @@ func (s *Seeder) ClearAllData() error {
 	// Only clear child tables that don't have character references
 	// Parent tables (races, classes, components, weapons, archetypes) are updated in-place by seeds
 	tablesToClear := []string{
+		// Effect tables
+		"effects",
+
 		// Weapon child tables
 		"weapon_damages",
 

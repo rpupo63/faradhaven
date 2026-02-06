@@ -16,6 +16,7 @@ type routeHandlers struct {
 	weaponHandler    *weaponHandler
 	itemHandler      *itemHandler
 	componentHandler *componentHandler
+	effectHandler    *effectHandler
 }
 
 // ErrorResponse represents an error response from the API

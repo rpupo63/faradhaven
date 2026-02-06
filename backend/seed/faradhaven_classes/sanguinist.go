@@ -77,8 +77,25 @@ func sanguinistLevelFeatures() map[int]string {
 func sanguinistLevelProgression() map[int]ClassLevelSeed {
 	return map[int]ClassLevelSeed{
 		1:  {BiteDamageDice: 1},
+		2:  {BiteDamageDice: 1},
+		3:  {BiteDamageDice: 1},
+		4:  {BiteDamageDice: 1},
 		5:  {BiteDamageDice: 1, ExtraAttackCount: 1},
+		6:  {BiteDamageDice: 1, ExtraAttackCount: 1},
+		7:  {BiteDamageDice: 1, ExtraAttackCount: 1},
+		8:  {BiteDamageDice: 1, ExtraAttackCount: 1},
+		9:  {BiteDamageDice: 1, ExtraAttackCount: 1},
+		10: {BiteDamageDice: 1, ExtraAttackCount: 1},
+		11: {BiteDamageDice: 1, ExtraAttackCount: 1},
+		12: {BiteDamageDice: 1, ExtraAttackCount: 1},
+		13: {BiteDamageDice: 1, ExtraAttackCount: 1},
+		14: {BiteDamageDice: 1, ExtraAttackCount: 1},
 		15: {BiteDamageDice: 2, ExtraAttackCount: 1},
+		16: {BiteDamageDice: 2, ExtraAttackCount: 1},
+		17: {BiteDamageDice: 2, ExtraAttackCount: 1},
+		18: {BiteDamageDice: 2, ExtraAttackCount: 1},
+		19: {BiteDamageDice: 2, ExtraAttackCount: 1},
+		20: {BiteDamageDice: 2, ExtraAttackCount: 1},
 	}
 }
 

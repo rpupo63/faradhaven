@@ -58,10 +58,24 @@ func pistonBrawlerLevelProgression() map[int]ClassLevelSeed {
 	// MaxSpellLevel tracks the spell level cap for Fixed Spells
 	return map[int]ClassLevelSeed{
 		1:  {MaxStability: 12, MaxSpellLevel: 1},                       // 10 + (1*2) = 12
+		2:  {MaxStability: 14, MaxSpellLevel: 1},
+		3:  {MaxStability: 16, MaxSpellLevel: 1},
+		4:  {MaxStability: 18, MaxSpellLevel: 1},
 		5:  {MaxStability: 20, MaxSpellLevel: 2, ExtraAttackCount: 1},  // 10 + (5*2) = 20
+		6:  {MaxStability: 22, MaxSpellLevel: 2, ExtraAttackCount: 1},
+		7:  {MaxStability: 24, MaxSpellLevel: 2, ExtraAttackCount: 1},
+		8:  {MaxStability: 26, MaxSpellLevel: 2, ExtraAttackCount: 1},
 		9:  {MaxStability: 28, MaxSpellLevel: 3, ExtraAttackCount: 1},  // 10 + (9*2) = 28
+		10: {MaxStability: 30, MaxSpellLevel: 3, ExtraAttackCount: 1},
+		11: {MaxStability: 32, MaxSpellLevel: 3, ExtraAttackCount: 1},
+		12: {MaxStability: 34, MaxSpellLevel: 3, ExtraAttackCount: 1},
 		13: {MaxStability: 36, MaxSpellLevel: 4, ExtraAttackCount: 1},  // 10 + (13*2) = 36
+		14: {MaxStability: 38, MaxSpellLevel: 4, ExtraAttackCount: 1},
+		15: {MaxStability: 40, MaxSpellLevel: 4, ExtraAttackCount: 1},
+		16: {MaxStability: 42, MaxSpellLevel: 4, ExtraAttackCount: 1},
 		17: {MaxStability: 44, MaxSpellLevel: 5, ExtraAttackCount: 1},  // 10 + (17*2) = 44
+		18: {MaxStability: 46, MaxSpellLevel: 5, ExtraAttackCount: 1},
+		19: {MaxStability: 48, MaxSpellLevel: 5, ExtraAttackCount: 1},
 		20: {MaxStability: 50, MaxSpellLevel: 9, ExtraAttackCount: 1},  // Perfect Machine: no max (use 50 as display)
 	}
 }
