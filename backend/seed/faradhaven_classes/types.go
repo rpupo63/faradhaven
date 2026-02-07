@@ -18,11 +18,17 @@ type EquipmentChoiceSeed struct {
 	Options     []EquipmentOptionSeed
 }
 
+// FeatureSeed defines a single feature with a name and description for seeding
+type FeatureSeed struct {
+	Name        string
+	Description string
+}
+
 // ArchetypeSeed defines archetype/subclass data for seeding
 type ArchetypeSeed struct {
 	Name        string
 	Description string
-	Features    map[int]string // level -> feature text (path-specific features)
+	Features    map[int][]FeatureSeed // level -> features (path-specific features)
 }
 
 // WeaponRequirementSeed defines weapon selection requirements for seeding
@@ -70,7 +76,6 @@ type FaradhavenClassSeed struct {
 	PhotoURL       string // URL to class artwork/photo
 	Archetype      string // Legacy: thematic archetype description
 	Concept        string
-	ClassFeatures  []string
 	DnDSkillFocus  []string
 	Proficiencies  string
 	SkillChoice    []string
@@ -87,7 +92,7 @@ type FaradhavenClassSeed struct {
 	// Used for D&D-style level progression. Level 1 base info is always built from the seed;
 	// LevelFeatures[1] appends to it; LevelFeatures[2-20] set Features for those levels.
 	// For archetype levels, these are shared features that all archetypes get.
-	LevelFeatures map[int]string
+	LevelFeatures map[int][]FeatureSeed
 
 	// LevelProgression maps level (1-20) to structured level data for combat/spellcasting progression.
 	// These values are applied to models.ClassLevel when seeding.

@@ -89,13 +89,20 @@ type UpdateCharacterRequest struct {
 	Charisma           *int       `json:"charisma,omitempty"`
 	CurrentSpellPoints *int       `json:"current_spell_points,omitempty"`
 	Money              *int64     `json:"money,omitempty"`
+	Notes              *string    `json:"notes,omitempty"`
 	SkillProficiencies []string   `json:"skill_proficiencies,omitempty"` // D&D 5e skill ids
+}
+
+type CastSpellRequest struct {
+	SpellID    *uuid.UUID `json:"spell_id,omitempty"`
+	SpellLevel int        `json:"spell_level"`
 }
 
 // ClassWithLevelsResponse is a class with all levels 1-20 for the compendium/book view
 type ClassWithLevelsResponse struct {
 	*models.Class
-	Levels []models.ClassLevel `json:"levels"`
+	Levels       []models.ClassLevel `json:"levels"`
+	MadnessTable map[int]string      `json:"madness_table,omitempty"`
 }
 
 // CharacterSheetResponse is the fully calculated character sheet (Class + ClassLevel joined)
@@ -103,6 +110,7 @@ type CharacterSheetResponse struct {
 	Character                *models.Character         `json:"character"`
 	Class                    *models.Class             `json:"class"`
 	ClassLevel               *models.ClassLevel        `json:"class_level"`
+	MadnessTable             map[int]string            `json:"madness_table,omitempty"`
 	TotalHP                  int                       `json:"total_hp"`   // Deprecated: use max_hp
 	MaxHP                    int                       `json:"max_hp"`     // Character's maximum HP (persisted)
 	CurrentHP                int                       `json:"current_hp"` // Character's current HP (persisted)
@@ -123,6 +131,7 @@ type CharacterSheetResponse struct {
 	Lineage                  *models.Lineage           `json:"lineage,omitempty"`          // Character's lineage (sub-race)
 	InventoryWeapons         []CharacterWeaponResponse `json:"inventory_weapons"`          // Detailed weapon objects with modifiers
 	InventoryItems           []models.Item             `json:"inventory_items"`            // Detailed item objects
+	Components               []models.CharacterComponent `json:"components"`               // Character's current component inventory
 
 	// --- Class-Specific Resources ---
 	ResourceType      string `json:"resource_type,omitempty"`
@@ -192,7 +201,8 @@ type PurchaseItemRequest struct {
 
 // UpdateBackstoryRequest is used to update a character's backstory
 type UpdateBackstoryRequest struct {
-	Backstory string `json:"backstory"`
+	Backstory         string  `json:"backstory"`
+	BackstoryHexColor *string `json:"backstory_hex_color,omitempty"`
 }
 
 // Beast Request/Response Types

@@ -6,6 +6,7 @@ import (
 	"math"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -21,7 +22,9 @@ type characterHandler struct {
 	classRepo       database.ClassRepository
 	itemRepo        database.ItemRepository
 	weaponRepo      database.WeaponRepository
+	spellRepo       database.SpellRepository
 	resourceService *services.ResourceService
+	s3Service       *services.S3Service
 }
 
 func newCharacterHandler(
@@ -30,7 +33,9 @@ func newCharacterHandler(
 	classRepo database.ClassRepository,
 	itemRepo database.ItemRepository,
 	weaponRepo database.WeaponRepository,
+	spellRepo database.SpellRepository,
 	resourceService *services.ResourceService,
+	s3Service *services.S3Service,
 ) *characterHandler {
 	return &characterHandler{
 		characterRepo:   characterRepo,
@@ -38,7 +43,75 @@ func newCharacterHandler(
 		classRepo:       classRepo,
 		itemRepo:        itemRepo,
 		weaponRepo:      weaponRepo,
+		spellRepo:       spellRepo,
 		resourceService: resourceService,
+		s3Service:       s3Service,
+	}
+}
+
+// uploadProfilePicture handles uploading a character image to S3
+func (h *characterHandler) uploadProfilePicture() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "characterID")
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(id)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
+			return
+		}
+
+		// Verify user owns this character
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		if authUserID != character.UserID.String() {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		// Parse multipart form
+		// Limit upload size to 10MB
+		r.ParseMultipartForm(10 << 20)
+
+		file, handler, err := r.FormFile("image")
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid file")
+			return
+		}
+		defer file.Close()
+
+		// Validate content type
+		contentType := handler.Header.Get("Content-Type")
+		if contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp" {
+			respondError(w, http.StatusBadRequest, "Invalid file type. Only JPEG, PNG, and WebP are allowed.")
+			return
+		}
+
+		url, err := h.s3Service.UploadFile(file, handler)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to upload image")
+			respondError(w, http.StatusInternalServerError, "Failed to upload image")
+			return
+		}
+
+		character.ImageURL = url
+		if err := h.characterRepo.Update(character); err != nil {
+			log.Error().Err(err).Msg("Failed to update character image URL")
+			respondError(w, http.StatusInternalServerError, "Failed to update character")
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]string{
+			"image_url": url,
+			"message":   "Profile picture updated successfully",
+		})
 	}
 }
 
@@ -260,6 +333,9 @@ func (h *characterHandler) updateCharacter() http.HandlerFunc {
 		if req.Money != nil {
 			character.Money = *req.Money
 		}
+		if req.Notes != nil {
+			character.Notes = *req.Notes
+		}
 		if req.SkillProficiencies != nil {
 			if err := h.characterRepo.ReplaceSkillProficiencies(character.ID, req.SkillProficiencies); err != nil {
 				log.Error().Err(err).Msg("Failed to update skill proficiencies")
@@ -349,6 +425,10 @@ func (h *characterHandler) updateBackstory() http.HandlerFunc {
 		}
 
 		character.Backstory = req.Backstory
+		if req.BackstoryHexColor != nil {
+			character.BackstoryHexColor = *req.BackstoryHexColor
+		}
+
 		if err := h.characterRepo.Update(character); err != nil {
 			log.Error().Err(err).Msg("Failed to update backstory")
 			respondError(w, http.StatusInternalServerError, "Failed to update backstory")
@@ -356,8 +436,9 @@ func (h *characterHandler) updateBackstory() http.HandlerFunc {
 		}
 
 		respondJSON(w, http.StatusOK, map[string]string{
-			"message":   "Backstory updated successfully",
-			"backstory": character.Backstory,
+			"message":             "Backstory updated successfully",
+			"backstory":           character.Backstory,
+			"backstory_hex_color": character.BackstoryHexColor,
 		})
 	}
 }
@@ -379,7 +460,8 @@ func (h *characterHandler) getBackstory() http.HandlerFunc {
 		}
 
 		respondJSON(w, http.StatusOK, map[string]string{
-			"backstory": character.Backstory,
+			"backstory":           character.Backstory,
+			"backstory_hex_color": character.BackstoryHexColor,
 		})
 	}
 }
@@ -547,5 +629,190 @@ func (h *characterHandler) purchaseItem() http.HandlerFunc {
 			"money":        character.Money,
 			"cost_deducted": cost,
 		})
+	}
+}
+
+// castSpell handles deducting spell points and updating class-specific resources (like Madness)
+func (h *characterHandler) castSpell() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "characterID")
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(id)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
+			return
+		}
+
+		// Verify user owns this character
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		if authUserID != character.UserID.String() {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		var req CastSpellRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		// Preload class to check resource type
+		class, err := h.classRepo.FindByID(character.ClassID)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to load class data")
+			return
+		}
+
+		// Start transaction
+		tx := h.characterRepo.GetDB().Begin()
+		if tx.Error != nil {
+			respondError(w, http.StatusInternalServerError, "Database error")
+			return
+		}
+		defer tx.Rollback()
+
+		// 0. Handle Spell Components
+		if req.SpellID != nil {
+			spell, err := h.spellRepo.FindByID(*req.SpellID)
+			if err != nil {
+				respondError(w, http.StatusNotFound, "Spell not found")
+				return
+			}
+
+			// First pass: Validation
+			for _, comp := range spell.Components {
+				found := false
+				for _, charComp := range character.Components {
+					if charComp.ComponentID == comp.ID {
+						if charComp.Count < 1 {
+							respondError(w, http.StatusBadRequest, fmt.Sprintf("Not enough %s", comp.Name))
+							return
+						}
+						found = true
+						break
+					}
+				}
+				if !found {
+					respondError(w, http.StatusBadRequest, fmt.Sprintf("Character is missing required component: %s", comp.Name))
+					return
+				}
+			}
+
+			// Second pass: Deduction
+			for _, comp := range spell.Components {
+				for i, charComp := range character.Components {
+					if charComp.ComponentID == comp.ID {
+						character.Components[i].Count--
+						// Save the updated component count using tx
+						if err := tx.Save(&character.Components[i]).Error; err != nil {
+							log.Error().Err(err).Msg("Failed to update character component count")
+							respondError(w, http.StatusInternalServerError, "Failed to update components")
+							return
+						}
+						break
+					}
+				}
+			}
+
+			if req.SpellLevel == 0 {
+				req.SpellLevel = spell.SlotLevel
+			}
+		}
+
+		// 1. Deduct Spell Points
+		character.CurrentSpellPoints -= req.SpellLevel
+		if character.CurrentSpellPoints < 0 {
+			character.CurrentSpellPoints = 0
+		}
+
+		// 2. Handle Class-Specific Side Effects
+		if class.ResourceType == "madness" {
+			character.MadnessCastCount++
+		} else if class.ResourceType == "stability" {
+			character.CurrentStability -= req.SpellLevel
+			if character.CurrentStability < 0 {
+				character.CurrentStability = 0
+			}
+		} else if class.ResourceType == "blood_ichor" {
+			character.CurrentBloodIchor -= req.SpellLevel
+			if character.CurrentBloodIchor < 0 {
+				character.CurrentBloodIchor = 0
+			}
+		}
+
+		// Update character using tx
+		character.UpdatedAt = time.Now()
+		if err := tx.Save(character).Error; err != nil {
+			log.Error().Err(err).Msg("Failed to update character after casting")
+			respondError(w, http.StatusInternalServerError, "Failed to update character")
+			return
+		}
+
+		// Commit transaction
+		if err := tx.Commit().Error; err != nil {
+			log.Error().Err(err).Msg("Failed to commit transaction")
+			respondError(w, http.StatusInternalServerError, "Database commit failed")
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"current_spell_points": character.CurrentSpellPoints,
+			"madness_cast_count":   character.MadnessCastCount,
+			"current_stability":    character.CurrentStability,
+			"current_blood_ichor":  character.CurrentBloodIchor,
+		})
+	}
+}
+
+// consumeComponent handles manual consumption of a single component
+func (h *characterHandler) consumeComponent() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "characterID")
+		charID, err := uuid.Parse(idStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		compIDStr := chi.URLParam(r, "componentID")
+		compID, err := uuid.Parse(compIDStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid component ID")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(charID)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
+			return
+		}
+
+		// Verify user owns this character
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		if authUserID != character.UserID.String() {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		if err := h.characterRepo.UpdateComponentCount(charID, compID, -1); err != nil {
+			log.Error().Err(err).Msg("Failed to consume component")
+			respondError(w, http.StatusInternalServerError, "Failed to consume component")
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]string{"message": "Component consumed"})
 	}
 }

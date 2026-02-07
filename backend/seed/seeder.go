@@ -51,7 +51,7 @@ func (s *Seeder) ClearAllData() error {
 	log.Println("Clearing seeded child data...")
 
 	// Only clear child tables that don't have character references
-	// Parent tables (races, classes, components, weapons, archetypes) are updated in-place by seeds
+	// Order is CRITICAL: must delete children before parents for foreign keys.
 	tablesToClear := []string{
 		// Effect tables
 		"effects",
@@ -59,36 +59,36 @@ func (s *Seeder) ClearAllData() error {
 		// Weapon child tables
 		"weapon_damages",
 
-		// Class child tables (not the classes themselves - characters reference them)
-		"class_weapon_requirements",
-		"class_starting_equipment_options",
-		"class_starting_equipment_choices",
-		"class_components",
-		"level_features",
-		"class_levels",
-
-		// Race child tables (not the races themselves - characters reference them)
-		"race_components",
+		// Race child tables
 		"trait_options",
 		"traits",
+		"race_components",
 		"lineages",
+
+		// Class child tables
+		"level_features",
+		"archetypes",
+		"class_starting_equipment_options",
+		"class_starting_equipment_choices",
+		"class_weapon_requirements",
+		"class_components",
+		"class_levels",
 	}
 
 	for _, table := range tablesToClear {
 		// Use DELETE instead of TRUNCATE to avoid CASCADE issues
 		if err := s.db.Exec(fmt.Sprintf("DELETE FROM %s", table)).Error; err != nil {
-			log.Printf("  Note: Could not clear table %s (may not exist): %v", table, err)
-		} else {
-			log.Printf("  Cleared table: %s", table)
+			return fmt.Errorf("could not clear table %s: %w", table, err)
 		}
+		log.Printf("  Cleared table: %s", table)
 	}
 
 	// Also clear seed metadata to force full re-seed
 	if err := versioning.ClearSeedMetadata(s.db); err != nil {
-		log.Printf("  Note: Could not clear seed_metadata: %v", err)
+		return fmt.Errorf("could not clear seed_metadata: %w", err)
 	}
 
-	log.Println("Child data cleared")
+	log.Println("Child data cleared successfully")
 	return nil
 }
 

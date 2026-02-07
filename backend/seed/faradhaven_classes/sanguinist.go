@@ -13,10 +13,6 @@ func Sanguinist() FaradhavenClassSeed {
 		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/sanguinist.jpg",
 		Archetype:      "Healer / Predator / High-Stakes Controller",
 		Concept:        "A vampire-like being who must manage Blood Ichor to fuel both life-saving medical abilities and devastating supernatural attacks. Every encounter becomes a moral choice: heal your allies or siphon them for power.",
-		ClassFeatures: []string{
-			"The Thirst: You possess a pool of Blood Ichor points equal to your Level + Charisma Modifier. Expend these to use class features. Regain all Ichor after a Long Rest. As an action, you can Bite a creature that is Grappled, Incapacitated, or Restrained: deal 1d6 piercing damage and regain Ichor equal to your proficiency bonus.",
-			"The Moral Seesaw: The Healer (Preservation)—if you use Ichor to heal an ally, your next Killing ability costs 1 less Ichor (minimum 1). The Predator (Consumption)—you can Siphon a willing or unconscious ally: they take 1d10 necrotic damage (cannot be reduced), you gain maximum Ichor, you have advantage on all attack rolls for 1 minute, but the ally gains one level of Exhaustion.",
-		},
 		DnDSkillFocus:    []string{"Medicine", "Stealth"},
 		Proficiencies:    "Light armor, Simple weapons, Martial finesse weapons",
 		SkillChoice:      []string{"Deception", "Insight", "Persuasion", "Stealth"},
@@ -50,27 +46,45 @@ func Sanguinist() FaradhavenClassSeed {
 	}
 }
 
-func sanguinistLevelFeatures() map[int]string {
-	return map[int]string{
-		1:  "The Thirst, Moral Seesaw — You gain your Blood Ichor pool (Level + Cha modifier) and the core moral choice mechanic. You can Bite grappled/incapacitated/restrained creatures to regain Ichor, and choose between Preservation (heal to discount Killing abilities) or Consumption (Siphon allies for power and advantage).",
-		2:  "Blood Graft, Shadow Mist — Blood Graft: As an action, expend 2 Ichor to touch a creature. They regain 1d8 + your Charisma modifier hit points (die scales at higher levels). Shadow Mist: As an action, expend 2 Ichor to create a shadow cloud at a point within 30 feet. Creatures in a 10-foot radius must succeed on a Constitution save or take 2d6 necrotic damage and be Blinded until the end of their next turn.",
-		3:  "Blood Path — Choose your path at this level. Your choice determines whether you lean toward preservation or predation, granting you specialized abilities at levels 3 and 10.",
-		4:  "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Charisma cannot exceed 20.",
-		5:  "Extra Attack — You can attack twice, instead of once, whenever you take the Attack action on your turn.",
-		6:  "Coagulation — You can freeze the blood in a target's veins. Spend 3 Ichor to force a target to make a Strength save. On failure, they are Paralyzed for 1 minute. They can repeat the save at the end of each of their turns.",
-		7:  "Blood Graft Surge — Your Blood Graft die increases to 2d8 + Charisma modifier. When you use Blood Graft on an ally at or below half their hit point maximum, they gain temporary hit points equal to your Charisma modifier.",
-		8:  "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Charisma cannot exceed 20.",
-		9:  "Shadow Mist Expansion — Your Shadow Mist radius increases to 15 feet and deals 3d6 necrotic damage. Creatures that fail the save are also Restrained until the end of their next turn.",
-		11: "Ichor Reservoir — Your maximum Blood Ichor increases by your Charisma modifier (in addition to Level + Cha). Once per long rest, when you reduce a creature to 0 hit points with a Bite, you regain all spent Ichor.",
-		12: "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Charisma cannot exceed 20.",
-		13: "Blood Graft Mastery — Your Blood Graft die increases to 3d8 + Charisma modifier. You can expend 1 additional Ichor to remove one condition (poisoned, diseased, or one level of exhaustion) from the target when you heal them.",
-		14: "Coagulation Mastery — Coagulation now costs 2 Ichor. Creatures that fail the save have disadvantage on the first save they make at the end of their turn. You can target a second creature within 30 feet of the first by spending 2 extra Ichor.",
-		15: "Predator's Resolve — When you Siphon an ally, the advantage on attack rolls lasts for 10 minutes instead of 1. Your Bite damage increases to 2d6, and you regain Ichor equal to twice your proficiency bonus when you use it.",
-		16: "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Charisma cannot exceed 20.",
-		17: "Vital Drain — When you use Blood Graft to heal an ally, you can choose to also deal necrotic damage equal to the healing to one hostile creature within 30 feet of the target. Alternatively, when you deal necrotic damage with Shadow Mist or Coagulation, you regain 1 Ichor per creature that fails its save.",
-		18: "Ichor Overflow — At the start of each of your turns, if you have no Ichor remaining and have taken damage since your last turn, you regain 1 Ichor. Your Moral Seesaw benefits are enhanced: Preservation reduces the next Killing ability cost by 2 (minimum 1); Consumption no longer grants the ally Exhaustion when they are willing.",
-		19: "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Charisma cannot exceed 20.",
-		20: "Ekon Ascension — You have mastered the blood arts. You regain half your maximum Ichor (rounded up) when you roll initiative and have fewer than 3 remaining. Your Bite can target a creature within 5 feet without Grappling them if they are below half their hit point maximum. When you use your subclass's level 10 feature, you can maintain it for an additional minute by spending 3 Ichor as a bonus action.",
+func sanguinistLevelFeatures() map[int][]FeatureSeed {
+	return map[int][]FeatureSeed{
+		1: {
+			{Name: "Unarmored Defense", Description: "While you are not wearing armor, your AC equals 10 + your Dexterity modifier + your Charisma modifier. You cannot use a shield and gain this benefit."},
+			{Name: "The Thirst", Description: "You possess a pool of Blood Ichor points equal to your Level + Charisma Modifier. You regain all expended Ichor when you finish a Long Rest. Bite: As an action, you can make a melee spell attack against a creature within 5 feet. On a hit, the target takes 1d6 necrotic damage, and you regain Ichor equal to your Proficiency Bonus."},
+			{Name: "The Moral Seesaw", Description: "The Healer (Preservation): If you spend Ichor to heal a creature, the next time you deal damage with a Class Feature within 1 minute, that damage is increased by your Charisma modifier. The Predator (Consumption): As a bonus action, you can Siphon a willing or unconscious humanoid within 5 feet. They take 1d10 necrotic damage (which cannot be reduced), and you regain Ichor equal to half your Sanguinist Level + Charisma Modifier. A creature Siphoned this way cannot be Siphoned again until it finishes a Long Rest."},
+		},
+		2: {
+			{Name: "Sanguine Extraction", Description: "You learn to harvest magical essences from the blood of others. When you use your Bite feature on a hostile creature or Siphon a willing ally, you extract one unstable component (determined by the DM or the Faradhaven Component Table).\n\nCapacity: You can carry a number of unstable components equal to your Proficiency Bonus. If you extract a new one while at max capacity, you must drop one.\n\nActivation: You can use a Bonus Action to consume a component and trigger its effect.\n\nDecay: All unstable components are destroyed when you finish a Long Rest."},
+			{Name: "Blood Graft", Description: "As an action, you can expend 2 Ichor to touch a creature and knit their wounds. The creature regains hit points equal to 1d8 + your Charisma modifier."},
+			{Name: "Shadow Mist", Description: "Expend 2 Ichor to create a 10ft radius cloud. Each creature in the area must succeed on a Constitution save (DC 8 + Prof + Cha) or take 2d6 necrotic damage and be blinded until the start of your next turn. Success halves damage and avoids blindness."},
+		},
+		3: {{Name: "Archetype", Description: "At 3rd level, you choose a path that defines your relationship with your curse: The Path of the Doctor or The Path of the Beast."}},
+		4: {{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1. Charisma cannot exceed 20."}},
+		5: {{Name: "Extra Attack", Description: "You can attack twice when you take the Attack action on your turn."}},
+		6: {
+			{Name: "Renfield's Devotion", Description: "You can bind a humanoid to your service as a 'Renfield' (hype man). They grant advantage on Persuasion/Intimidation and can use their reaction to grant you advantage on one attack or saving throw per round."},
+			{Name: "Coagulation", Description: "Spend 3 Ichor to target a creature within 30 feet. The target must succeed on a Strength save (DC 8 + Prof + Cha) or be paralyzed for 1 minute. The target can repeat the save at the end of each of its turns."},
+		},
+		7: {
+			{Name: "Blood Graft Surge", Description: "Blood Graft die increases to 2d8 + Charisma. Healing an ally below half health grants temporary HP."},
+			{Name: "Enhanced Extraction", Description: "Your Sanguine Extraction yields more: 2 components from enemies (2 charges each) and 3 components from allies (2 charges each)."},
+		},
+		8:  {{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1."}},
+		9:  {{Name: "Shadow Mist Expansion", Description: "Radius increases to 15 feet, deals 3d6 necrotic damage, and restrains targets."}},
+		10: {{Name: "Eternal Covenant", Description: "Perform a 1-hour sacrifice on a downed creature to prevent their resurrection and gain a powerful blessing (+2 AC, +2 damage, or Save advantage) for 1d6 days."}},
+		11: {{Name: "Ichor Reservoir", Description: "Maximum Blood Ichor increases by Charisma. Reducing a creature to 0 HP with a Bite restores all Ichor (once per long rest)."}},
+		12: {{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1."}},
+		13: {{Name: "Blood Graft Mastery", Description: "Blood Graft die increases to 3d8. You can expend 1 extra Ichor to remove a condition (poisoned, diseased, or exhaustion)."}},
+		14: {{Name: "Coagulation Mastery", Description: "Coagulation costs 2 Ichor and targets have disadvantage on the first save to end it."}},
+		15: {
+			{Name: "Predator's Resolve", Description: "Siphon advantage lasts 10 minutes. Bite damage increases to 2d6, and you regain double proficiency in Ichor."},
+			{Name: "Master Extraction", Description: "Your Sanguine Extraction is perfected: 3 components from enemies (3 charges) and 5 components from allies (especially your Renfield) with 3 charges each."},
+		},
+		16: {{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1."}},
+		17: {{Name: "Vital Drain", Description: "When you heal an ally with Blood Graft, you can deal necrotic damage equal to half the amount healed to an enemy within 30 feet. Alternatively, dealing necrotic damage with class features restores 1 Ichor for every 10 damage dealt (minimum 1)."}},
+		18: {{Name: "Ichor Overflow", Description: "Regain 1 Ichor at the start of your turn if you have none and took damage. Moral Seesaw benefits are enhanced: Preservation discount is 2; Consumption doesn't exhaust willing allies."}},
+		19: {{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1."}},
+		20: {{Name: "Ekon Ascension", Description: "Regain half max Ichor when rolling initiative if low. Bite can be used as a bonus action against targets below half health."}},
 	}
 }
 
@@ -103,18 +117,18 @@ func sanguinistArchetypes() []ArchetypeSeed {
 	return []ArchetypeSeed{
 		{
 			Name:        "Path of the Doctor",
-			Description: "You embrace the role of healer and protector. Your blood magic mends wounds and shields allies, though the temptation to consume remains ever-present.",
-			Features: map[int]string{
-				3:  "Medical Prodigy — You gain proficiency in Medicine if you don't already have it. When you use Blood Graft to heal an ally, they also gain temporary hit points equal to your Charisma modifier.",
-				10: "Transfusion — When you take damage, you can use your reaction to spend 1 Ichor and grant an ally within 30 feet healing equal to half the damage you took. This healing cannot exceed your maximum Ichor pool.",
+			Description: "You embrace the role of healer and protector. Your blood magic mends wounds and shields allies, though the weight of preservation takes a physical toll.",
+			Features: map[int][]FeatureSeed{
+				3:  {{Name: "Medical Prodigy & Fragile Vessel", Description: "Pro: Gain proficiency in Medicine and Insight. Blood Graft heals nearby allies for half. Con: Disadvantage on Strength checks/saves and max HP reduced by 1 per level."}},
+				14: {{Name: "Transfusion & Empathic Shield", Description: "Pro: Bonus to Passive Perception/Insight. When you take damage, you can use a reaction to spend 1 Ichor and heal an ally for half that damage."}},
 			},
 		},
 		{
 			Name:        "Path of the Beast",
 			Description: "You give in to the predator within. Your vampiric powers grow stronger through consumption, transforming you into a terrifying avatar of shadow and hunger.",
-			Features: map[int]string{
-				3:  "Blood Rage — When you Siphon an ally, your weapon attacks deal an extra 1d8 necrotic damage for the duration of the advantage buff. This damage increases to 2d8 at level 11.",
-				10: "Abyss — As an action, spend 6 Ichor to transform into a shadow avatar for 1 minute. You gain resistance to all damage except radiant and can move through spaces as small as 1 inch without squeezing.",
+			Features: map[int][]FeatureSeed{
+				3:  {{Name: "Blood Rage & The Red Mist", Description: "Pro: Darkvision (60ft) and +2 Perception (super hearing and eyesight). Kills grant 'Primal Hunter' stacks (+2 necrotic damage). Con: At 3 stacks, must save vs Wisdom or enter a frenzy attacking nearest creature."}},
+				14: {{Name: "Abyss & Unquenchable Thirst", Description: "Pro: Transformation into a shadow avatar. Con: Must save vs Charisma in social scenes with wounded NPCs or be forced to Bite."}},
 			},
 		},
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_classes"
 	"github.com/rs/zerolog/log"
 )
 
@@ -206,6 +207,7 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 			Lineage:                  lineage,
 			InventoryWeapons:         inventoryWeapons,
 			InventoryItems:           character.Items,
+			Components:               character.Components,
 
 			// --- Class-Specific Resources ---
 			ResourceType:      class.ResourceType,
@@ -226,6 +228,11 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 			MaxSpellLevel:     classLevel.MaxSpellLevel,
 			BiteDamageDice:    classLevel.BiteDamageDice,
 		}
+
+		if class.Name == "The Lorewright" {
+			sheet.MadnessTable = faradhaven_classes.LorewrightMadnessTable()
+		}
+
 		respondJSON(w, http.StatusOK, sheet)
 	}
 }

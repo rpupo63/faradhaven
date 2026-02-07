@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_classes"
 	"github.com/rs/zerolog/log"
 )
 
@@ -76,6 +77,11 @@ func (h *characterHandler) getClassByID() http.HandlerFunc {
 			Class:  class,
 			Levels: class.Levels,
 		}
+
+		if class.Name == "The Lorewright" {
+			resp.MadnessTable = faradhaven_classes.LorewrightMadnessTable()
+		}
+
 		respondJSON(w, http.StatusOK, resp)
 	}
 }

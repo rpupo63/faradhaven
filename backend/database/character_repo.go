@@ -17,6 +17,7 @@ type CharacterRepository interface {
 	Update(character *models.Character) error
 	Delete(id uuid.UUID) error
 	ReplaceSkillProficiencies(characterID uuid.UUID, skillIDs []string) error
+	UpdateComponentCount(characterID uuid.UUID, componentID uuid.UUID, delta int) error
 	GetDB() *gorm.DB
 }
 
@@ -35,14 +36,14 @@ func (r *CharacterRepo) GetDB() *gorm.DB {
 // FindAll returns all characters
 func (r *CharacterRepo) FindAll() ([]*models.Character, error) {
 	var characters []*models.Character
-	err := r.db.Preload("Race").Preload("Class").Preload("Archetype").Find(&characters).Error
+	err := r.db.Preload("Race").Preload("Class").Preload("Archetype").Preload("Components.Component").Find(&characters).Error
 	return characters, err
 }
 
 // FindByID returns a character by ID
 func (r *CharacterRepo) FindByID(id uuid.UUID) (*models.Character, error) {
 	var character models.Character
-	err := r.db.Preload("Race").Preload("Class").Preload("Archetype").First(&character, "id = ?", id).Error
+	err := r.db.Preload("Race").Preload("Class").Preload("Archetype").Preload("Components.Component").First(&character, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +54,7 @@ func (r *CharacterRepo) FindByID(id uuid.UUID) (*models.Character, error) {
 // SkillProficiencyIDs populated, and Race.Traits.Options preloaded (for character sheet racial traits)
 func (r *CharacterRepo) FindByIDWithSkills(id uuid.UUID) (*models.Character, error) {
 	var character models.Character
-	if err := r.db.Preload("Race").Preload("Class").Preload("Archetype").Preload("Race.Traits.Options").First(&character, "id = ?", id).Error; err != nil {
+	if err := r.db.Preload("Race").Preload("Class").Preload("Archetype").Preload("Race.Traits.Options").Preload("Components.Component").First(&character, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	var skills []models.CharacterSkill
@@ -71,7 +72,7 @@ func (r *CharacterRepo) FindByIDWithSkills(id uuid.UUID) (*models.Character, err
 // FindByUserID returns all characters for a user
 func (r *CharacterRepo) FindByUserID(userID uuid.UUID) ([]*models.Character, error) {
 	var characters []*models.Character
-	err := r.db.Preload("Race").Preload("Class").Preload("Archetype").Where("user_id = ?", userID).Find(&characters).Error
+	err := r.db.Preload("Race").Preload("Class").Preload("Archetype").Preload("Components.Component").Where("user_id = ?", userID).Find(&characters).Error
 	return characters, err
 }
 
@@ -96,21 +97,53 @@ func (r *CharacterRepo) Delete(id uuid.UUID) error {
 
 // ReplaceSkillProficiencies replaces all skill proficiencies for a character
 func (r *CharacterRepo) ReplaceSkillProficiencies(characterID uuid.UUID, skillIDs []string) error {
-	if err := r.db.Where("character_id = ?", characterID).Delete(&models.CharacterSkill{}).Error; err != nil {
-		return err
-	}
-	for _, skillID := range skillIDs {
-		if skillID == "" {
-			continue
-		}
-		cs := &models.CharacterSkill{
-			CharacterID: characterID,
-			SkillID:     skillID,
-			Proficient:  true,
-		}
-		if err := r.db.Create(cs).Error; err != nil {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// Delete existing proficiencies
+		if err := tx.Where("character_id = ?", characterID).Delete(&models.CharacterSkill{}).Error; err != nil {
 			return err
 		}
-	}
-	return nil
+
+		// Insert new proficiencies
+		for _, skillID := range skillIDs {
+			cs := models.CharacterSkill{
+				CharacterID: characterID,
+				SkillID:     skillID,
+				Proficient:  true,
+			}
+			if err := tx.Create(&cs).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// UpdateComponentCount updates the count of a specific component for a character
+func (r *CharacterRepo) UpdateComponentCount(characterID uuid.UUID, componentID uuid.UUID, delta int) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var charComp models.CharacterComponent
+		err := tx.Where("character_id = ? AND component_id = ?", characterID, componentID).First(&charComp).Error
+		
+		if err == gorm.ErrRecordNotFound {
+			if delta <= 0 {
+				return nil // Nothing to deduct
+			}
+			// Create new record if adding
+			charComp = models.CharacterComponent{
+				CharacterID: characterID,
+				ComponentID: componentID,
+				Count:       delta,
+			}
+			return tx.Create(&charComp).Error
+		} else if err != nil {
+			return err
+		}
+
+		charComp.Count += delta
+		if charComp.Count < 0 {
+			charComp.Count = 0
+		}
+		
+		return tx.Save(&charComp).Error
+	})
 }

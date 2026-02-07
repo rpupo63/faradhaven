@@ -50,10 +50,9 @@ Choose based on the description content (species/ancestry vs profession/archetyp
 | Primary Ability | Main stat                  | "intelligence"                 |
 | Archetype       | Role label                 | "Full Caster / Evoker"         |
 | Concept         | 1–2 sentence pitch         | "A scholar who opens rifts..." |
-| Class Features  | Level 1 abilities          | Bulleted list                  |
 | Proficiencies   | Weapons, armor, saves      | From tables                    |
 | Skill choices   | "Choose X from"            | Array of options               |
-| Level features  | Level-by-level progression | Map level → feature text       |
+| Level features  | Level-by-level progression | Map level → []string           |
 
 ---
 
@@ -88,11 +87,10 @@ If "choose one of:"      →  TraitOptionSeed per option
 ```
 Description block        →  FaradhavenClassSeed
   - Name, hit die, etc.  →  Top-level fields
-  - Level 1 features     →  ClassFeatures (array)
   - Proficiencies        →  Proficiencies, Tools, SavingThrows
   - Skills               →  SkillChoice, DnDSkillFocus
 
-Level N feature text     →  LevelFeatures[N]
+Level N feature text     →  LevelFeatures[N] (slice of strings)
   - "Name — Description" →  parseFeature format
   - ASI at 4,8,12,16,19  →  "Ability Score Improvement — ..."
 ```
@@ -139,7 +137,6 @@ func ClassName() FaradhavenClassSeed {
         PrimaryAbility: "intelligence",
         Archetype:      "...",
         Concept:        "...",
-        ClassFeatures:  []string{"Feature 1", "Feature 2"},
         DnDSkillFocus:  []string{"Arcana", "Nature"},
         Proficiencies:  "...",
         SkillChoice:    []string{...},
@@ -150,10 +147,10 @@ func ClassName() FaradhavenClassSeed {
     }
 }
 
-func classNameLevelFeatures() map[int]string {
-    return map[int]string{
-        1:  "Feature Name — Description.",
-        4:  "Ability Score Improvement — ...",
+func classNameLevelFeatures() map[int][]string {
+    return map[int][]string{
+        1:  {"Feature Name — Description."},
+        4:  {"Ability Score Improvement — ..."},
         // 2–20 as needed
     }
 }

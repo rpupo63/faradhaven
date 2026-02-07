@@ -52,6 +52,14 @@ type Character struct {
 
 	// Character backstory (rich text stored as HTML)
 	Backstory string `json:"backstory" gorm:"type:text"`
+	// Hex color for the backstory text
+	BackstoryHexColor string `json:"backstory_hex_color" gorm:"type:text;default:'#000000'"`
+
+	// Character profile picture URL
+	ImageURL string `json:"image_url" gorm:"type:text"`
+
+	// Character notes (miscellaneous notes for the player)
+	Notes string `json:"notes" gorm:"type:text"`
 
 	// Inventory (Text Array) - Stores names of automatic/legacy items
 	Inventory pq.StringArray `json:"inventory" gorm:"type:text[]"`
@@ -67,6 +75,7 @@ type Character struct {
 	Class              Class            `json:"class" gorm:"foreignKey:ClassID;references:ID"`
 	Archetype          *Archetype       `json:"archetype,omitempty" gorm:"foreignKey:ArchetypeID;references:ID"`
 	SkillProficiencies []CharacterSkill `json:"-" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
+	Components         []CharacterComponent `json:"components,omitempty" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
 
 	// Inventory Relationships
 	CharacterWeapons []CharacterWeapon `json:"character_weapons,omitempty" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`

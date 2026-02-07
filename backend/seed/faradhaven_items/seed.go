@@ -1,6 +1,7 @@
 package faradhaven_items
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/lib/pq"
@@ -53,7 +54,7 @@ func SeedFaradhavenItems(tx *gorm.DB) error {
 
 	// Step 2: Clear weapon_damages table (will be replaced entirely)
 	if err := tx.Exec("DELETE FROM weapon_damages").Error; err != nil {
-		log.Printf("  Note: Could not clear weapon_damages: %v", err)
+		return fmt.Errorf("could not clear weapon_damages: %w", err)
 	}
 
 	// Step 3: Batch upsert weapons (ON CONFLICT DO UPDATE)

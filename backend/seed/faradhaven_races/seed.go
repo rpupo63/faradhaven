@@ -141,13 +141,13 @@ func SeedFaradhavenRaces(tx *gorm.DB) error {
 	// Step 2: Clear child tables (will be fully replaced)
 	// Order matters: delete children before parents due to foreign keys
 	if err := tx.Exec("DELETE FROM trait_options").Error; err != nil {
-		log.Printf("  Note: Could not clear trait_options: %v", err)
+		return err
 	}
 	if err := tx.Exec("DELETE FROM traits").Error; err != nil {
-		log.Printf("  Note: Could not clear traits: %v", err)
+		return err
 	}
 	if err := tx.Exec("DELETE FROM race_components").Error; err != nil {
-		log.Printf("  Note: Could not clear race_components: %v", err)
+		return err
 	}
 
 	// Step 3: Batch upsert races (ON CONFLICT DO UPDATE)

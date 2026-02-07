@@ -9,21 +9,16 @@ func Lorewright() FaradhavenClassSeed {
 	return FaradhavenClassSeed{
 		Name:           "The Lorewright",
 		Description:    "Consume the flesh of your prey to absorb their memories and abilities. Balance the power you gain against the fracturing of your mind as you become the sum of all you have eaten.",
-		HitDie:         8,
+		HitDie:         10,
 		PrimaryAbility: "wisdom",
 		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/lorewright.jpg",
 		Archetype:      "Knowledge / Survival / Transformation",
 		Concept:        "A hunter-scholar who has learned that true understanding comes through consumption. You eat the livers of your prey to absorb their memories, skills, and eventually their physical traits. Max WIS and CON—your mind must be strong enough to hold the souls of beasts, and your body must process what you consume. Every meal is a gamble between power and madness.",
-		ClassFeatures: []string{
-			"Anatomical Insight: As a bonus action, make an Insight or Animal Handling check contested by a creature's Deception (intelligent) or Constitution (beast/monstrosity). On success, learn its Damage Immunities, Resistances, or Vulnerabilities, plus its HP relative to yours (Higher, Lower, or Equal).",
-			"Visceral Psychometry: Consume the liver of a freshly killed creature (died within 1 hour) over 1 minute to absorb its memories from the last 24 hours with perfect clarity. At Level 7+, access deep memories and ancestral instincts.",
-			"The Fracture: When using Visceral Psychometry, make a Wisdom Save (DC = 10 + half creature's CR, minimum 10). On failure, gain 1 Trauma. 1 Trauma: Disadvantage on Charisma checks. 2 Trauma: Gain a temporary flaw from Indefinite Madness table. 3 Trauma: Confusion spell for 1 minute when entering combat. Remove 1 Trauma per Long Rest in a safe sanctuary.",
-		},
 		DnDSkillFocus:    []string{"Insight", "Survival"},
 		Proficiencies:    "Simple weapons, Martial weapons, Light armor, Medium armor, Shields",
 		SkillChoice:      []string{"History", "Insight", "Medicine", "Nature", "Survival", "Animal Handling", "Perception"},
 		Tools:            []string{"Herbalism Kit", "Cook's Utensils"},
-		SavingThrows:     []string{"Wisdom", "Constitution"},
+		SavingThrows:     []string{"Wisdom", "Intelligence"},
 		AutomaticEquipNames: []string{"Preservation kit (salt, jars)", "Traveler's clothes", "Bone talisman"},
 		AutomaticItemNames:  []string{"Leather armor", "Explorer's pack"},
 		EquipmentChoices: []EquipmentChoiceSeed{
@@ -57,26 +52,25 @@ func lorewrightArchetypes() []ArchetypeSeed {
 		{
 			Name:        "Path of the Warlord",
 			Description: "You channel the combat memories of fallen warriors, gaining martial prowess and the ability to strike with the fury of a hundred battles.",
-			Features: map[int]string{
-				3:  "Martial Legacy — You gain proficiency with heavy armor and one martial weapon of your choice. The echoes of warriors past guide your hands in combat.",
-				10: "Predator's Strike — When you hit a creature type you have consumed, add your Wisdom modifier to damage. The memories of hunting that prey grant deadly precision.",
-				14: "Battle Trance — When you enter combat, you can activate one Echo as a free action to gain its benefits immediately. Additionally, you can use Cycle of Rebirth twice per Long Rest.",
+			Features: map[int][]FeatureSeed{
+				3:  {{Name: "Martial Legacy", Description: "You gain proficiency with heavy armor and one martial weapon of your choice. The echoes of warriors past guide your hands in combat."}},
+				10: {{Name: "Predator's Strike", Description: "When you hit a creature type you have consumed, add your Wisdom modifier to damage. The memories of hunting that prey grant deadly precision."}},
+				14: {{Name: "Battle Trance", Description: "When you enter combat, you can activate one Echo as a free action to gain its benefits immediately. Additionally, you can use Cycle of Rebirth twice per Long Rest."}},
 			},
 		},
 		{
 			Name:        "Path of the Sage",
 			Description: "You absorb the knowledge and magical insights of your prey, becoming a repository of arcane secrets and ancestral wisdom.",
-			Features: map[int]string{
-				3:  "Scholar's Legacy — You gain expertise in History or Arcana (double your proficiency bonus), plus two additional languages of your choice. The minds you consume expand your understanding.",
-				10: "Deep Insight — When you consume a creature, you can ask two questions instead of one with Phylogenetic Recall. Additionally, you learn one spell the creature could cast (if any) which you can cast once before your next Long Rest using Wisdom.",
-				14: "Shared Consciousness — You can maintain two Collective Consciousness transfers simultaneously. When you transfer an Echo, you retain partial benefit (half the bonus or limited version of the trait).",
+			Features: map[int][]FeatureSeed{
+				3:  {{Name: "Scholar's Legacy", Description: "You gain expertise in History or Arcana (double your proficiency bonus), plus two additional languages of your choice. The minds you consume expand your understanding."}},
+				10: {{Name: "Deep Insight", Description: "When you consume a creature, you can ask two questions instead of one with Phylogenetic Recall. Additionally, you learn one spell the creature could cast (if any) which you can cast once before your next Long Rest using Wisdom."}},
+				14: {{Name: "Shared Consciousness", Description: "You can maintain two Collective Consciousness transfers simultaneously. When you transfer an Echo, you retain partial benefit (half the bonus or limited version of the trait)."}},
 			},
 		},
 	}
 }
 
 func lorewrightLevelProgression() map[int]ClassLevelSeed {
-	// Lorewright gets Extra Attack at level 5
 	// BardicInspiration represents Madness Die scaling (d4 -> d6 -> d8 -> d10 -> d12 -> d20)
 	// EchoSlots scale: 0 at 1, 1 at 2, 2 at 5, 3 at 9, 4 at 13, 5 at 17
 	return map[int]ClassLevelSeed{
@@ -84,84 +78,154 @@ func lorewrightLevelProgression() map[int]ClassLevelSeed {
 		2:  {EchoSlots: 1, BardicInspiration: 4},                       // 1 Echo Slot
 		3:  {EchoSlots: 1, BardicInspiration: 4},
 		4:  {EchoSlots: 1, BardicInspiration: 4},
-		5:  {EchoSlots: 2, ExtraAttackCount: 1, BardicInspiration: 6},  // Extra Attack, Madness Die: d6, 2 Echo Slots
-		6:  {EchoSlots: 2, ExtraAttackCount: 1, BardicInspiration: 6},
-		7:  {EchoSlots: 2, ExtraAttackCount: 1, BardicInspiration: 6},
-		8:  {EchoSlots: 2, ExtraAttackCount: 1, BardicInspiration: 6},
-		9:  {EchoSlots: 3, ExtraAttackCount: 1, BardicInspiration: 8},  // Madness Die: d8, 3 Echo Slots
-		10: {EchoSlots: 3, ExtraAttackCount: 1, BardicInspiration: 8},
-		11: {EchoSlots: 3, ExtraAttackCount: 1, BardicInspiration: 8},
-		12: {EchoSlots: 3, ExtraAttackCount: 1, BardicInspiration: 8},
-		13: {EchoSlots: 4, ExtraAttackCount: 1, BardicInspiration: 10}, // Madness Die: d10, 4 Echo Slots
-		14: {EchoSlots: 4, ExtraAttackCount: 1, BardicInspiration: 10},
-		15: {EchoSlots: 4, ExtraAttackCount: 1, BardicInspiration: 10},
-		16: {EchoSlots: 4, ExtraAttackCount: 1, BardicInspiration: 10},
-		17: {EchoSlots: 5, ExtraAttackCount: 1, BardicInspiration: 12}, // Madness Die: d12, 5 Echo Slots
-		18: {EchoSlots: 5, ExtraAttackCount: 1, BardicInspiration: 12},
-		19: {EchoSlots: 5, ExtraAttackCount: 1, BardicInspiration: 12},
-		20: {EchoSlots: 5, ExtraAttackCount: 1, BardicInspiration: 20}, // Madness Die: d20, 5 Echo Slots (doubled capacity)
+		5:  {EchoSlots: 2, BardicInspiration: 6},                       // Madness Die: d6, 2 Echo Slots
+		6:  {EchoSlots: 2, BardicInspiration: 6},
+		7:  {EchoSlots: 2, BardicInspiration: 6},
+		8:  {EchoSlots: 2, BardicInspiration: 6},
+		9:  {EchoSlots: 3, BardicInspiration: 8},                       // Madness Die: d8, 3 Echo Slots
+		10: {EchoSlots: 3, BardicInspiration: 8},
+		11: {EchoSlots: 3, BardicInspiration: 8},
+		12: {EchoSlots: 3, BardicInspiration: 8},
+		13: {EchoSlots: 4, BardicInspiration: 10},                      // Madness Die: d10, 4 Echo Slots
+		14: {EchoSlots: 4, BardicInspiration: 10},
+		15: {EchoSlots: 4, BardicInspiration: 10},
+		16: {EchoSlots: 4, BardicInspiration: 10},
+		17: {EchoSlots: 5, BardicInspiration: 12},                      // Madness Die: d12, 5 Echo Slots
+		18: {EchoSlots: 5, BardicInspiration: 12},
+		19: {EchoSlots: 5, BardicInspiration: 12},
+		20: {EchoSlots: 5, BardicInspiration: 20},                      // Madness Die: d20, 5 Echo Slots (doubled capacity)
 	}
 }
 
-func lorewrightLevelFeatures() map[int]string {
-	return map[int]string{
-		// Level 1: Core features established in ClassFeatures
+func lorewrightLevelFeatures() map[int][]FeatureSeed {
+	return map[int][]FeatureSeed{
+		// Level 1: Core features
 		// Echo Slots: 0, Madness Die: d4
-		1: "Anatomical Insight, Visceral Psychometry, The Fracture — You gain all core class features. Your Madness Die is d4. You have no Echo Slots yet. High-risk phase: stick to small game (rats, wolves) to avoid madness while learning your craft.",
+		1: {
+			{Name: "Visceral Psychometry", Description: "Consume the liver of a freshly killed creature (died within 1 hour) over 1 minute to absorb its memories. This is your primary method of learning: you gain access to the creature's recent experiences and knowledge."},
+			{Name: "The Fracture", Description: "When using Visceral Psychometry, make a Wisdom Save against a DC determined by the creature's power (DC 10 for CR 0-4, DC 15 for CR 5-10, DC 20 for CR 11+). On failure, gain 1 Trauma. 1 Trauma: Disadvantage on Charisma checks. 2 Trauma: Gain a temporary flaw. 3 Trauma: Confusion. Remove 1 Trauma per Long Rest."},
+			{Name: "Component Scavenging", Description: "You can harvest Components from the bodies of magical creatures. By spending 10 minutes harvesting specific organs, you can extract the creature's essence as a usable Component (e.g., 'Ignis' from a Fire Elemental, 'Flight' from a Roc). You can add these collected components to your repertoire to be used with your abilities or slotted into Echoes."},
+			{Name: "Madness Die: d4", Description: "You have no Echo Slots yet. High-risk phase: stick to small game to avoid madness while learning your craft."},
+		},
 
 		// Level 2: Echo Slots: 1, Madness Die: d4
-		2: "Somatic Echoes (Skills), Cycle of Rebirth — You gain 1 Echo Slot. When you consume a liver, you can store one Skill Proficiency, Tool Proficiency, or Language the creature possessed. You gain that proficiency while it occupies the slot. Replacing an Echo requires consuming a new liver. Additionally, once per Long Rest, when you fail an Attack Roll, Ability Check, or Saving Throw, roll your Madness Die (d4) and add it to the total—a past life momentarily takes over to correct your mistake.",
+		2: {{Name: "Somatic Echoes", Description: "You gain 1 Echo Slot. You can fill this slot with a Skill, Tool Proficiency, Language, or Component you have scavenged. To add a component or trait, simply declare you are slotting it after a harvest. Replacing an Echo requires consuming a new source."}},
 
-		// Level 3: Archetype choice level - shared feature text (archetype-specific features come from Archetypes)
-		3: "Past Life Archetype — Choose your archetype at this level. Your choice determines the nature of the memories you absorb most deeply, granting you specialized abilities at levels 3, 10, and 14.",
+		// Level 3
+		3: {{Name: "Past Life Archetype", Description: "Choose your archetype at this level."}},
 
-		// Level 4: Echo Slots: 1, Madness Die: d4
-		4: "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Wisdom and Constitution are recommended.",
+		// Level 4
+		4: {{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1. Wisdom and Constitution are recommended."}},
 
 		// Level 5: Echo Slots: 2, Madness Die: d6
-		5: "Extra Attack, Stabilized Mind — You can attack twice when you take the Attack action. Your Madness Die increases to d6, and you gain 2 Echo Slots. Your mind adapts to foreign memories: you gain proficiency in Wisdom Saving Throws (if already proficient, gain Charisma Save proficiency instead). The DC for The Fracture is reduced by your Proficiency Bonus. This is the stabilization point—you can now safely consume creatures of CR 5-8.",
+		5: {{Name: "Expanded Mind", Description: "Your Madness Die increases to d6, and you gain 2 Echo Slots. Your capacity to hold foreign memories expands."}},
 
-		// Level 6: Echo Slots: 2, Madness Die: d6
-		6: "Ancestral Guidance — Once per Short Rest, you can enter a trance for 1 minute to commune with the echoes within you. Ask one question about a creature type you have consumed; the DM provides truthful information about their habits, weaknesses, or typical lairs. Additionally, you have advantage on Survival checks to track creature types you have consumed.",
-
-		// Level 7: Echo Slots: 2, Madness Die: d6
-		7: "Phylogenetic Recall (Deep Memory) — Your Visceral Psychometry evolves. When you consume, you access the creature's entire lineage. You can ask the DM one question about the creature's pack location, lair layout, or the nature of the entity that created/spawned it. If you eat a Wolf, you don't just see the forest—you feel the path of the Alpha ancestor.",
-
-		// Level 8: Echo Slots: 2, Madness Die: d6
-		8: "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Wisdom and Constitution are recommended.",
+		// Level 8
+		8: {{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1."}},
 
 		// Level 9: Echo Slots: 3, Madness Die: d8
-		9: "Iron Stomach, Somatic Echoes (Physical Traits) — Your Madness Die increases to d8, and you gain 3 Echo Slots. You can digest any organic matter without ill effect and are immune to ingested poisons. You can now fill an Echo Slot with a physical trait from a consumed creature: Darkvision (60ft), Amphibious (breathe air and water), Climbing/Swimming Speed (equal to walking speed), or Keen Senses (advantage on Perception checks using smell/hearing).",
+		9: {{Name: "Deep Storage", Description: "Your Madness Die increases to d8, and you gain 3 Echo Slots."}},
 
-		// Level 10: Archetype feature level - no shared feature (archetype-specific only)
-
-		// Level 11: Echo Slots: 3, Madness Die: d8
-		11: "Assimilated Resistance — You can spend an Echo Slot to gain Resistance to one damage type (Acid, Cold, Fire, Lightning, or Poison) possessed by a creature you consumed. This lasts until you finish a Long Rest or replace the Echo. Your body adapts to the threats your prey faced.",
-
-		// Level 12: Echo Slots: 3, Madness Die: d8
-		12: "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Wisdom and Constitution are recommended.",
+		// Level 12
+		12: {{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1."}},
 
 		// Level 13: Echo Slots: 4, Madness Die: d10
-		13: "Collective Consciousness — Your Madness Die increases to d10, and you gain 4 Echo Slots. As an action, touch a willing creature to transfer one of your Somatic Echoes to them for 1 hour. You lose access to the Echo for the duration; the ally gains the benefit. You can share your borrowed skills with those who fight beside you.",
+		13: {{Name: "Resilient Psyche", Description: "Your Madness Die increases to d10, and you gain 4 Echo Slots."}},
 
-		// Level 14: Archetype feature level - no shared feature (archetype-specific only)
-
-		// Level 15: Echo Slots: 4, Madness Die: d10
-		15: "Cognitive Bastion — You have mastered the noise in your head. You are immune to the Charmed and Frightened conditions. Your Trauma threshold increases: you do not suffer the debilitating effects of 3 Trauma until you reach 5 Trauma. The voices within are now allies, not threats.",
-
-		// Level 16: Echo Slots: 4, Madness Die: d10
-		16: "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Wisdom and Constitution are recommended.",
+		// Level 16
+		16: {{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1."}},
 
 		// Level 17: Echo Slots: 5, Madness Die: d12
-		17: "Apex Predator's Soul — Your Madness Die increases to d12, and you gain 5 Echo Slots. As a bonus action, enter a heightened state for 1 minute. During this time, you can use any Action or Bonus Action available to a creature currently stored in your Echo Slots (e.g., a wolf's Pack Tactics or Bite attack logic, a spider's Web, etc.). Once used, you cannot use this feature again until you finish a Long Rest.",
+		17: {{Name: "Apex Predator's Soul", Description: "Your Madness Die increases to d12, and you gain 5 Echo Slots. As a bonus action, enter a heightened state for 1 minute. You can use any Action available to a creature stored in your Echo Slots. If an action deals damage, use your Wisdom modifier for the attack and damage rolls. If an action has a Recharge, you can use it once per transformation. Once used, you cannot use this feature again until you finish a Long Rest."}},
 
-		// Level 18: Echo Slots: 5, Madness Die: d12
-		18: "Timeless Body — Your body no longer ages, and you cannot be aged magically. You no longer need food or water (though you can still consume to use your abilities). You have advantage on Death Saving Throws as past lives pull you back from the brink. The countless souls within sustain your mortal form.",
+		// Level 19
+		19: {{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1."}},
 
-		// Level 19: Echo Slots: 5, Madness Die: d12
-		19: "Ability Score Improvement — Increase one ability score by 2, or two ability scores by 1. Wisdom and Constitution are recommended.",
-
-		// Level 20: Echo Slots: 5, Madness Die: d20
-		20: "The Omega Point — Your Madness Die becomes d20. You are the sum of all your lives and all your meals. You automatically succeed on the Saving Throw for The Fracture—madness can no longer touch you. Furthermore, you can hold two Echoes in a single slot, effectively doubling your capacity for borrowed skills and traits (10 total Echoes in 5 slots). When you die, you can choose to be reborn in a new body at a location of your choice within 1 mile, retaining all memories and Echoes. This rebirth takes 1d10 days.",
+		// Level 20
+		20: {{Name: "The Omega Point", Description: "Your Madness Die becomes d20. You automatically succeed on the Saving Throw for The Fracture. You can hold two Echoes in a single slot, doubling your capacity."}},
 	}
+}
+
+// LorewrightMadnessTable returns the 50 steampunk-related madness effects.
+func LorewrightMadnessTable() map[int]string {
+	return map[int]string{
+		1:  "Your skin hardens into brass plates for 1 minute (+2 AC), but your speed is halved.",
+		2:  "Steam vents open on your shoulders, creating a 10ft radius fog cloud centered on you for 1d4 rounds.",
+		3:  "You speak only in ticker-tape code (clicks and whirs) for 1 minute.",
+		4:  "Your eyes turn into camera lenses; you gain Darkvision 60ft but lose color vision for 1 hour.",
+		5:  "Gravity reverses for you personally for 1 round.",
+		6:  "You cough up a small, functional gear every time you speak for 1 hour.",
+		7:  "Your blood turns into hot oil; take 1d4 fire damage but become immune to poison for 1 hour.",
+		8:  "A spectral train whistle blows loudly from your location, audible out to 300ft.",
+		9:  "You become magnetic; metal objects within 5ft are pulled towards you for 1 minute.",
+		10: "Your hair turns into copper wires for 24 hours.",
+		11: "You hear the constant ticking of a giant clock. Disadvantage on Perception checks for 10 minutes.",
+		12: "One of your arms temporarily turns into a piston; Unarmed strikes deal 1d6 bludgeoning but you drop held items.",
+		13: "You emit bright light in a 20ft radius (filament glow) for 10 minutes.",
+		14: "Time slows down for you; you are under the effect of the Slow spell for 1 minute.",
+		15: "Time speeds up; you are under the effect of the Haste spell for 1 round, then lethargic for 1 round.",
+		16: "You grow a vestigial mechanical limb that flails uselessly for 1 hour.",
+		17: "Your voice amplifies like a phonograph (3x volume) for 10 minutes.",
+		18: "You calculate probabilities aloud constantly. Disadvantage on Stealth checks for 1 hour.",
+		19: "Your reflection in mirrors shows you as a clockwork automaton.",
+		20: "Small lightning arcs between your fingers. Unarmed strikes deal +1 lightning damage, but you take 1 lightning damage per hit.",
+		21: "You believe you are a construct and don't need to breathe (you do). Lasts 1 hour.",
+		22: "Smoke belches from your mouth when you open it for 10 minutes.",
+		23: "Your footsteps sound like heavy metal clanking for 1 hour.",
+		24: "You perceive living creatures as skeletal structures with glowing hearts for 10 minutes.",
+		25: "You gain a craving for coal or oil for 24 hours.",
+		26: "Your shadow detaches and acts out your subconscious desires for 1 hour.",
+		27: "A random non-magical item you touch turns to rusted scrap.",
+		28: "You teleport 20ft in a random direction with a bamf of steam.",
+		29: "Illusory cogs float around your head for 1 minute.",
+		30: "You lose the ability to lie; you state facts like a computer for 1 hour.",
+		31: "Your internal temperature rises; you are hot to the touch. Ice melts in your hand.",
+		32: "You function as a compass (always know North) but get dizzy if you spin.",
+		33: "Your fingernails turn into screwdriver heads for 24 hours.",
+		34: "You can only move in cardinal directions (grid movement) for 1 minute.",
+		35: "A pressure gauge appears on your chest; it redlines when you are angry.",
+		36: "You emit a localized EMP; technological items within 10ft flicker or stall.",
+		37: "You forget the concept of 'softness'; everything feels hard as steel.",
+		38: "Your veins glow neon blue (mana leak) for 1 hour.",
+		39: "You produce a small wind-up toy every time you cast a spell for 1 minute.",
+		40: "Your size fluctuates slightly (grow/shrink 1 inch) every round for 1 minute.",
+		41: "You smell of ozone and sulfur for 24 hours.",
+		42: "Mechanized wings sprout from your back but can't fly, just flutter. Lasts 1 hour.",
+		43: "You hear radio transmissions from the future for 10 minutes.",
+		44: "Your touch magnetizes non-ferrous metals for 1 minute.",
+		45: "You sweat lubricant/grease. Advantage to escape grapples, disadvantage to hold items for 1 hour.",
+		46: "A monocle fuses to your face for 24 hours.",
+		47: "You see mathematical equations floating over enemies (DM tells you AC of one enemy).",
+		48: "Your heart stops beating and starts ticking for 1 hour.",
+		49: "Steam pressure builds up; if you don't release it (scream/cast spell) in 1 round, you explode for 1d6 fire damage.",
+		50: "System Reboot: You fall unconscious until the start of your next turn, then wake up with full HP or a spell slot restored.",
+	}
+}
+
+// CheckLorewrightMadness determines if the Lorewright must roll for madness when using a creature ability.
+// It returns true if a roll is needed, and the DC for the check.
+// Logic:
+// - As the Lorewright levels up, they can safely harness more complex creature memories.
+// - Safe Threshold: Creature CR <= (Level / 3). If below this, no madness check is required.
+// - If above the threshold, a Wisdom Save is required.
+// - DC = 10 + (Creature CR - Safe Threshold). The harder the creature is relative to your level, the harder the check.
+// - Minimum DC is 10.
+func CheckLorewrightMadness(level int, creatureCR float64) (bool, int) {
+	// Calculate the CR threshold the character can handle safely.
+	// Level 1: CR 0.33 (Safe with CR 0, 1/8, 1/4)
+	// Level 3: CR 1 (Safe with CR 1)
+	// Level 6: CR 2
+	// Level 20: CR 6.6
+	safeThreshold := float64(level) / 3.0
+
+	if creatureCR <= safeThreshold {
+		return false, 0
+	}
+
+	// Calculate DC
+	// Base DC 10 + how much the creature exceeds the safe threshold (rounded up)
+	excess := creatureCR - safeThreshold
+	dc := 10 + int(excess+0.99) // Ceiling
+
+	return true, dc
 }

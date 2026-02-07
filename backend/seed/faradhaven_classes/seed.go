@@ -1,6 +1,7 @@
 package faradhaven_classes
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -73,30 +74,12 @@ func abilityScoreImprovementByLevel(level int) int {
 	}
 }
 
-// parseFeature splits a feature string like "Name — Description" into name and description
-func parseFeature(feature string) (name, description string) {
-	// Try em-dash first (—)
-	if idx := strings.Index(feature, " — "); idx != -1 {
-		return strings.TrimSpace(feature[:idx]), strings.TrimSpace(feature[idx+len(" — "):])
-	}
-	// Try colon with space
-	if idx := strings.Index(feature, ": "); idx != -1 {
-		return strings.TrimSpace(feature[:idx]), strings.TrimSpace(feature[idx+2:])
-	}
-	// No separator found, use whole string as name
-	return strings.TrimSpace(feature), ""
-}
-
 // buildLevel1Features formats class features, proficiencies, and other metadata for ClassLevel.Features
 func buildLevel1Features(cs FaradhavenClassSeed) string {
 	var b strings.Builder
 	b.WriteString("Archetype: " + cs.Archetype + "\n")
 	b.WriteString("Concept: " + cs.Concept + "\n\n")
-	b.WriteString("Class Features:\n")
-	for _, f := range cs.ClassFeatures {
-		b.WriteString("• " + f + "\n")
-	}
-	b.WriteString("\nD&D Skill Focus: " + strings.Join(cs.DnDSkillFocus, ", ") + "\n")
+	b.WriteString("D&D Skill Focus: " + strings.Join(cs.DnDSkillFocus, ", ") + "\n")
 	b.WriteString("Proficiencies: " + cs.Proficiencies + "\n")
 	b.WriteString("Skill Choice: " + strings.Join(cs.SkillChoice, ", ") + "\n")
 	b.WriteString("Tools: " + strings.Join(cs.Tools, ", ") + "\n")
@@ -301,13 +284,28 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 			if level == 1 {
 				cl.Features = buildLevel1Features(cs)
 				if cs.LevelFeatures != nil {
-					if f, ok := cs.LevelFeatures[1]; ok && f != "" {
-						cl.Features = cl.Features + "\n\nLevel 1 Features:\n• " + f
+					if features, ok := cs.LevelFeatures[1]; ok && len(features) > 0 {
+						cl.Features = cl.Features + "\n\nLevel 1 Features:\n"
+						for _, f := range features {
+							cl.Features = cl.Features + "• " + f.Name
+							if f.Description != "" {
+								cl.Features = cl.Features + ": " + f.Description
+							}
+							cl.Features = cl.Features + "\n"
+						}
 					}
 				}
 			} else if cs.LevelFeatures != nil {
-				if f, ok := cs.LevelFeatures[level]; ok {
-					cl.Features = f
+				if features, ok := cs.LevelFeatures[level]; ok && len(features) > 0 {
+					var featureTexts []string
+					for _, f := range features {
+						text := f.Name
+						if f.Description != "" {
+							text = text + " — " + f.Description
+						}
+						featureTexts = append(featureTexts, text)
+					}
+					cl.Features = strings.Join(featureTexts, "\n")
 				}
 			}
 
@@ -316,54 +314,46 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 			// Collect level features
 			sortOrder := 0
 
-			// Level 1: include class features
-			if level == 1 {
-				for _, f := range cs.ClassFeatures {
-					name, desc := parseFeature(f)
-					featureID := uuids.LevelFeatureUUID(classLevelID, name, sortOrder)
-					allLevelFeatures = append(allLevelFeatures, models.LevelFeature{
-						ID:           featureID,
-						ClassLevelID: classLevelID,
-						Name:         name,
-						Description:  desc,
-						SortOrder:    sortOrder,
-					})
-					sortOrder++
-				}
-			}
-
 			// Level-specific shared features (nil ArchetypeID = all archetypes get this)
 			if cs.LevelFeatures != nil {
-				if f, ok := cs.LevelFeatures[level]; ok && f != "" {
-					name, desc := parseFeature(f)
-					featureID := uuids.LevelFeatureUUID(classLevelID, name, sortOrder)
-					allLevelFeatures = append(allLevelFeatures, models.LevelFeature{
-						ID:           featureID,
-						ClassLevelID: classLevelID,
-						ArchetypeID:  nil, // shared by all archetypes
-						Name:         name,
-						Description:  desc,
-						SortOrder:    sortOrder,
-					})
-					sortOrder++
+				if features, ok := cs.LevelFeatures[level]; ok {
+					for _, f := range features {
+						if f.Name == "" {
+							continue
+						}
+						featureID := uuids.LevelFeatureUUID(classLevelID, f.Name, sortOrder)
+						allLevelFeatures = append(allLevelFeatures, models.LevelFeature{
+							ID:           featureID,
+							ClassLevelID: classLevelID,
+							ArchetypeID:  nil, // shared by all archetypes
+							Name:         f.Name,
+							Description:  f.Description,
+							SortOrder:    sortOrder,
+						})
+						sortOrder++
+					}
 				}
 			}
 
 			// Archetype-specific features for this level
 			for _, as := range cs.Archetypes {
-				if f, ok := as.Features[level]; ok && f != "" {
-					archetypeID := archetypeMap[cs.Name+":"+as.Name]
-					name, desc := parseFeature(f)
-					featureID := uuids.LevelFeatureUUID(classLevelID, name, sortOrder)
-					allLevelFeatures = append(allLevelFeatures, models.LevelFeature{
-						ID:           featureID,
-						ClassLevelID: classLevelID,
-						ArchetypeID:  &archetypeID,
-						Name:         name,
-						Description:  desc,
-						SortOrder:    sortOrder,
-					})
-					sortOrder++
+				if features, ok := as.Features[level]; ok {
+					for _, f := range features {
+						if f.Name == "" {
+							continue
+						}
+						archetypeID := archetypeMap[cs.Name+":"+as.Name]
+						featureID := uuids.LevelFeatureUUID(classLevelID, f.Name, sortOrder)
+						allLevelFeatures = append(allLevelFeatures, models.LevelFeature{
+							ID:           featureID,
+							ClassLevelID: classLevelID,
+							ArchetypeID:  &archetypeID,
+							Name:         f.Name,
+							Description:  f.Description,
+							SortOrder:    sortOrder,
+						})
+						sortOrder++
+					}
 				}
 			}
 		}
@@ -381,17 +371,19 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 	}
 
 	// Step 2: Clear child tables (order matters for foreign keys)
+	// (Note: This is also handled globally by Seeder.ClearAllData)
 	tablesToClear := []string{
 		"class_starting_equipment_options",
 		"class_starting_equipment_choices",
 		"level_features",
+		"archetypes",
 		"class_levels",
 		"class_components",
 		"class_weapon_requirements",
 	}
 	for _, table := range tablesToClear {
 		if err := tx.Exec("DELETE FROM " + table).Error; err != nil {
-			log.Printf("  Note: Could not clear %s: %v", table, err)
+			return fmt.Errorf("could not clear table %s: %w", table, err)
 		}
 	}
 
@@ -401,11 +393,11 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 	}
 	log.Printf("Upserted %d classes", len(classes))
 
-	// Step 4: Batch upsert archetypes (ON CONFLICT DO UPDATE)
-	if err := batch.UpsertBatchUpdateAll(tx, allArchetypes, batch.DefaultBatchSize); err != nil {
+	// Step 4: Batch insert archetypes
+	if err := batch.InsertBatch(tx, allArchetypes, batch.DefaultBatchSize); err != nil {
 		return err
 	}
-	log.Printf("Upserted %d archetypes", len(allArchetypes))
+	log.Printf("Inserted %d archetypes", len(allArchetypes))
 
 	// Step 5: Batch insert class levels
 	if err := batch.InsertBatch(tx, allClassLevels, batch.DefaultBatchSize); err != nil {

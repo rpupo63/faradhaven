@@ -31,6 +31,12 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		// Effect compendium (reference data, no auth required)
 		r.Get("/api/effects", handlers.effectHandler.getAllEffects())
 		r.Get("/api/effects/{effectID}", handlers.effectHandler.getEffectByID())
+		// Spell compendium (reference data, no auth required)
+		r.Get("/api/spells", handlers.spellHandler.getAllSpells())
+		r.Get("/api/spell/{spellID}", handlers.spellHandler.getSpell())
+		// Beast compendium (reference data, no auth required)
+		r.Get("/api/beasts", handlers.beastHandler.getAllBeasts())
+		r.Get("/api/beast/{beastID}", handlers.beastHandler.getBeast())
 	})
 
 	// Protected API routes (token required)
@@ -54,11 +60,14 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Get("/api/character/{characterID}", handlers.characterHandler.getCharacter())
 		r.Get("/api/character/{characterID}/sheet", handlers.characterHandler.getCharacterSheet())
 		r.Post("/api/character/{characterID}/rest", handlers.characterHandler.restSpellPoints())
+		r.Post("/api/character/{characterID}/cast", handlers.characterHandler.castSpell())
+		r.Post("/api/character/{characterID}/component/{componentID}/consume", handlers.characterHandler.consumeComponent())
 		r.Get("/api/user/{userID}/characters", handlers.characterHandler.getCharactersByUser())
 		r.Post("/api/character", handlers.characterHandler.createCharacter())
 		r.Put("/api/character/{characterID}", handlers.characterHandler.updateCharacter())
 		r.Delete("/api/character/{characterID}", handlers.characterHandler.deleteCharacter())
 		r.Post("/api/character/{characterID}/purchase", handlers.characterHandler.purchaseItem())
+		r.Post("/api/character/{characterID}/image", handlers.characterHandler.uploadProfilePicture())
 
 		// Character backstory endpoints
 		r.Get("/api/character/{characterID}/backstory", handlers.characterHandler.getBackstory())
@@ -77,18 +86,14 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Post("/api/character/{characterID}/rest/short", handlers.levelHandler.shortRest())
 		r.Post("/api/character/{characterID}/rest/long", handlers.levelHandler.longRest())
 
-		// Spell endpoints
-		r.Get("/api/spells", handlers.spellHandler.getAllSpells())
-		r.Get("/api/spell/{spellID}", handlers.spellHandler.getSpell())
+		// Spell endpoints (protected)
 		r.Get("/api/user/{userID}/spells", handlers.spellHandler.getSpellsByUser())
 		r.Get("/api/character/{characterID}/spells", handlers.spellHandler.getSpellsByCharacter())
 		r.Post("/api/spell", handlers.spellHandler.createSpell())
 		r.Put("/api/spell/{spellID}", handlers.spellHandler.updateSpell())
 		r.Delete("/api/spell/{spellID}", handlers.spellHandler.deleteSpell())
 
-		// Beast endpoints
-		r.Get("/api/beasts", handlers.beastHandler.getAllBeasts())
-		r.Get("/api/beast/{beastID}", handlers.beastHandler.getBeast())
+		// Beast endpoints (protected)
 		r.Get("/api/user/{userID}/beasts", handlers.beastHandler.getBeastsByUser())
 		r.Post("/api/beast", handlers.beastHandler.createBeast())
 		r.Put("/api/beast/{beastID}", handlers.beastHandler.updateBeast())

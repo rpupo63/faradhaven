@@ -26,6 +26,7 @@ func AllModels() []interface{} {
 		// Character hierarchy
 		&Character{},
 		&CharacterSkill{},
+		&CharacterComponent{},
 		&LevelUpHistory{},
 
 		// Spell hierarchy
