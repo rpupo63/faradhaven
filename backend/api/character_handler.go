@@ -333,6 +333,15 @@ func (h *characterHandler) updateCharacter() http.HandlerFunc {
 		if req.Money != nil {
 			character.Money = *req.Money
 		}
+		if req.Notoriety != nil {
+			character.SanguineNotoriety = *req.Notoriety
+			// Cap notoriety between -20 and 20
+			if character.SanguineNotoriety > 20 {
+				character.SanguineNotoriety = 20
+			} else if character.SanguineNotoriety < -20 {
+				character.SanguineNotoriety = -20
+			}
+		}
 		if req.Notes != nil {
 			character.Notes = *req.Notes
 		}
@@ -814,5 +823,59 @@ func (h *characterHandler) consumeComponent() http.HandlerFunc {
 		}
 
 		respondJSON(w, http.StatusOK, map[string]string{"message": "Component consumed"})
+	}
+}
+
+// updateNotoriety handles manual updates to notoriety by the DM/User
+func (h *characterHandler) updateNotoriety() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "characterID")
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(id)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
+			return
+		}
+
+		// Verify user owns this character
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		if authUserID != character.UserID.String() {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		var req UpdateNotorietyRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		character.SanguineNotoriety += req.Delta
+		// Cap notoriety between -20 and 20
+		if character.SanguineNotoriety > 20 {
+			character.SanguineNotoriety = 20
+		} else if character.SanguineNotoriety < -20 {
+			character.SanguineNotoriety = -20
+		}
+
+		if err := h.characterRepo.Update(character); err != nil {
+			log.Error().Err(err).Msg("Failed to update notoriety")
+			respondError(w, http.StatusInternalServerError, "Failed to update notoriety")
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"message":   "Notoriety updated successfully",
+			"notoriety": character.SanguineNotoriety,
+		})
 	}
 }

@@ -9,6 +9,8 @@ type FaradhavenRaceSeed struct {
 	BaseSpeed           int
 	PhotoURL            string // URL to race artwork/photo
 	AbilityScoreBonuses map[string]int
+	Languages           []string // Languages known by default (e.g., ["Common", "Elvish"])
+	BonusLanguageCount  int      // Number of additional languages the player may choose
 	Traits              []TraitSeed
 	ComponentNames      []string // Names of spell components this race grants access to
 }

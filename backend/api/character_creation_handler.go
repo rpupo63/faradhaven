@@ -100,6 +100,7 @@ func (h *characterHandler) createCharacter() http.HandlerFunc {
 			Charisma:           req.Charisma,
 			CurrentSpellPoints: req.CurrentSpellPoints,
 			Money:              req.Money,
+			Languages:          pq.StringArray(req.Languages),
 		}
 
 		if character.Level == 0 {
@@ -226,7 +227,7 @@ func (h *characterHandler) createCharacter() http.HandlerFunc {
 			if err := h.characterRepo.GetDB().Table("character_weapons_v2").
 				Where("character_id = ? AND weapon_id = ?", character.ID, *req.PrimaryWeaponID).
 				First(&cw).Error; err == nil {
-				
+
 				cw.IsPrimary = true
 				h.characterRepo.GetDB().Table("character_weapons_v2").Save(&cw)
 

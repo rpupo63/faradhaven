@@ -9,6 +9,7 @@ func Faerie() FaradhavenRaceSeed {
 		CreatureType:   "Fey",
 		Size:           "Small (about 2–4 feet tall)",
 		BaseSpeed:      30,
+		Languages:      []string{"Common", "Sylvan"},
 		Traits:         faerieTraits(),
 		ComponentNames: []string{"Vita", "Self", "Lux", "Zone", "Expand", "Shrink"},
 	}

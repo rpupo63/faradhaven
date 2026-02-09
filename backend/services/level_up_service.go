@@ -54,44 +54,45 @@ func NewLevelUpService(
 // LevelUpRequest contains the choices made during level-up
 type LevelUpRequest struct {
 	CharacterID     uuid.UUID      `json:"character_id"`
-	SkillSelections []string       `json:"skill_selections,omitempty"` // new skills to add
-	ASIAllocation   map[string]int `json:"asi_allocation,omitempty"`   // {"strength": 1, "dexterity": 1}
-	SpellsLearned   []string       `json:"spells_learned,omitempty"`   // new spell IDs
-	HPRollResult    *int           `json:"hp_roll_result,omitempty"`   // nil = use average, otherwise the rolled value
-	ArchetypeID     *uuid.UUID     `json:"archetype_id,omitempty"`     // required when reaching archetype level
+	SkillSelections []string       `json:"skill_selections,omitempty"`  // new skills to add
+	ASIAllocation   map[string]int `json:"asi_allocation,omitempty"`    // {"strength": 1, "dexterity": 1}
+	SpellsLearned   []string       `json:"spells_learned,omitempty"`    // new spell IDs
+	NotorietyChange int            `json:"notoriety_change,omitempty"`  // net change to notoriety from choices
+	HPRollResult    *int           `json:"hp_roll_result,omitempty"`    // nil = use average, otherwise the rolled value
+	ArchetypeID     *uuid.UUID     `json:"archetype_id,omitempty"`      // required when reaching archetype level
 	PrimaryWeaponID *uuid.UUID     `json:"primary_weapon_id,omitempty"` // selected primary weapon for signature items
 }
 
 // LevelUpResponse contains the result of a level-up operation
 type LevelUpResponse struct {
-	Character  *models.Character   `json:"character"`
-	NewLevel   int                 `json:"new_level"`
-	ClassLevel *models.ClassLevel  `json:"class_level"`
-	HistoryID  uuid.UUID           `json:"history_id,omitempty"`
+	Character  *models.Character  `json:"character"`
+	NewLevel   int                `json:"new_level"`
+	ClassLevel *models.ClassLevel `json:"class_level"`
+	HistoryID  uuid.UUID          `json:"history_id,omitempty"`
 }
 
 // LevelUpPreview returns what will be available at the next level
 type LevelUpPreview struct {
-	CurrentLevel            int                   `json:"current_level"`
-	NextLevel               int                   `json:"next_level"`
-	ClassLevel              *models.ClassLevel    `json:"class_level"`
-	ASIPointsAvailable      int                   `json:"asi_points_available"`
-	NewSpellsAllowed        int                   `json:"new_spells_allowed"`
-	HitDie                  int                   `json:"hit_die"`                            // Class hit die (e.g., 10 for d10)
-	ConMod                  int                   `json:"con_mod"`                            // Current CON modifier
-	HPGainAverage           int                   `json:"hp_gain_average"`                    // Average HP gain (hitDie/2 + 1 + conMod)
-	CurrentMaxHP            int                   `json:"current_max_hp"`                     // Current max HP before level up
-	RequiresArchetypeChoice bool                  `json:"requires_archetype_choice"`          // true if this level requires archetype selection
-	AvailableArchetypes     []*models.Archetype   `json:"available_archetypes,omitempty"`     // archetypes to choose from (if required)
-	RequiresWeaponSelection bool                  `json:"requires_weapon_selection"`          // true if this level requires weapon selection
-	WeaponSelectionInfo     *WeaponSelectionInfo  `json:"weapon_selection_info,omitempty"`    // info for weapon selection (if required)
+	CurrentLevel            int                  `json:"current_level"`
+	NextLevel               int                  `json:"next_level"`
+	ClassLevel              *models.ClassLevel   `json:"class_level"`
+	ASIPointsAvailable      int                  `json:"asi_points_available"`
+	NewSpellsAllowed        int                  `json:"new_spells_allowed"`
+	HitDie                  int                  `json:"hit_die"`                         // Class hit die (e.g., 10 for d10)
+	ConMod                  int                  `json:"con_mod"`                         // Current CON modifier
+	HPGainAverage           int                  `json:"hp_gain_average"`                 // Average HP gain (hitDie/2 + 1 + conMod)
+	CurrentMaxHP            int                  `json:"current_max_hp"`                  // Current max HP before level up
+	RequiresArchetypeChoice bool                 `json:"requires_archetype_choice"`       // true if this level requires archetype selection
+	AvailableArchetypes     []*models.Archetype  `json:"available_archetypes,omitempty"`  // archetypes to choose from (if required)
+	RequiresWeaponSelection bool                 `json:"requires_weapon_selection"`       // true if this level requires weapon selection
+	WeaponSelectionInfo     *WeaponSelectionInfo `json:"weapon_selection_info,omitempty"` // info for weapon selection (if required)
 }
 
 // WeaponSelectionInfo contains information for the weapon selection step during level-up
 type WeaponSelectionInfo struct {
-	Description     string           `json:"description"`      // UI description for the selection
-	ModifierType    string           `json:"modifier_type"`    // e.g., "piston_core"
-	EligibleWeapons []models.Weapon  `json:"eligible_weapons"` // Weapons the character can choose from
+	Description     string          `json:"description"`      // UI description for the selection
+	ModifierType    string          `json:"modifier_type"`    // e.g., "piston_core"
+	EligibleWeapons []models.Weapon `json:"eligible_weapons"` // Weapons the character can choose from
 }
 
 // LevelUp advances a character by one level, applying choices and saving history
@@ -162,6 +163,7 @@ func (s *LevelUpService) LevelUp(userID uuid.UUID, req LevelUpRequest) (*LevelUp
 		Charisma:           character.Charisma,
 		SpellbookIDs:       []string(character.SpellbookIDs),
 		CurrentSpellPoints: character.CurrentSpellPoints,
+		Notoriety:          character.SanguineNotoriety,
 		CurrentHP:          character.CurrentHP,
 		MaxHP:              character.MaxHP,
 		TempHP:             character.TempHP,
@@ -227,6 +229,14 @@ func (s *LevelUpService) LevelUp(userID uuid.UUID, req LevelUpRequest) (*LevelUp
 
 		// Reset spell points to new max
 		character.CurrentSpellPoints = newClassLevel.MaxSpellPoints
+
+		// Apply and cap notoriety change
+		character.SanguineNotoriety += req.NotorietyChange
+		if character.SanguineNotoriety > 20 {
+			character.SanguineNotoriety = 20
+		} else if character.SanguineNotoriety < -20 {
+			character.SanguineNotoriety = -20
+		}
 
 		// Update class-specific resource pools
 		if character.Class.ResourceType == "stability" {

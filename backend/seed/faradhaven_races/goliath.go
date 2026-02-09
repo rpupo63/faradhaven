@@ -9,6 +9,7 @@ func Goliath() FaradhavenRaceSeed {
 		CreatureType:   "Humanoid",
 		Size:           "Medium (about 7-8 feet tall)",
 		BaseSpeed:      35,
+		Languages:      []string{"Common", "Giant"},
 		Traits:         goliathTraits(),
 		ComponentNames: []string{"Teleport", "Ignis", "Imbue", "Cool", "Slow", "Crush", "Terra", "Insulate", "Fulgur", "Reflect", "Expand", "Self"},
 	}

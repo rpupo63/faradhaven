@@ -216,6 +216,7 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 			MaxStability:      classLevel.MaxStability,
 			CurrentBloodIchor: character.CurrentBloodIchor,
 			MaxBloodIchor:     h.resourceService.ComputeMaxBloodIchor(character),
+			Notoriety:         character.SanguineNotoriety,
 			MadnessCastCount:  character.MadnessCastCount,
 			MadnessBaseDC:     classLevel.MadnessBaseDC,
 			FeralBonus:        classLevel.FeralBonus,
@@ -231,6 +232,10 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 
 		if class.Name == "The Lorewright" {
 			sheet.MadnessTable = faradhaven_classes.LorewrightMadnessTable()
+		}
+
+		if class.Name == "The Mutagen" {
+			sheet.MadnessTable = faradhaven_classes.MutagenFeralTable()
 		}
 
 		respondJSON(w, http.StatusOK, sheet)

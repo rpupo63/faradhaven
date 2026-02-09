@@ -3,13 +3,15 @@ package faradhaven_races
 // Warforged returns the Warforged race seed
 func Warforged() FaradhavenRaceSeed {
 	return FaradhavenRaceSeed{
-		Name:         "Warforged",
-		PhotoURL:     "https://photos-for-apps.s3.us-east-2.amazonaws.com/warforged.jpg",
-		Description:  "Warforged are mechanical beings built as weapons to fight in the Last War. An unexpected breakthrough produced sentient beings made from wood and metal that nevertheless can feel pain and emotion. Warforged comprise a blend of organic and inorganic materials. Rootlike cords infused with alchemical fluids serve as their muscles, wrapped around a framework of steel, darkwood, or stone. Armored plates form a protective outer shell and reinforce joints. The more a warforged cultivates their individuality, the more likely they are to modify their body, seeking out an artificer to customize the look of their face, limbs, and plating.",
-		CreatureType: "Construct",
-		Size:         "Medium (about 6–8 feet tall) or Small (about 3–4 feet tall), chosen when you select this species",
-		BaseSpeed:    30,
-		Traits:       warforgedTraits(),
+		Name:               "Warforged",
+		PhotoURL:           "https://photos-for-apps.s3.us-east-2.amazonaws.com/warforged.jpg",
+		Description:        "Warforged are mechanical beings built as weapons to fight in the Last War. An unexpected breakthrough produced sentient beings made from wood and metal that nevertheless can feel pain and emotion. Warforged comprise a blend of organic and inorganic materials. Rootlike cords infused with alchemical fluids serve as their muscles, wrapped around a framework of steel, darkwood, or stone. Armored plates form a protective outer shell and reinforce joints. The more a warforged cultivates their individuality, the more likely they are to modify their body, seeking out an artificer to customize the look of their face, limbs, and plating.",
+		CreatureType:       "Construct",
+		Size:               "Medium (about 6–8 feet tall) or Small (about 3–4 feet tall), chosen when you select this species",
+		BaseSpeed:          30,
+		Languages:          []string{"Common"},
+		BonusLanguageCount: 1,
+		Traits:             warforgedTraits(),
 	}
 }
 

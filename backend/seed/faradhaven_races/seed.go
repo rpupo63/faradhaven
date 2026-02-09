@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/lib/pq"
 	"github.com/rpupo63/unified-personal-site-backend/models"
 	"github.com/rpupo63/unified-personal-site-backend/seed/batch"
 	"github.com/rpupo63/unified-personal-site-backend/seed/uuids"
@@ -81,6 +82,8 @@ func SeedFaradhavenRaces(tx *gorm.DB) error {
 			BaseSpeed:           rs.BaseSpeed,
 			PhotoURL:            rs.PhotoURL,
 			AbilityScoreBonuses: bonusesJSON,
+			Languages:           pq.StringArray(rs.Languages),
+			BonusLanguageCount:  rs.BonusLanguageCount,
 		})
 
 		// Collect traits

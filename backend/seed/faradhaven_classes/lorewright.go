@@ -53,96 +53,101 @@ func lorewrightArchetypes() []ArchetypeSeed {
 			Name:        "Path of the Warlord",
 			Description: "You channel the combat memories of fallen warriors, gaining martial prowess and the ability to strike with the fury of a hundred battles.",
 			Features: map[int][]FeatureSeed{
-				3:  {{Name: "Martial Legacy", Description: "You gain proficiency with heavy armor and one martial weapon of your choice. The echoes of warriors past guide your hands in combat."}},
-				10: {{Name: "Predator's Strike", Description: "When you hit a creature type you have consumed, add your Wisdom modifier to damage. The memories of hunting that prey grant deadly precision."}},
-				14: {{Name: "Battle Trance", Description: "When you enter combat, you can activate one Echo as a free action to gain its benefits immediately. Additionally, you can use Cycle of Rebirth twice per Long Rest."}},
+				3:  {{Name: "Martial Legacy", Description: "You gain proficiency with heavy armor and one martial weapon. Your melee weapon attacks deal an additional 1d4 damage of your weapon's type."}},
+				10: {{Name: "Predator's Strike", Description: "When you hit a creature type you have consumed within the last 24 hours, add your Wisdom modifier to the damage roll."}},
+				14: {{Name: "Battle Trance", Description: "When you enter combat, you can activate one Echo as a free action. Additionally, you can use Cycle of Rebirth twice per short rest."}},
 			},
 		},
 		{
 			Name:        "Path of the Sage",
 			Description: "You absorb the knowledge and magical insights of your prey, becoming a repository of arcane secrets and ancestral wisdom.",
 			Features: map[int][]FeatureSeed{
-				3:  {{Name: "Scholar's Legacy", Description: "You gain expertise in History or Arcana (double your proficiency bonus), plus two additional languages of your choice. The minds you consume expand your understanding."}},
-				10: {{Name: "Deep Insight", Description: "When you consume a creature, you can ask two questions instead of one with Phylogenetic Recall. Additionally, you learn one spell the creature could cast (if any) which you can cast once before your next Long Rest using Wisdom."}},
-				14: {{Name: "Shared Consciousness", Description: "You can maintain two Collective Consciousness transfers simultaneously. When you transfer an Echo, you retain partial benefit (half the bonus or limited version of the trait)."}},
+				3:  {{Name: "Scholar's Legacy", Description: "You gain expertise in History or Arcana (double your proficiency bonus), plus two additional languages. You gain one additional Component Scavenging slot."}},
+				10: {{Name: "Deep Insight", Description: "When you use Visceral Psychometry, you can ask 5 questions instead of 3 with Phylogenetic Recall. You also learn one spell the creature could cast, which you can cast once using Wisdom (no slot required) before your next Long Rest."}},
+				14: {{Name: "Shared Consciousness", Description: "You can maintain Collective Consciousness on up to three allies simultaneously. When you share an Echo, you retain the full benefit yourself."}},
 			},
 		},
 	}
 }
 
 func lorewrightLevelProgression() map[int]ClassLevelSeed {
-	// BardicInspiration represents Madness Die scaling (d4 -> d6 -> d8 -> d10 -> d12 -> d20)
-	// EchoSlots scale: 0 at 1, 1 at 2, 2 at 5, 3 at 9, 4 at 13, 5 at 17
+	// BardicInspiration repurposed as Madness Die size (d4 -> d6 -> d8 -> d10 -> d12 -> d20)
+	//   Higher die = less chance of rolling a 1 = safer Echo usage
+	// EchoSlots = number of harvested abilities that can be stored simultaneously
+	//   0 at Lvl 1 (no slots yet), 1 at Lvl 2, 2 at Lvl 5, 3 at Lvl 9, 4 at Lvl 13, 5 at Lvl 17
+	//   At Lvl 20, each slot holds 2 Echoes (Dual Imprint), effectively 10 stored abilities
 	return map[int]ClassLevelSeed{
-		1:  {EchoSlots: 0, BardicInspiration: 4},                       // Madness Die: d4, no Echo Slots yet
-		2:  {EchoSlots: 1, BardicInspiration: 4},                       // 1 Echo Slot
-		3:  {EchoSlots: 1, BardicInspiration: 4},
-		4:  {EchoSlots: 1, BardicInspiration: 4},
-		5:  {EchoSlots: 2, BardicInspiration: 6},                       // Madness Die: d6, 2 Echo Slots
+		1:  {EchoSlots: 0, BardicInspiration: 4},  // No Echo Slots — harvest & psychometry only
+		2:  {EchoSlots: 1, BardicInspiration: 4},  // First Echo Slot: save 1 harvested skill/action
+		3:  {EchoSlots: 1, BardicInspiration: 4},  // Archetype choice
+		4:  {EchoSlots: 1, BardicInspiration: 4},  // ASI
+		5:  {EchoSlots: 2, BardicInspiration: 6},  // +1 slot (2 total), Madness Die -> d6
 		6:  {EchoSlots: 2, BardicInspiration: 6},
 		7:  {EchoSlots: 2, BardicInspiration: 6},
-		8:  {EchoSlots: 2, BardicInspiration: 6},
-		9:  {EchoSlots: 3, BardicInspiration: 8},                       // Madness Die: d8, 3 Echo Slots
+		8:  {EchoSlots: 2, BardicInspiration: 6},  // ASI
+		9:  {EchoSlots: 3, BardicInspiration: 8},  // +1 slot (3 total), Madness Die -> d8
 		10: {EchoSlots: 3, BardicInspiration: 8},
 		11: {EchoSlots: 3, BardicInspiration: 8},
-		12: {EchoSlots: 3, BardicInspiration: 8},
-		13: {EchoSlots: 4, BardicInspiration: 10},                      // Madness Die: d10, 4 Echo Slots
+		12: {EchoSlots: 3, BardicInspiration: 8},  // ASI
+		13: {EchoSlots: 4, BardicInspiration: 10}, // +1 slot (4 total), Madness Die -> d10, Rapid Imprint
 		14: {EchoSlots: 4, BardicInspiration: 10},
 		15: {EchoSlots: 4, BardicInspiration: 10},
-		16: {EchoSlots: 4, BardicInspiration: 10},
-		17: {EchoSlots: 5, BardicInspiration: 12},                      // Madness Die: d12, 5 Echo Slots
+		16: {EchoSlots: 4, BardicInspiration: 10}, // ASI
+		17: {EchoSlots: 5, BardicInspiration: 12}, // +1 slot (5 total, max), Madness Die -> d12, Predator's Trance
 		18: {EchoSlots: 5, BardicInspiration: 12},
-		19: {EchoSlots: 5, BardicInspiration: 12},
-		20: {EchoSlots: 5, BardicInspiration: 20},                      // Madness Die: d20, 5 Echo Slots (doubled capacity)
+		19: {EchoSlots: 5, BardicInspiration: 12}, // ASI
+		20: {EchoSlots: 5, BardicInspiration: 20}, // Madness Die -> d20, Dual Imprint (each slot holds 2)
 	}
 }
 
 func lorewrightLevelFeatures() map[int][]FeatureSeed {
 	return map[int][]FeatureSeed{
-		// Level 1: Core features
-		// Echo Slots: 0, Madness Die: d4
+		// Level 1: Core harvest and psychometry (no Echo Slots yet)
 		1: {
-			{Name: "Visceral Psychometry", Description: "Consume the liver of a freshly killed creature (died within 1 hour) over 1 minute to absorb its memories. This is your primary method of learning: you gain access to the creature's recent experiences and knowledge."},
-			{Name: "The Fracture", Description: "When using Visceral Psychometry, make a Wisdom Save against a DC determined by the creature's power (DC 10 for CR 0-4, DC 15 for CR 5-10, DC 20 for CR 11+). On failure, gain 1 Trauma. 1 Trauma: Disadvantage on Charisma checks. 2 Trauma: Gain a temporary flaw. 3 Trauma: Confusion. Remove 1 Trauma per Long Rest."},
-			{Name: "Component Scavenging", Description: "You can harvest Components from the bodies of magical creatures. By spending 10 minutes harvesting specific organs, you can extract the creature's essence as a usable Component (e.g., 'Ignis' from a Fire Elemental, 'Flight' from a Roc). You can add these collected components to your repertoire to be used with your abilities or slotted into Echoes."},
-			{Name: "Madness Die: d4", Description: "You have no Echo Slots yet. High-risk phase: stick to small game to avoid madness while learning your craft."},
+			{Name: "Visceral Psychometry", Description: "As an action, you consume the liver of a creature (died within 1 hour) over 1 minute. You absorb its memories, allowing you to ask the DM up to 3 questions about the creature's life, secrets, or surroundings (Phylogenetic Recall)."},
+			{Name: "The Fracture", Description: "When using Visceral Psychometry, make a Wisdom Save (DC 10 for CR 0-4, DC 15 for CR 5-10, DC 20 for CR 11+). On failure, gain 1 Trauma. 1 Trauma: Disadvantage on Charisma checks. 2 Trauma: Gain a temporary flaw. 3 Trauma: Confusion (as the spell). Remove 1 Trauma per Long Rest."},
+			{Name: "Component Scavenging", Description: "By spending 10 minutes harvesting a magical creature, you extract its essence as a usable Component (e.g., 'Ignis' from a Fire Elemental). Capacity: Wisdom modifier components."},
+			{Name: "Madness Die: d4", Description: "When you activate an Echo Slot to use a creature's trait or action, you must roll your Madness Die (d4). On a 1, roll on the Lorewright Madness Table. The Madness Die scales with level. You do not yet have Echo Slots at this level — this rule applies once you gain them at level 2."},
 		},
 
 		// Level 2: Echo Slots: 1, Madness Die: d4
-		2: {{Name: "Somatic Echoes", Description: "You gain 1 Echo Slot. You can fill this slot with a Skill, Tool Proficiency, Language, or Component you have scavenged. To add a component or trait, simply declare you are slotting it after a harvest. Replacing an Echo requires consuming a new source."}},
+		2: {
+			{Name: "Somatic Echoes (Echo Slot System)", Description: "You gain 1 Echo Slot. Echo Slots are your memory banks — each one holds a single ability harvested from a consumed creature. To save a new Echo: (1) Perform Visceral Psychometry on a creature. (2) Choose one of its Skills, Tool Proficiencies, Languages, or Actions to imprint into an empty Echo Slot. (3) You gain that ability as long as it remains slotted. Each slot holds exactly one Echo. To replace an Echo, you must perform a new harvest and overwrite the slot — the old Echo is lost permanently."},
+			{Name: "Cycle of Rebirth", Description: "As a bonus action, you can swap which of your slotted Echoes is currently active. Only one Echo can be active at a time at this level. You can use Cycle of Rebirth once per short rest. Using an active Echo's action or trait triggers your Madness Die roll."},
+		},
 
 		// Level 3
-		3: {{Name: "Past Life Archetype", Description: "Choose your archetype at this level."}},
-
-		// Level 4
-		4: {{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1. Wisdom and Constitution are recommended."}},
+		3: {{Name: "Past Life Archetype", Description: "Choose your archetype: Path of the Warlord or Path of the Sage. Your archetype reflects whose memories dominate your psyche."}},
 
 		// Level 5: Echo Slots: 2, Madness Die: d6
-		5: {{Name: "Expanded Mind", Description: "Your Madness Die increases to d6, and you gain 2 Echo Slots. Your capacity to hold foreign memories expands."}},
-
-		// Level 8
-		8: {{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1."}},
+		5: {
+			{Name: "Expanded Mind (2 Echo Slots)", Description: "Your Echo Slot capacity increases to 2. You can now hold two different harvested abilities simultaneously — for example, a wolf's Keen Hearing (Perception proficiency) in one slot and a goblin's Nimble Escape (Disengage as bonus action) in another. To fill the new slot, perform another harvest and choose an ability to imprint. Your Madness Die increases to d6."},
+			{Name: "Collective Consciousness", Description: "As an action, you can share the benefits of one of your active Echoes with a willing ally within 30 feet for 1 hour. The ally gains the slotted skill, proficiency, or ability for the duration. You retain the Echo while sharing it. Once per long rest."},
+		},
 
 		// Level 9: Echo Slots: 3, Madness Die: d8
-		9: {{Name: "Deep Storage", Description: "Your Madness Die increases to d8, and you gain 3 Echo Slots."}},
-
-		// Level 12
-		12: {{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1."}},
+		9: {
+			{Name: "Deep Storage (3 Echo Slots)", Description: "Your Echo Slot capacity increases to 3. You can now maintain three harvested abilities at once. When you perform a harvest, you choose which slot to fill or overwrite — you are never forced to replace an existing Echo unless all slots are full and you want the new ability. Your Madness Die increases to d8."},
+			{Name: "Collective Consciousness Upgrade", Description: "Collective Consciousness can now target up to two allies simultaneously. Each ally can receive a different Echo's benefit."},
+		},
 
 		// Level 13: Echo Slots: 4, Madness Die: d10
-		13: {{Name: "Resilient Psyche", Description: "Your Madness Die increases to d10, and you gain 4 Echo Slots."}},
-
-		// Level 16
-		16: {{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1."}},
+		13: {
+			{Name: "Resilient Psyche (4 Echo Slots)", Description: "Your Echo Slot capacity increases to 4. Your mind has hardened against the strain of holding multiple foreign memories. Your Madness Die increases to d10. Additionally, you can now remove all Trauma when you finish a Long Rest (instead of only 1)."},
+			{Name: "Rapid Imprint", Description: "When you perform Visceral Psychometry, you can now choose two abilities from the same creature to slot into two separate Echo Slots (if you have empty slots or choose to overwrite)."},
+		},
 
 		// Level 17: Echo Slots: 5, Madness Die: d12
-		17: {{Name: "Apex Predator's Soul", Description: "Your Madness Die increases to d12, and you gain 5 Echo Slots. As a bonus action, enter a heightened state for 1 minute. You can use any Action available to a creature stored in your Echo Slots. If an action deals damage, use your Wisdom modifier for the attack and damage rolls. If an action has a Recharge, you can use it once per transformation. Once used, you cannot use this feature again until you finish a Long Rest."}},
-
-		// Level 19
-		19: {{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1."}},
+		17: {
+			{Name: "Apex Predator's Soul (5 Echo Slots)", Description: "Your Echo Slot capacity increases to 5 — the maximum a mortal mind can sustain. You can hold five distinct harvested abilities simultaneously. Your Madness Die increases to d12."},
+			{Name: "Predator's Trance", Description: "As a bonus action, enter a heightened state for 1 minute. While in this trance, all of your Echo Slots are active simultaneously — you benefit from every slotted skill, proficiency, and trait at once, and can use any slotted Action on your turn. If an action deals damage, use Wisdom for attack and damage rolls. Each action used still triggers a Madness Die roll. Once per Long Rest."},
+		},
 
 		// Level 20
-		20: {{Name: "The Omega Point", Description: "Your Madness Die becomes d20. You automatically succeed on the Saving Throw for The Fracture. You can hold two Echoes in a single slot, doubling your capacity."}},
+		20: {
+			{Name: "The Omega Point", Description: "Your Madness Die becomes d20 (you almost never trigger madness). You automatically succeed on Saving Throws for The Fracture — consumption no longer risks Trauma."},
+			{Name: "Dual Imprint", Description: "Each Echo Slot can now hold two different Echoes simultaneously, effectively doubling your capacity to 10 stored abilities. When you harvest a creature, you can save one ability per slot as normal, or stack a second ability into an existing slot. Both abilities in a dual-imprinted slot are active when that slot is active."},
+		},
 	}
 }
 

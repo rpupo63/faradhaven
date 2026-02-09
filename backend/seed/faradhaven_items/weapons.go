@@ -12,8 +12,8 @@ func TransformativeWeapons() []WeaponSeed {
 			RangeType:   "Melee",
 			Cost:        "50 gp",
 			Weight:      "6 lb.",
-			AttackModifier: "Strength",
-			Properties:     []string{"Transformative", "Versatile"},
+			AttackModifier: "Dexterity",
+			Properties:     []string{"Transformative", "Versatile", "Finesse"},
 			RangeNormal:    5,
 			VersatileDamageDice: &sawCleaverVersatile,
 			SecondaryEffect: "In extended mode, gains Reach property and deals 1d10 damage.",
@@ -67,6 +67,28 @@ func TransformativeWeapons() []WeaponSeed {
 			SecondaryEffect: "Can transform into Scythe (2d4 Slashing) or Sword (1d6 Slashing, Finesse) as a bonus action.",
 			Damages: []WeaponDamageSeed{
 				{DamageDice: "1d10", DamageType: "Slashing", DamageCategory: "Base"},
+			},
+		},
+	}
+}
+
+// NaturalWeapons returns innate or class-specific natural weapons
+func NaturalWeapons() []WeaponSeed {
+	return []WeaponSeed{
+		{
+			Name:           "Bite",
+			Description:    "A vampiric bite that extracts blood ichor from victims.",
+			Category:       "Natural Melee",
+			Rarity:         "Common",
+			RangeType:      "Melee",
+			Cost:           "0 gp",
+			Weight:         "0 lb.",
+			AttackModifier: "Charisma",
+			Properties:     []string{"Finesse"},
+			RangeNormal:    5,
+			SecondaryEffect: "On hit, regain Ichor equal to Proficiency Bonus. Yields 1 Unstable Component.",
+			Damages: []WeaponDamageSeed{
+				{DamageDice: "2d8", DamageType: "Necrotic", DamageCategory: "Base"},
 			},
 		},
 	}
@@ -401,6 +423,7 @@ func AllWeapons() []WeaponSeed {
 	var all []WeaponSeed
 	all = append(all, StandardWeapons()...)
 	all = append(all, TransformativeWeapons()...)
+	all = append(all, NaturalWeapons()...)
 	all = append(all, HydraulicWeapons()...)
 	all = append(all, AlchemicalWeapons()...)
 	all = append(all, ElectricWeapons()...)

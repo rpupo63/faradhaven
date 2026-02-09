@@ -9,6 +9,7 @@ func Rimekin() FaradhavenRaceSeed {
 		CreatureType:   "Humanoid",
 		Size:           "Medium (about 4–7 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
 		BaseSpeed:      30,
+		Languages:      []string{"Common", "Primordial"},
 		Traits:         rimekinTraits(),
 		ComponentNames: []string{"Cool", "Beam", "Aqua", "Projectile", "Imbue"},
 	}

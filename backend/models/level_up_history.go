@@ -48,6 +48,7 @@ type CharacterSnapshotData struct {
 	Charisma           int      `json:"charisma"`
 	SpellbookIDs       []string `json:"spellbook_ids"`
 	CurrentSpellPoints int      `json:"current_spell_points"`
+	Notoriety          int      `json:"notoriety"`
 
 	// HP and hit dice state for reversion
 	CurrentHP   int `json:"current_hp"`

@@ -13,7 +13,8 @@ func Dwarf() FaradhavenRaceSeed {
 			"constitution": 2,
 			"wisdom":       1,
 		},
-		Traits:       dwarfTraits(),
+		Languages: []string{"Common", "Dwarvish"},
+		Traits:    dwarfTraits(),
 	}
 }
 

@@ -3,13 +3,15 @@ package faradhaven_races
 // Shifter returns the Shifter race seed
 func Shifter() FaradhavenRaceSeed {
 	return FaradhavenRaceSeed{
-		Name:         "Shifter",
-		PhotoURL:     "https://photos-for-apps.s3.us-east-2.amazonaws.com/shifter.jpg",
-		Description:  "Shifters—sometimes called \"weretouched\"—descend from people who contracted full or partial lycanthropy. Humanoids with a bestial aspect, shifters can't change shape fully, but they can enhance their animalistic features temporarily in a process they call \"shifting.\" Shifters resemble humans in height and build but are typically more lithe and flexible. Their facial features have a bestial cast, often with large eyes and pointed ears; most shifters also possess prominent canine teeth. They grow fur-like hair on nearly every part of their bodies. While a shifter's appearance might remind an onlooker of an animal, the shifter remains clearly identifiable as a Humanoid even when at their most feral.",
-		CreatureType: "Humanoid",
-		Size:         "Medium (about 4–7 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
-		BaseSpeed:    30,
-		Traits:       shifterTraits(),
+		Name:               "Shifter",
+		PhotoURL:           "https://photos-for-apps.s3.us-east-2.amazonaws.com/shifter.jpg",
+		Description:        "Shifters—sometimes called \"weretouched\"—descend from people who contracted full or partial lycanthropy. Humanoids with a bestial aspect, shifters can't change shape fully, but they can enhance their animalistic features temporarily in a process they call \"shifting.\" Shifters resemble humans in height and build but are typically more lithe and flexible. Their facial features have a bestial cast, often with large eyes and pointed ears; most shifters also possess prominent canine teeth. They grow fur-like hair on nearly every part of their bodies. While a shifter's appearance might remind an onlooker of an animal, the shifter remains clearly identifiable as a Humanoid even when at their most feral.",
+		CreatureType:       "Humanoid",
+		Size:               "Medium (about 4–7 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
+		BaseSpeed:          30,
+		Languages:          []string{"Common"},
+		BonusLanguageCount: 1,
+		Traits:             shifterTraits(),
 	}
 }
 

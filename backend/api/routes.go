@@ -37,6 +37,8 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		// Beast compendium (reference data, no auth required)
 		r.Get("/api/beasts", handlers.beastHandler.getAllBeasts())
 		r.Get("/api/beast/{beastID}", handlers.beastHandler.getBeast())
+		// Shared Notes
+		r.Get("/api/notes", handlers.noteHandler.getAllNotes())
 	})
 
 	// Protected API routes (token required)
@@ -65,6 +67,7 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Get("/api/user/{userID}/characters", handlers.characterHandler.getCharactersByUser())
 		r.Post("/api/character", handlers.characterHandler.createCharacter())
 		r.Put("/api/character/{characterID}", handlers.characterHandler.updateCharacter())
+		r.Post("/api/character/{characterID}/notoriety", handlers.characterHandler.updateNotoriety())
 		r.Delete("/api/character/{characterID}", handlers.characterHandler.deleteCharacter())
 		r.Post("/api/character/{characterID}/purchase", handlers.characterHandler.purchaseItem())
 		r.Post("/api/character/{characterID}/image", handlers.characterHandler.uploadProfilePicture())
@@ -98,5 +101,8 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Post("/api/beast", handlers.beastHandler.createBeast())
 		r.Put("/api/beast/{beastID}", handlers.beastHandler.updateBeast())
 		r.Delete("/api/beast/{beastID}", handlers.beastHandler.deleteBeast())
+
+		// Shared Notes (protected creation)
+		r.Post("/api/notes", handlers.noteHandler.createNote())
 	})
 }

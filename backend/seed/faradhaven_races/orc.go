@@ -13,7 +13,8 @@ func Orc() FaradhavenRaceSeed {
 			"strength":     2,
 			"constitution": 1,
 		},
-		Traits:       orcTraits(),
+		Languages: []string{"Common", "Orc"},
+		Traits:    orcTraits(),
 	}
 }
 

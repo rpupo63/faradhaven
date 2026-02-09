@@ -276,6 +276,7 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 					cl.EchoSlots = lp.EchoSlots
 					cl.MaxStability = lp.MaxStability
 					cl.MaxSpellLevel = lp.MaxSpellLevel
+					cl.MaxBloodIchor = lp.MaxBloodIchor
 					cl.BiteDamageDice = lp.BiteDamageDice
 				}
 			}

@@ -51,6 +51,7 @@ func (s *LevelUpService) LevelDown(userID uuid.UUID, characterID uuid.UUID) (*Le
 		character.Charisma = snapshot.Charisma
 		character.SpellbookIDs = snapshot.SpellbookIDs
 		character.CurrentSpellPoints = snapshot.CurrentSpellPoints
+		character.SanguineNotoriety = snapshot.Notoriety
 
 		// Restore HP and hit dice from snapshot
 		character.CurrentHP = snapshot.CurrentHP

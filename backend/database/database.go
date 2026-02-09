@@ -20,6 +20,7 @@ type Database struct {
 	itemRepo           *ItemRepo
 	componentRepo      *ComponentRepo
 	effectRepo         *EffectRepo
+	noteRepo           *NoteRepo
 }
 
 // New initializes a new Database struct with each repository using a shared GORM database instance
@@ -39,6 +40,7 @@ func New(db *gorm.DB) Database {
 		itemRepo:           NewItemRepo(db),
 		componentRepo:      NewComponentRepo(db),
 		effectRepo:         NewEffectRepo(db),
+		noteRepo:           NewNoteRepo(db),
 	}
 }
 
@@ -94,6 +96,10 @@ func (d Database) ComponentRepo() *ComponentRepo {
 
 func (d Database) EffectRepo() *EffectRepo {
 	return d.effectRepo
+}
+
+func (d Database) NoteRepo() *NoteRepo {
+	return d.noteRepo
 }
 
 // AutoMigrate runs GORM auto-migration for all models

@@ -9,6 +9,7 @@ func Boggart() FaradhavenRaceSeed {
 		CreatureType: "Humanoid",
 		Size:         "Small (about 2-4 feet tall)",
 		BaseSpeed:    30,
+		Languages:    []string{"Common", "Goblin"},
 		Traits:       boggartTraits(),
 	}
 }

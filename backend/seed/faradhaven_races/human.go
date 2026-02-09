@@ -17,7 +17,9 @@ func Human() FaradhavenRaceSeed {
 			"wisdom":       1,
 			"charisma":     1,
 		},
-		Traits:       humanTraits(),
+		Languages:          []string{"Common"},
+		BonusLanguageCount: 1,
+		Traits:             humanTraits(),
 	}
 }
 

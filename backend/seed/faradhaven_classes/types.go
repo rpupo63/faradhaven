@@ -64,6 +64,7 @@ type ClassLevelSeed struct {
 	EchoSlots        int // Lorewright: memory slots
 	MaxStability     int // Piston Brawler: stability pool max
 	MaxSpellLevel    int // Piston Brawler/Casters: spell level cap
+	MaxBloodIchor    int // Sanguinist: max ichor points
 	BiteDamageDice   int // Sanguinist: bite dice count (1 = 1d6, 2 = 2d6)
 }
 

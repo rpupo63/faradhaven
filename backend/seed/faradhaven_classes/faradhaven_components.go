@@ -121,32 +121,8 @@ func ClassComponentNames() map[string][]string {
 		// Master of blood, souls, and the boundary between life and death
 		// =============================================================================
 		"The Sanguinist": {
-			// Primordial Elements (6/14) - life/death elements
-			"Aqua", "Vita", "Umbra", "Arcanum", "Acidum", "Sanctus",
-			// Physical Forces (4/9) - blood manipulation
-			"Pull", "Crush", "Pierce", "Focus",
-			// Thermodynamic (2/4) - body temperature
-			"Heat", "Cool",
-			// Spatial & Temporal (4/7) - life force timing
-			"Slow", "Haste", "Echo", "Extreme",
-			// Life (4/4) - core domain, full mastery
-			"Mend", "Wither", "Revive", "Drain",
-			// Spell Shapes (6/8) - ritualistic shapes
-			"Beam", "Nova", "Wall", "Zone", "Self", "Cone",
-			// Abjuration (3/4) - life protection
-			"Absorb", "Seal", "Dispel",
-			// Conjuration (2/3) - summoning undead
-			"Summon", "Portal",
-			// Divination (3/4) - life sensing
-			"Sight", "Identify", "Link",
-			// Enchantment (4/4) - terror and control
-			"Fear", "Taunt", "Frenzy", "Command",
-			// Evocation (3/4) - life energy
-			"Channel", "Chain", "Rupture",
-			// Necromancy (4/4) - core domain, full mastery
-			"Bone", "Soul", "Curse", "Sacrifice",
-			// Transmutation (2/3) - flesh shaping
-			"Transmute", "Fuse",
+			// Essential Sanguinist components - Blood, Life, and Death
+			"Vita", "Umbra", "Mend", "Wither", "Drain", "Self", "Zone", "Soul", "Sacrifice", "Curse", "Rupture",
 		},
 
 		// =============================================================================

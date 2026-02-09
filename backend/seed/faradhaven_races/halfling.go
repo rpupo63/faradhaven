@@ -13,7 +13,8 @@ func Halfling() FaradhavenRaceSeed {
 			"dexterity": 2,
 			"charisma":  1,
 		},
-		Traits:       halflingTraits(),
+		Languages: []string{"Common", "Halfling"},
+		Traits:    halflingTraits(),
 	}
 }
 

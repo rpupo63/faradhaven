@@ -57,6 +57,7 @@ type ClassLevel struct {
 	EchoSlots        int `json:"echo_slots" gorm:"type:int;default:0"`        // Lorewright: memory slots
 	MaxStability     int `json:"max_stability" gorm:"type:int;default:0"`     // Piston Brawler: stability pool max
 	MaxSpellLevel    int `json:"max_spell_level" gorm:"type:int;default:0"`   // Piston Brawler/Casters: spell level cap
+	MaxBloodIchor    int `json:"max_blood_ichor" gorm:"type:int;default:0"`   // Sanguinist: max ichor points
 	BiteDamageDice   int `json:"bite_damage_dice" gorm:"type:int;default:0"`  // Sanguinist: bite dice count
 
 	Class Class `json:"-" gorm:"foreignKey:ClassID;references:ID"`

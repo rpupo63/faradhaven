@@ -50,5 +50,8 @@ func AllModels() []interface{} {
 
 		// Seed tracking
 		&SeedMetadata{},
+
+		// Community
+		&SharedNote{},
 	}
 }

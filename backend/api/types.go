@@ -17,6 +17,7 @@ type routeHandlers struct {
 	itemHandler      *itemHandler
 	componentHandler *componentHandler
 	effectHandler    *effectHandler
+	noteHandler      *noteHandler
 }
 
 // ErrorResponse represents an error response from the API
@@ -64,6 +65,7 @@ type CreateCharacterRequest struct {
 	CurrentSpellPoints int         `json:"current_spell_points"`
 	Money              int64       `json:"money"`
 	SkillProficiencies []string    `json:"skill_proficiencies"`         // D&D 5e skill ids (e.g. "persuasion", "stealth")
+	Languages          []string    `json:"languages"`                   // Languages chosen during character creation
 	EquipmentChoices   []uuid.UUID `json:"equipment_choices"`           // IDs of selected ClassStartingEquipmentOption
 	PrimaryWeaponID    *uuid.UUID  `json:"primary_weapon_id,omitempty"` // selected primary weapon for signature items
 }
@@ -89,6 +91,7 @@ type UpdateCharacterRequest struct {
 	Charisma           *int       `json:"charisma,omitempty"`
 	CurrentSpellPoints *int       `json:"current_spell_points,omitempty"`
 	Money              *int64     `json:"money,omitempty"`
+	Notoriety          *int       `json:"notoriety,omitempty"`
 	Notes              *string    `json:"notes,omitempty"`
 	SkillProficiencies []string   `json:"skill_proficiencies,omitempty"` // D&D 5e skill ids
 }
@@ -96,6 +99,11 @@ type UpdateCharacterRequest struct {
 type CastSpellRequest struct {
 	SpellID    *uuid.UUID `json:"spell_id,omitempty"`
 	SpellLevel int        `json:"spell_level"`
+}
+
+// UpdateNotorietyRequest is used to update notoriety manually
+type UpdateNotorietyRequest struct {
+	Delta int `json:"delta"`
 }
 
 // ClassWithLevelsResponse is a class with all levels 1-20 for the compendium/book view
@@ -107,31 +115,31 @@ type ClassWithLevelsResponse struct {
 
 // CharacterSheetResponse is the fully calculated character sheet (Class + ClassLevel joined)
 type CharacterSheetResponse struct {
-	Character                *models.Character         `json:"character"`
-	Class                    *models.Class             `json:"class"`
-	ClassLevel               *models.ClassLevel        `json:"class_level"`
-	MadnessTable             map[int]string            `json:"madness_table,omitempty"`
-	TotalHP                  int                       `json:"total_hp"`   // Deprecated: use max_hp
-	MaxHP                    int                       `json:"max_hp"`     // Character's maximum HP (persisted)
-	CurrentHP                int                       `json:"current_hp"` // Character's current HP (persisted)
-	TempHP                   int                       `json:"temp_hp"`    // Temporary HP
-	AC                       int                       `json:"ac"`         // 8 + ProficiencyBonus + DexMod
-	SaveDC                   int                       `json:"save_dc"`    // 8 + ProficiencyBonus + PrimaryAbilityMod
-	MaxSpellPoints           int                       `json:"max_spell_points"`
-	CurrentSpellPoints       int                       `json:"current_spell_points"`
-	SavingThrowProficiencies []string                  `json:"saving_throw_proficiencies"` // ability ids from class.SavingThrows
-	AvailableComponents      []models.Component        `json:"available_components"`       // combined class + race components for spell crafting
-	HitDiceTotal             int                       `json:"hit_dice_total"`             // Total hit dice = Level
-	HitDiceRemaining         int                       `json:"hit_dice_remaining"`         // Available hit dice = Level - HitDiceUsed
-	HitDie                   int                       `json:"hit_die"`                    // Class hit die (e.g., 10 for d10)
-	Money                    int64                     `json:"money"`                      // Currency in copper pieces
-	MeleeAttackBonus         int                       `json:"melee_attack_bonus"`         // Proficiency + STR mod
-	RangedAttackBonus        int                       `json:"ranged_attack_bonus"`        // Proficiency + DEX mod
-	RaceTraits               []models.Trait            `json:"race_traits"`                // Race traits for the character's race
-	Lineage                  *models.Lineage           `json:"lineage,omitempty"`          // Character's lineage (sub-race)
-	InventoryWeapons         []CharacterWeaponResponse `json:"inventory_weapons"`          // Detailed weapon objects with modifiers
-	InventoryItems           []models.Item             `json:"inventory_items"`            // Detailed item objects
-	Components               []models.CharacterComponent `json:"components"`               // Character's current component inventory
+	Character                *models.Character           `json:"character"`
+	Class                    *models.Class               `json:"class"`
+	ClassLevel               *models.ClassLevel          `json:"class_level"`
+	MadnessTable             map[int]string              `json:"madness_table,omitempty"`
+	TotalHP                  int                         `json:"total_hp"`   // Deprecated: use max_hp
+	MaxHP                    int                         `json:"max_hp"`     // Character's maximum HP (persisted)
+	CurrentHP                int                         `json:"current_hp"` // Character's current HP (persisted)
+	TempHP                   int                         `json:"temp_hp"`    // Temporary HP
+	AC                       int                         `json:"ac"`         // 8 + ProficiencyBonus + DexMod
+	SaveDC                   int                         `json:"save_dc"`    // 8 + ProficiencyBonus + PrimaryAbilityMod
+	MaxSpellPoints           int                         `json:"max_spell_points"`
+	CurrentSpellPoints       int                         `json:"current_spell_points"`
+	SavingThrowProficiencies []string                    `json:"saving_throw_proficiencies"` // ability ids from class.SavingThrows
+	AvailableComponents      []models.Component          `json:"available_components"`       // combined class + race components for spell crafting
+	HitDiceTotal             int                         `json:"hit_dice_total"`             // Total hit dice = Level
+	HitDiceRemaining         int                         `json:"hit_dice_remaining"`         // Available hit dice = Level - HitDiceUsed
+	HitDie                   int                         `json:"hit_die"`                    // Class hit die (e.g., 10 for d10)
+	Money                    int64                       `json:"money"`                      // Currency in copper pieces
+	MeleeAttackBonus         int                         `json:"melee_attack_bonus"`         // Proficiency + STR mod
+	RangedAttackBonus        int                         `json:"ranged_attack_bonus"`        // Proficiency + DEX mod
+	RaceTraits               []models.Trait              `json:"race_traits"`                // Race traits for the character's race
+	Lineage                  *models.Lineage             `json:"lineage,omitempty"`          // Character's lineage (sub-race)
+	InventoryWeapons         []CharacterWeaponResponse   `json:"inventory_weapons"`          // Detailed weapon objects with modifiers
+	InventoryItems           []models.Item               `json:"inventory_items"`            // Detailed item objects
+	Components               []models.CharacterComponent `json:"components"`                 // Character's current component inventory
 
 	// --- Class-Specific Resources ---
 	ResourceType      string `json:"resource_type,omitempty"`
@@ -140,6 +148,9 @@ type CharacterSheetResponse struct {
 	MaxStability      int    `json:"max_stability,omitempty"`
 	CurrentBloodIchor int    `json:"current_blood_ichor,omitempty"`
 	MaxBloodIchor     int    `json:"max_blood_ichor,omitempty"`
+	Notoriety         int    `json:"notoriety,omitempty"`
+	SanguineMP        int    `json:"sanguine_mp,omitempty"`
+	SanguineBR        int    `json:"sanguine_br,omitempty"`
 	MadnessCastCount  int    `json:"madness_cast_count,omitempty"`
 	MadnessBaseDC     int    `json:"madness_base_dc,omitempty"`
 	FeralBonus        int    `json:"feral_bonus,omitempty"`
@@ -308,6 +319,9 @@ type RestResponse struct {
 	MaxStability      int `json:"max_stability,omitempty"`
 	CurrentBloodIchor int `json:"current_blood_ichor,omitempty"`
 	MaxBloodIchor     int `json:"max_blood_ichor,omitempty"`
+	Notoriety         int `json:"notoriety,omitempty"`
+	SanguineMP        int `json:"sanguine_mp,omitempty"`
+	SanguineBR        int `json:"sanguine_br,omitempty"`
 	MadnessCastCount  int `json:"madness_cast_count,omitempty"`
 }
 

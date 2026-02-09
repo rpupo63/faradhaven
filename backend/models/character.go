@@ -35,6 +35,9 @@ type Character struct {
 	// Class-specific resource tracking (current values; max comes from ClassLevel)
 	CurrentStability  int `json:"current_stability" gorm:"type:int;default:0"`   // Piston Brawler
 	CurrentBloodIchor int `json:"current_blood_ichor" gorm:"type:int;default:0"` // Sanguinist
+	SanguineNotoriety int `json:"sanguine_notoriety" gorm:"type:int;default:0"`  // Net value between -20 and +20
+	SanguineMP        int `json:"sanguine_mp" gorm:"type:int;default:0"`         // Medical Prodigy points
+	SanguineBR        int `json:"sanguine_br" gorm:"type:int;default:0"`         // Blood Rage points
 	MadnessCastCount  int `json:"madness_cast_count" gorm:"type:int;default:0"`  // Mutagen: casts since rest
 	EchoSlotsUsed     int `json:"echo_slots_used" gorm:"type:int;default:0"`     // Lorewright
 
@@ -49,6 +52,9 @@ type Character struct {
 	// Currency (in Copper Pieces)
 	// 1 gp = 100 cp, 1 sp = 10 cp, 1 pp = 1000 cp
 	Money int64 `json:"money" gorm:"type:bigint;default:0"`
+
+	// Languages known by this character (e.g., ["Common", "Elvish", "Dwarvish"])
+	Languages pq.StringArray `json:"languages" gorm:"type:text[]"`
 
 	// Character backstory (rich text stored as HTML)
 	Backstory string `json:"backstory" gorm:"type:text"`
@@ -70,11 +76,11 @@ type Character struct {
 	// ============================================================
 	// RELATIONSHIPS: Loaded via Preload, stored via foreign keys
 	// ============================================================
-	User               User             `json:"-" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	Race               Race             `json:"race" gorm:"foreignKey:RaceID;references:ID"`
-	Class              Class            `json:"class" gorm:"foreignKey:ClassID;references:ID"`
-	Archetype          *Archetype       `json:"archetype,omitempty" gorm:"foreignKey:ArchetypeID;references:ID"`
-	SkillProficiencies []CharacterSkill `json:"-" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
+	User               User                 `json:"-" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	Race               Race                 `json:"race" gorm:"foreignKey:RaceID;references:ID"`
+	Class              Class                `json:"class" gorm:"foreignKey:ClassID;references:ID"`
+	Archetype          *Archetype           `json:"archetype,omitempty" gorm:"foreignKey:ArchetypeID;references:ID"`
+	SkillProficiencies []CharacterSkill     `json:"-" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
 	Components         []CharacterComponent `json:"components,omitempty" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
 
 	// Inventory Relationships

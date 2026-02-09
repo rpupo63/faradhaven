@@ -42,5 +42,6 @@ func initializeHandlers(db database.Database) *routeHandlers {
 		itemHandler:      newItemHandler(db.ItemRepo()),
 		componentHandler: newComponentHandler(db.ComponentRepo()),
 		effectHandler:    newEffectHandler(db.EffectRepo()),
+		noteHandler:      newNoteHandler(db.NoteRepo()),
 	}
 }

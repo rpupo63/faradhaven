@@ -351,41 +351,43 @@ func (h *levelHandler) shortRest() http.HandlerFunc {
 			return
 		}
 
-		character, err := h.levelUpService.ShortRest(userID, characterID)
-		if err != nil {
-			log.Error().Err(err).Str("characterID", characterIDStr).Msg("Failed to short rest")
-			if err == services.ErrUnauthorized {
-				respondError(w, http.StatusForbidden, err.Error())
-				return
-			}
-			respondError(w, http.StatusInternalServerError, "Failed to short rest")
-			return
-		}
-
-		// Get class level for max values
-		classLevel, _ := h.classRepo.FindLevelByClassAndLevel(character.ClassID, character.Level)
-		maxSP := 0
-		maxStability := 0
-		if classLevel != nil {
-			maxSP = classLevel.MaxSpellPoints
-			maxStability = classLevel.MaxStability
-		}
-
-		resp := RestResponse{
-			CurrentHP:          character.CurrentHP,
-			MaxHP:              character.MaxHP,
-			TempHP:             character.TempHP,
-			CurrentSpellPoints: character.CurrentSpellPoints,
-			MaxSpellPoints:     maxSP,
-			HitDiceRemaining:   character.Level - character.HitDiceUsed,
-			HitDiceTotal:       character.Level,
-			CurrentStability:   character.CurrentStability,
-			MaxStability:       maxStability,
-			CurrentBloodIchor:  character.CurrentBloodIchor,
-			MaxBloodIchor:      h.resourceService.ComputeMaxBloodIchor(character),
-			MadnessCastCount:   character.MadnessCastCount,
-		}
-		respondJSON(w, http.StatusOK, resp)
+		        character, err := h.levelUpService.ShortRest(userID, characterID)
+				if err != nil {
+					log.Error().Err(err).Str("characterID", characterIDStr).Msg("Failed to short rest")
+					if err == services.ErrUnauthorized {
+						respondError(w, http.StatusForbidden, err.Error())
+						return
+					}
+					respondError(w, http.StatusInternalServerError, "Failed to short rest")
+					return
+				}
+		
+				// Get class level for max values
+				classLevel, _ := h.classRepo.FindLevelByClassAndLevel(character.ClassID, character.Level)
+				maxSP := 0
+				maxStability := 0
+				if classLevel != nil {
+					maxSP = classLevel.MaxSpellPoints
+					maxStability = classLevel.MaxStability
+				}
+		
+				resp := RestResponse{
+					CurrentHP:          character.CurrentHP,
+					MaxHP:              character.MaxHP,
+					TempHP:             character.TempHP,
+					CurrentSpellPoints: character.CurrentSpellPoints,
+					MaxSpellPoints:     maxSP,
+					HitDiceRemaining:   character.Level - character.HitDiceUsed,
+					HitDiceTotal:       character.Level,
+					CurrentStability:   character.CurrentStability,
+					MaxStability:       maxStability,
+					CurrentBloodIchor:  character.CurrentBloodIchor,
+					MaxBloodIchor:      h.resourceService.ComputeMaxBloodIchor(character),
+					SanguineMP:         character.SanguineMP,
+					SanguineBR:         character.SanguineBR,
+					MadnessCastCount:   character.MadnessCastCount,
+				}
+				respondJSON(w, http.StatusOK, resp)
 	}
 }
 
