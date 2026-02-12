@@ -6,41 +6,57 @@ import (
 )
 
 type Database struct {
-	db                 *gorm.DB
-	userRepo           *UserRepo
-	characterRepo      *CharacterRepo
-	raceRepo           *RaceRepo
-	classRepo          *ClassRepo
-	archetypeRepo      *ArchetypeRepo
-	spellRepo          *SpellRepo
-	beastRepo          *BeastRepo
-	attackRepo         *AttackRepo
-	levelUpHistoryRepo *LevelUpHistoryRepo
-	weaponRepo         *WeaponRepo
-	itemRepo           *ItemRepo
-	componentRepo      *ComponentRepo
-	effectRepo         *EffectRepo
-	noteRepo           *NoteRepo
+	db                     *gorm.DB
+	userRepo               *UserRepo
+	characterRepo          *CharacterRepo
+	raceRepo               *RaceRepo
+	classRepo              *ClassRepo
+	archetypeRepo          *ArchetypeRepo
+	spellRepo              *SpellRepo
+	beastRepo              *BeastRepo
+	attackRepo             *AttackRepo
+	levelUpHistoryRepo     *LevelUpHistoryRepo
+	weaponRepo             *WeaponRepo
+	itemRepo               *ItemRepo
+	componentRepo          *ComponentRepo
+	effectRepo             *EffectRepo
+	characterEffectRepo    *CharacterEffectRepo
+	characterResourceRepo  *CharacterResourceRepo
+	minionRepo             *MinionRepo
+	consumptionHistoryRepo *ConsumptionHistoryRepo
+	savedSpellRepo         *SavedSpellRepo
+	corpseRepo             *CorpseRepo
+	characterLinkRepo      *CharacterLinkRepo
+	noteRepo               *NoteRepo
+	mapRepo                *MapRepo
 }
 
 // New initializes a new Database struct with each repository using a shared GORM database instance
 func New(db *gorm.DB) Database {
 	return Database{
-		db:                 db,
-		userRepo:           NewUserRepo(db),
-		characterRepo:      NewCharacterRepo(db),
-		raceRepo:           NewRaceRepo(db),
-		classRepo:          NewClassRepo(db),
-		archetypeRepo:      NewArchetypeRepo(db),
-		spellRepo:          NewSpellRepo(db),
-		beastRepo:          NewBeastRepo(db),
-		attackRepo:         NewAttackRepo(db),
-		levelUpHistoryRepo: NewLevelUpHistoryRepo(db),
-		weaponRepo:         NewWeaponRepo(db),
-		itemRepo:           NewItemRepo(db),
-		componentRepo:      NewComponentRepo(db),
-		effectRepo:         NewEffectRepo(db),
-		noteRepo:           NewNoteRepo(db),
+		db:                     db,
+		userRepo:               NewUserRepo(db),
+		characterRepo:          NewCharacterRepo(db),
+		raceRepo:               NewRaceRepo(db),
+		classRepo:              NewClassRepo(db),
+		archetypeRepo:          NewArchetypeRepo(db),
+		spellRepo:              NewSpellRepo(db),
+		beastRepo:              NewBeastRepo(db),
+		attackRepo:             NewAttackRepo(db),
+		levelUpHistoryRepo:     NewLevelUpHistoryRepo(db),
+		weaponRepo:             NewWeaponRepo(db),
+		itemRepo:               NewItemRepo(db),
+		componentRepo:          NewComponentRepo(db),
+		effectRepo:             NewEffectRepo(db),
+		characterEffectRepo:    NewCharacterEffectRepo(db),
+		characterResourceRepo:  NewCharacterResourceRepo(db),
+		consumptionHistoryRepo: NewConsumptionHistoryRepo(db),
+		minionRepo:             NewMinionRepo(db),
+		savedSpellRepo:         NewSavedSpellRepo(db),
+		corpseRepo:             NewCorpseRepo(db),
+		characterLinkRepo:      NewCharacterLinkRepo(db),
+		noteRepo:               NewNoteRepo(db),
+		mapRepo:                NewMapRepo(db),
 	}
 }
 
@@ -98,13 +114,56 @@ func (d Database) EffectRepo() *EffectRepo {
 	return d.effectRepo
 }
 
+func (d Database) CharacterEffectRepo() *CharacterEffectRepo {
+	return d.characterEffectRepo
+}
+
+func (d Database) CharacterResourceRepo() *CharacterResourceRepo {
+	return d.characterResourceRepo
+}
+
+func (d Database) MinionRepo() *MinionRepo {
+	return d.minionRepo
+}
+
+func (d Database) SavedSpellRepo() *SavedSpellRepo {
+	return d.savedSpellRepo
+}
+
+func (d Database) CorpseRepo() *CorpseRepo {
+	return d.corpseRepo
+}
+
+func (d Database) CharacterLinkRepo() *CharacterLinkRepo {
+	return d.characterLinkRepo
+}
+
 func (d Database) NoteRepo() *NoteRepo {
 	return d.noteRepo
 }
 
+func (d Database) ConsumptionHistoryRepo() *ConsumptionHistoryRepo {
+	return d.consumptionHistoryRepo
+}
+
+func (d Database) MapRepo() *MapRepo {
+	return d.mapRepo
+}
+
 // AutoMigrate runs GORM auto-migration for all models
 func (d Database) AutoMigrate() error {
-	return d.db.AutoMigrate(models.AllModels()...)
+	if err := d.db.AutoMigrate(models.AllModels()...); err != nil {
+		return err
+	}
+
+	// Drop legacy columns that GORM AutoMigrate won't remove
+	if d.db.Migrator().HasColumn(&models.ClassLevel{}, "features") {
+		if err := d.db.Migrator().DropColumn(&models.ClassLevel{}, "features"); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // DB returns the underlying GORM database instance

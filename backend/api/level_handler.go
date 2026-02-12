@@ -3,26 +3,75 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/rpupo63/unified-personal-site-backend/database"
+	"github.com/rpupo63/unified-personal-site-backend/models"
 	"github.com/rpupo63/unified-personal-site-backend/services"
 	"github.com/rs/zerolog/log"
 )
 
 type levelHandler struct {
-	levelUpService  *services.LevelUpService
-	classRepo       *database.ClassRepo
-	resourceService *services.ResourceService
+	levelUpService         *services.LevelUpService
+	classRepo              *database.ClassRepo
+	characterResourceRepo  database.CharacterResourceRepository
+	beastRepo              database.BeastRepository
+	consumptionHistoryRepo database.ConsumptionHistoryRepository
 }
 
-func newLevelHandler(levelUpService *services.LevelUpService, classRepo *database.ClassRepo, resourceService *services.ResourceService) *levelHandler {
+func newLevelHandler(
+	levelUpService *services.LevelUpService,
+	classRepo *database.ClassRepo,
+	characterResourceRepo database.CharacterResourceRepository,
+	beastRepo database.BeastRepository,
+	consumptionHistoryRepo database.ConsumptionHistoryRepository,
+) *levelHandler {
 	return &levelHandler{
-		levelUpService:  levelUpService,
-		classRepo:       classRepo,
-		resourceService: resourceService,
+		levelUpService:         levelUpService,
+		classRepo:              classRepo,
+		characterResourceRepo:  characterResourceRepo,
+		beastRepo:              beastRepo,
+		consumptionHistoryRepo: consumptionHistoryRepo,
 	}
+}
+
+// buildClassResources aggregates resource definitions, level values, and character state
+// into a response-ready slice of ClassResourceResponse.
+func (h *levelHandler) buildClassResources(classID uuid.UUID, level int, characterID uuid.UUID) []ClassResourceResponse {
+	defs, err := h.classRepo.FindResourceDefinitionsByClassID(classID)
+	if err != nil || len(defs) == 0 {
+		return nil
+	}
+
+	resourceMap, _ := h.classRepo.GetLevelResourceMap(classID, level)
+	charResources, _ := h.characterResourceRepo.FindByCharacterID(characterID)
+	charResMap := make(map[string]*models.CharacterResource, len(charResources))
+	for _, cr := range charResources {
+		charResMap[cr.ResourceKey] = cr
+	}
+
+	result := make([]ClassResourceResponse, 0, len(defs))
+	for _, def := range defs {
+		resp := ClassResourceResponse{
+			Key:          def.ResourceKey,
+			DisplayName:  def.DisplayName,
+			Category:     def.Category,
+			Description:  def.Description,
+			Value:        resourceMap[def.ResourceKey],
+			IsTrackable:  def.IsTrackable,
+			DisplayOrder: def.DisplayOrder,
+		}
+		if def.IsTrackable {
+			if cr, ok := charResMap[def.ResourceKey]; ok {
+				resp.CurrentValue = &cr.CurrentValue
+				resp.MaxValue = cr.MaxValue
+			}
+		}
+		result = append(result, resp)
+	}
+	return result
 }
 
 // levelUp handles POST /api/character/{characterID}/level-up
@@ -215,7 +264,41 @@ func (h *levelHandler) updateHP() http.HandlerFunc {
 			return
 		}
 
-		character, err := h.levelUpService.UpdateHP(userID, characterID, req.Delta)
+		var source string
+		if req.Source != nil {
+			source = *req.Source
+		}
+
+		modifiedDelta := req.Delta
+
+		// --- Lorewright: Predator's Strike Logic ---
+		// Applies only if this is damage (delta < 0), a target is specified, and character is a Lorewright Warlord
+		if modifiedDelta < 0 && req.TargetID != nil {
+			// Fetch character with all relations to check class and archetype
+			character, err := h.levelUpService.CharacterRepo.FindByIDWithRelations(characterID)
+			if err != nil {
+				log.Error().Err(err).Str("characterID", characterIDStr).Msg("Failed to get character for Predator's Strike")
+				// Continue without Predator's Strike if character fetch fails
+			} else if character.Class.Name == "The Lorewright" && character.Archetype != nil && character.Archetype.Name == "Path of the Warlord" {
+				// Fetch target beast
+				targetBeast, err := h.beastRepo.FindByID(*req.TargetID)
+				if err != nil {
+					log.Error().Err(err).Stringer("targetBeastID", *req.TargetID).Msg("Failed to get target beast for Predator's Strike")
+					// Continue without Predator's Strike if beast fetch fails
+				} else {
+					// Check consumption history for the last 24 hours
+					since := time.Now().Add(-24 * time.Hour)
+					_, err := h.consumptionHistoryRepo.FindRecentByCharacterAndType(character.ID, targetBeast.Type, since)
+					if err == nil { // Entry found, meaning creature type was harvested recently
+						wisdomMod := models.AbilityModifier(character.Wisdom)
+						modifiedDelta -= wisdomMod // Delta is negative, so subtracting makes it more negative (more damage)
+						log.Debug().Int("originalDelta", req.Delta).Int("modifiedDelta", modifiedDelta).Int("wisdomMod", wisdomMod).Msg("Predator's Strike applied")
+					}
+				}
+			}
+		}
+
+		character, err := h.levelUpService.UpdateHP(userID, characterID, modifiedDelta, source)
 		if err != nil {
 			log.Error().Err(err).Str("characterID", characterIDStr).Msg("Failed to update HP")
 			if err == services.ErrUnauthorized {
@@ -351,43 +434,35 @@ func (h *levelHandler) shortRest() http.HandlerFunc {
 			return
 		}
 
-		        character, err := h.levelUpService.ShortRest(userID, characterID)
-				if err != nil {
-					log.Error().Err(err).Str("characterID", characterIDStr).Msg("Failed to short rest")
-					if err == services.ErrUnauthorized {
-						respondError(w, http.StatusForbidden, err.Error())
-						return
-					}
-					respondError(w, http.StatusInternalServerError, "Failed to short rest")
-					return
-				}
-		
-				// Get class level for max values
-				classLevel, _ := h.classRepo.FindLevelByClassAndLevel(character.ClassID, character.Level)
-				maxSP := 0
-				maxStability := 0
-				if classLevel != nil {
-					maxSP = classLevel.MaxSpellPoints
-					maxStability = classLevel.MaxStability
-				}
-		
-				resp := RestResponse{
-					CurrentHP:          character.CurrentHP,
-					MaxHP:              character.MaxHP,
-					TempHP:             character.TempHP,
-					CurrentSpellPoints: character.CurrentSpellPoints,
-					MaxSpellPoints:     maxSP,
-					HitDiceRemaining:   character.Level - character.HitDiceUsed,
-					HitDiceTotal:       character.Level,
-					CurrentStability:   character.CurrentStability,
-					MaxStability:       maxStability,
-					CurrentBloodIchor:  character.CurrentBloodIchor,
-					MaxBloodIchor:      h.resourceService.ComputeMaxBloodIchor(character),
-					SanguineMP:         character.SanguineMP,
-					SanguineBR:         character.SanguineBR,
-					MadnessCastCount:   character.MadnessCastCount,
-				}
-				respondJSON(w, http.StatusOK, resp)
+		character, err := h.levelUpService.ShortRest(userID, characterID)
+		if err != nil {
+			log.Error().Err(err).Str("characterID", characterIDStr).Msg("Failed to short rest")
+			if err == services.ErrUnauthorized {
+				respondError(w, http.StatusForbidden, err.Error())
+				return
+			}
+			respondError(w, http.StatusInternalServerError, "Failed to short rest")
+			return
+		}
+
+		// Get class level for max spell points
+		classLevel, _ := h.classRepo.FindLevelByClassAndLevel(character.ClassID, character.Level)
+		maxSP := 0
+		if classLevel != nil {
+			maxSP = classLevel.MaxSpellPoints
+		}
+
+		resp := RestResponse{
+			CurrentHP:          character.CurrentHP,
+			MaxHP:              character.MaxHP,
+			TempHP:             character.TempHP,
+			CurrentSpellPoints: character.CurrentSpellPoints,
+			MaxSpellPoints:     maxSP,
+			HitDiceRemaining:   character.Level - character.HitDiceUsed,
+			HitDiceTotal:       character.Level,
+			ClassResources:     h.buildClassResources(character.ClassID, character.Level, character.ID),
+		}
+		respondJSON(w, http.StatusOK, resp)
 	}
 }
 
@@ -423,13 +498,11 @@ func (h *levelHandler) longRest() http.HandlerFunc {
 			return
 		}
 
-		// Get class level for max values
+		// Get class level for max spell points
 		classLevel, _ := h.classRepo.FindLevelByClassAndLevel(character.ClassID, character.Level)
 		maxSP := 0
-		maxStability := 0
 		if classLevel != nil {
 			maxSP = classLevel.MaxSpellPoints
-			maxStability = classLevel.MaxStability
 		}
 
 		resp := RestResponse{
@@ -440,11 +513,7 @@ func (h *levelHandler) longRest() http.HandlerFunc {
 			MaxSpellPoints:     maxSP,
 			HitDiceRemaining:   character.Level - character.HitDiceUsed,
 			HitDiceTotal:       character.Level,
-			CurrentStability:   character.CurrentStability,
-			MaxStability:       maxStability,
-			CurrentBloodIchor:  character.CurrentBloodIchor,
-			MaxBloodIchor:      h.resourceService.ComputeMaxBloodIchor(character),
-			MadnessCastCount:   character.MadnessCastCount,
+			ClassResources:     h.buildClassResources(character.ClassID, character.Level, character.ID),
 		}
 		respondJSON(w, http.StatusOK, resp)
 	}

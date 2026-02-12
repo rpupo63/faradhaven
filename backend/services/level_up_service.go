@@ -23,11 +23,12 @@ var (
 
 type LevelUpService struct {
 	db              *gorm.DB
-	characterRepo   *database.CharacterRepo
+	CharacterRepo   *database.CharacterRepo
 	classRepo       *database.ClassRepo
 	historyRepo     *database.LevelUpHistoryRepo
 	archetypeRepo   *database.ArchetypeRepo
 	weaponRepo      *database.WeaponRepo
+	componentRepo   *database.ComponentRepo
 	resourceService *ResourceService
 }
 
@@ -38,15 +39,17 @@ func NewLevelUpService(
 	historyRepo *database.LevelUpHistoryRepo,
 	archetypeRepo *database.ArchetypeRepo,
 	weaponRepo *database.WeaponRepo,
+	componentRepo *database.ComponentRepo,
 	resourceService *ResourceService,
 ) *LevelUpService {
 	return &LevelUpService{
 		db:              db,
-		characterRepo:   characterRepo,
+		CharacterRepo:   characterRepo,
 		classRepo:       classRepo,
 		historyRepo:     historyRepo,
 		archetypeRepo:   archetypeRepo,
 		weaponRepo:      weaponRepo,
+		componentRepo:   componentRepo,
 		resourceService: resourceService,
 	}
 }
@@ -57,10 +60,11 @@ type LevelUpRequest struct {
 	SkillSelections []string       `json:"skill_selections,omitempty"`  // new skills to add
 	ASIAllocation   map[string]int `json:"asi_allocation,omitempty"`    // {"strength": 1, "dexterity": 1}
 	SpellsLearned   []string       `json:"spells_learned,omitempty"`    // new spell IDs
-	NotorietyChange int            `json:"notoriety_change,omitempty"`  // net change to notoriety from choices
 	HPRollResult    *int           `json:"hp_roll_result,omitempty"`    // nil = use average, otherwise the rolled value
 	ArchetypeID     *uuid.UUID     `json:"archetype_id,omitempty"`      // required when reaching archetype level
 	PrimaryWeaponID *uuid.UUID     `json:"primary_weapon_id,omitempty"` // selected primary weapon for signature items
+	MPChange        int            `json:"mp_change,omitempty"`         // Sanguinist MP change
+	BRChange        int            `json:"br_change,omitempty"`         // Sanguinist BR change
 }
 
 // LevelUpResponse contains the result of a level-up operation
@@ -98,7 +102,7 @@ type WeaponSelectionInfo struct {
 // LevelUp advances a character by one level, applying choices and saving history
 func (s *LevelUpService) LevelUp(userID uuid.UUID, req LevelUpRequest) (*LevelUpResponse, error) {
 	// 1. Load character with skills
-	character, err := s.characterRepo.FindByIDWithSkills(req.CharacterID)
+	character, err := s.CharacterRepo.FindByIDWithSkills(req.CharacterID)
 	if err != nil {
 		return nil, fmt.Errorf("character not found: %w", err)
 	}
@@ -230,19 +234,10 @@ func (s *LevelUpService) LevelUp(userID uuid.UUID, req LevelUpRequest) (*LevelUp
 		// Reset spell points to new max
 		character.CurrentSpellPoints = newClassLevel.MaxSpellPoints
 
-		// Apply and cap notoriety change
-		character.SanguineNotoriety += req.NotorietyChange
-		if character.SanguineNotoriety > 20 {
-			character.SanguineNotoriety = 20
-		} else if character.SanguineNotoriety < -20 {
-			character.SanguineNotoriety = -20
-		}
-
-		// Update class-specific resource pools
-		if character.Class.ResourceType == "stability" {
-			character.CurrentStability = newClassLevel.MaxStability
-		} else if character.Class.ResourceType == "blood_ichor" {
-			character.CurrentBloodIchor = s.resourceService.ComputeMaxBloodIchor(character)
+		// Update generic CharacterResource max values for new level
+		if err := s.resourceService.UpdateCharacterResourcesForLevel(character.ID, character.ClassID, newLevel); err != nil {
+			// Log but don't fail the level-up for this
+			_ = err
 		}
 
 		// Apply archetype selection if made at this level

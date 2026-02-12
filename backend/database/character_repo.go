@@ -12,6 +12,7 @@ type CharacterRepository interface {
 	FindAll() ([]*models.Character, error)
 	FindByID(id uuid.UUID) (*models.Character, error)
 	FindByIDWithSkills(id uuid.UUID) (*models.Character, error)
+	FindByIDWithRelations(id uuid.UUID) (*models.Character, error)
 	FindByUserID(userID uuid.UUID) ([]*models.Character, error)
 	Add(character *models.Character) error
 	Update(character *models.Character) error
@@ -57,6 +58,32 @@ func (r *CharacterRepo) FindByIDWithSkills(id uuid.UUID) (*models.Character, err
 	if err := r.db.Preload("Race").Preload("Class").Preload("Archetype").Preload("Race.Traits.Options").Preload("Components.Component").First(&character, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
+	var skills []models.CharacterSkill
+	if err := r.db.Where("character_id = ?", id).Find(&skills).Error; err != nil {
+		return nil, err
+	}
+	for _, s := range skills {
+		if s.Proficient {
+			character.SkillProficiencyIDs = append(character.SkillProficiencyIDs, s.SkillID)
+		}
+	}
+	return &character, nil
+}
+
+// FindByIDWithRelations returns a character by ID with all necessary relations for Lorewright features
+func (r *CharacterRepo) FindByIDWithRelations(id uuid.UUID) (*models.Character, error) {
+	var character models.Character
+	if err := r.db.
+		Preload("Race").
+		Preload("Class").
+		Preload("Class.ClassLevels"). // Crucial for Lorewright slot checks
+		Preload("Archetype").
+		Preload("Race.Traits.Options").
+		Preload("Components.Component").
+		First(&character, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	// Manually populate SkillProficiencyIDs as it's a computed field
 	var skills []models.CharacterSkill
 	if err := r.db.Where("character_id = ?", id).Find(&skills).Error; err != nil {
 		return nil, err

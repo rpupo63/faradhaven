@@ -9,7 +9,7 @@ import (
 
 // GetLevelHistory returns all level-up history for a character
 func (s *LevelUpService) GetLevelHistory(userID uuid.UUID, characterID uuid.UUID) ([]*models.LevelUpHistory, error) {
-	character, err := s.characterRepo.FindByID(characterID)
+	character, err := s.CharacterRepo.FindByID(characterID)
 	if err != nil {
 		return nil, fmt.Errorf("character not found: %w", err)
 	}
@@ -23,7 +23,7 @@ func (s *LevelUpService) GetLevelHistory(userID uuid.UUID, characterID uuid.UUID
 
 // GetLevelUpPreview returns what will be available at the next level
 func (s *LevelUpService) GetLevelUpPreview(userID uuid.UUID, characterID uuid.UUID) (*LevelUpPreview, error) {
-	character, err := s.characterRepo.FindByIDWithSkills(characterID)
+	character, err := s.CharacterRepo.FindByIDWithSkills(characterID)
 	if err != nil {
 		return nil, fmt.Errorf("character not found: %w", err)
 	}

@@ -144,15 +144,8 @@ func (h *characterHandler) createCharacter() http.HandlerFunc {
 		character.MaxHP = initialHP
 		character.CurrentHP = initialHP
 
-		// Initialize class-specific resources
-		if class.ResourceType == "stability" {
-			// Find level 1 max stability
-			if cl, err := h.classRepo.FindLevelByClassAndLevel(class.ID, 1); err == nil {
-				character.CurrentStability = cl.MaxStability
-			}
-		} else if class.ResourceType == "blood_ichor" {
-			character.CurrentBloodIchor = h.resourceService.ComputeMaxBloodIchor(character)
-		}
+		// Class-specific trackable resources are initialized via
+		// resourceService.InitializeCharacterResources() after the character is persisted.
 
 		// Process Equipment
 		var inventory []string
@@ -219,6 +212,12 @@ func (h *characterHandler) createCharacter() http.HandlerFunc {
 			log.Error().Err(err).Msg("Failed to create character")
 			respondError(w, http.StatusInternalServerError, "Failed to create character")
 			return
+		}
+
+		// Initialize generic CharacterResource rows from class resource definitions
+		if err := h.resourceService.InitializeCharacterResources(character.ID, character.ClassID, character.Level); err != nil {
+			log.Error().Err(err).Msg("Failed to initialize character resources")
+			// Non-fatal: character was created successfully, resources can be backfilled later
 		}
 
 		// Handle Primary Weapon and Modifiers (v2)

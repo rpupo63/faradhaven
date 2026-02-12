@@ -17,6 +17,7 @@ type Component struct {
 	Category    ComponentCategory `json:"category" gorm:"type:text;not null"` // primordial, physical, etc.
 	Description string            `json:"description" gorm:"type:text"`
 	Element     string            `json:"element,omitempty" gorm:"type:text"` // e.g. fire, lightning, necrotic
+	Tier        int               `json:"tier" gorm:"type:int;default:1"`     // 1 = basic (primordial/physical/shape), 2 = advanced
 	CreatedAt   time.Time         `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedAt   time.Time         `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 }

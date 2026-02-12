@@ -33,11 +33,6 @@ type Class struct {
 	// Level at which characters choose their archetype (nil = no archetypes for this class)
 	ArchetypeLevel *int `json:"archetype_level,omitempty" gorm:"type:int"`
 
-	// --- Resource System ---
-	ResourceType        string `json:"resource_type,omitempty" gorm:"type:text"`         // e.g., "spell_points", "stability", "blood_ichor"
-	ResourceName        string `json:"resource_name,omitempty" gorm:"type:text"`         // Display name for the resource
-	ResourceRestoreType string `json:"resource_restore_type,omitempty" gorm:"type:text"` // "long_rest", "short_rest", "special", "none"
-
 	// ============================================================
 	// RELATIONSHIPS: Loaded via Preload, stored via foreign keys
 	// ============================================================

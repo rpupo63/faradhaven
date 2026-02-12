@@ -39,6 +39,10 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Get("/api/beast/{beastID}", handlers.beastHandler.getBeast())
 		// Shared Notes
 		r.Get("/api/notes", handlers.noteHandler.getAllNotes())
+
+		// Maps (Public read access)
+		r.Get("/api/map/{mapID}", handlers.mapHandler.getMap())
+		r.Get("/api/map/room/{roomCode}", handlers.mapHandler.getMapByRoom())
 	})
 
 	// Protected API routes (token required)
@@ -68,15 +72,64 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Post("/api/character", handlers.characterHandler.createCharacter())
 		r.Put("/api/character/{characterID}", handlers.characterHandler.updateCharacter())
 		r.Post("/api/character/{characterID}/notoriety", handlers.characterHandler.updateNotoriety())
+		r.Post("/api/character/{characterID}/sanguine-notoriety", handlers.characterHandler.updateSanguineNotorietyPoints())
 		r.Delete("/api/character/{characterID}", handlers.characterHandler.deleteCharacter())
 		r.Post("/api/character/{characterID}/purchase", handlers.characterHandler.purchaseItem())
 		r.Post("/api/character/{characterID}/image", handlers.characterHandler.uploadProfilePicture())
+		r.Post("/api/characters/{characterID}/madness/roll", handlers.madnessHandler.rollMadness())
+
+		// Character Link Endpoints
+		r.Route("/api/character/{characterID}/links", func(r chi.Router) {
+			r.Get("/", handlers.linkHandler.getLinks())
+			r.Post("/", handlers.linkHandler.createLink())
+			r.Delete("/{linkID}", handlers.linkHandler.removeLink())
+		})
 
 		// Character backstory endpoints
 		r.Get("/api/character/{characterID}/backstory", handlers.characterHandler.getBackstory())
 		r.Put("/api/character/{characterID}/backstory", handlers.characterHandler.updateBackstory())
 
-		// Level-up/Level-down endpoints
+		// Mechanics Routes
+		r.Route("/characters/{id}/mechanics", func(r chi.Router) {
+			r.Post("/roll-table", handlers.mechanicsHandler.RollTable)
+			r.Post("/mutagen-cast", handlers.mechanicsHandler.MutagenCast)
+			r.Get("/effects", handlers.mechanicsHandler.GetActiveEffects)
+			r.Delete("/effects/{effectID}", handlers.mechanicsHandler.RemoveEffect)
+		})
+
+		// Character Effect Routes (enhanced effect management)
+		r.Route("/characters/{id}/effects", func(r chi.Router) {
+			r.Get("/", handlers.characterEffectHandler.GetActiveEffects())
+			r.Post("/", handlers.characterEffectHandler.ApplyEffect())
+			r.Put("/{effectInstanceID}/stack", handlers.characterEffectHandler.ModifyStacks())
+			r.Delete("/{effectInstanceID}", handlers.characterEffectHandler.RemoveEffect())
+			r.Post("/tick", handlers.characterEffectHandler.TickDuration())
+			r.Post("/break-concentration", handlers.characterEffectHandler.BreakConcentration())
+		})
+
+		// Character Resource Routes
+		r.Route("/characters/{id}/resources", func(r chi.Router) {
+			r.Get("/", handlers.resourceHandler.GetResources())
+			r.Post("/", handlers.resourceHandler.CreateResource())
+			r.Get("/{key}", handlers.resourceHandler.GetResource())
+			r.Post("/{key}/spend", handlers.resourceHandler.SpendResource())
+			r.Post("/{key}/gain", handlers.resourceHandler.GainResource())
+			r.Delete("/{key}", handlers.resourceHandler.DeleteResource())
+		})
+
+		// Minion Routes (constructs, echoes, etc.)
+		r.Route("/characters/{id}/minions", func(r chi.Router) {
+			r.Get("/", handlers.minionHandler.GetMinions())
+			r.Post("/", handlers.minionHandler.CreateMinion())
+			r.Get("/templates", handlers.minionHandler.GetConstructTemplates())
+			r.Get("/{minionID}", handlers.minionHandler.GetMinion())
+			r.Patch("/{minionID}/hp", handlers.minionHandler.UpdateMinionHP())
+			r.Post("/{minionID}/activate", handlers.minionHandler.ActivateMinion())
+			r.Post("/{minionID}/deactivate", handlers.minionHandler.DeactivateMinion())
+			r.Delete("/{minionID}", handlers.minionHandler.DeleteMinion())
+		})
+
+		// Level Routes
 		r.Get("/api/character/{characterID}/level-up/preview", handlers.levelHandler.getLevelUpPreview())
 		r.Post("/api/character/{characterID}/level-up", handlers.levelHandler.levelUp())
 		r.Post("/api/character/{characterID}/level-down", handlers.levelHandler.levelDown())
@@ -104,5 +157,33 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 
 		// Shared Notes (protected creation)
 		r.Post("/api/notes", handlers.noteHandler.createNote())
+
+		// Map endpoints (protected)
+		r.Get("/api/user/{userID}/maps", handlers.mapHandler.getUserMaps())
+		r.Post("/api/map", handlers.mapHandler.createMap())
+		r.Put("/api/map/{mapID}", handlers.mapHandler.updateMap())
+		r.Delete("/api/map/{mapID}", handlers.mapHandler.deleteMap())
+		r.Post("/api/map/{mapID}/token", handlers.mapHandler.addToken())
+		r.Put("/api/map/{mapID}/token/{tokenID}", handlers.mapHandler.updateToken())
+		r.Delete("/api/map/{mapID}/token/{tokenID}", handlers.mapHandler.deleteToken())
+
+		// Initiative endpoints
+		r.Get("/api/map/{mapID}/initiative", handlers.mapHandler.getInitiative())
+		r.Put("/api/map/{mapID}/initiative", handlers.mapHandler.setInitiative())
+		r.Delete("/api/map/{mapID}/initiative", handlers.mapHandler.clearInitiative())
+
+		// Corpse endpoints
+		r.Route("/api/corpses", func(r chi.Router) {
+			r.Get("/", handlers.corpseHandler.GetCorpses())
+			r.Post("/", handlers.corpseHandler.CreateCorpse())
+			r.Get("/{corpseID}", handlers.corpseHandler.GetCorpse())
+			r.Delete("/{corpseID}", handlers.corpseHandler.DeleteCorpse())
+			r.Post("/{corpseID}/harvest", handlers.corpseHandler.HarvestCorpse())
+			r.Post("/{corpseID}/consume", handlers.corpseHandler.ConsumeCorpse())
+		})
+
+		// Harvesting endpoints (for Lorewright)
+		r.Get("/api/beasts/{beastID}/harvestable-abilities", handlers.harvestHandler.getHarvestableAbilities())
+		r.Post("/api/characters/{characterID}/harvest", handlers.harvestHandler.confirmHarvest())
 	})
 }

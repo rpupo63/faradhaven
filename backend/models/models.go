@@ -18,6 +18,8 @@ func AllModels() []interface{} {
 		&Class{},
 		&Archetype{},
 		&ClassLevel{},
+		&ClassResourceDefinition{},
+		&ClassLevelResource{},
 		&LevelFeature{},
 		&ClassComponent{},
 		&ClassStartingEquipmentChoice{},
@@ -27,7 +29,14 @@ func AllModels() []interface{} {
 		&Character{},
 		&CharacterSkill{},
 		&CharacterComponent{},
+		&CharacterResource{},
+		&Minion{},
+		&SavedSpell{},
+		&CharacterLink{},
 		&LevelUpHistory{},
+
+		// World objects
+		&Corpse{},
 
 		// Spell hierarchy
 		&Spell{},
@@ -42,6 +51,7 @@ func AllModels() []interface{} {
 		&WeaponDamage{},
 		&Item{},
 		&Effect{},
+		&CharacterEffect{},
 
 		// Character weapon system (explicit join table with modifiers)
 		&CharacterWeapon{},
@@ -53,5 +63,9 @@ func AllModels() []interface{} {
 
 		// Community
 		&SharedNote{},
+
+		// Game Map
+		&GameMap{},
+		&MapToken{},
 	}
 }

@@ -25,7 +25,9 @@ var (
 	NamespaceTraitOption  = uuid.MustParse("56789012-5678-9012-5678-901256789012")
 	NamespaceWeaponDamage       = uuid.MustParse("67890123-6789-0123-6789-012367890123")
 	NamespaceWeaponRequirement  = uuid.MustParse("78901234-7890-1234-7890-123478901234")
-	NamespaceEffect             = uuid.MustParse("89012345-8901-2345-8901-234589012345")
+	NamespaceEffect               = uuid.MustParse("89012345-8901-2345-8901-234589012345")
+	NamespaceClassResourceDef     = uuid.MustParse("9a0b1c2d-3e4f-5a6b-7c8d-9e0f1a2b3c4d")
+	NamespaceClassLevelResource   = uuid.MustParse("ab1c2d3e-4f5a-6b7c-8d9e-0f1a2b3c4d5e")
 )
 
 // RaceUUID generates a deterministic UUID for a race by name.
@@ -114,4 +116,16 @@ func WeaponRequirementUUID(className, modifierType string, selectionLevel int) u
 // EffectUUID generates a deterministic UUID for an effect by name.
 func EffectUUID(name string) uuid.UUID {
 	return uuid.NewSHA1(NamespaceEffect, []byte(name))
+}
+
+// ClassResourceDefUUID generates a deterministic UUID for a class resource definition.
+// Key: ClassName + ResourceKey
+func ClassResourceDefUUID(className, resourceKey string) uuid.UUID {
+	return uuid.NewSHA1(NamespaceClassResourceDef, []byte(className+":"+resourceKey))
+}
+
+// ClassLevelResourceUUID generates a deterministic UUID for a class level resource value.
+// Key: ClassLevelID + ResourceKey
+func ClassLevelResourceUUID(classLevelID uuid.UUID, resourceKey string) uuid.UUID {
+	return uuid.NewSHA1(NamespaceClassLevelResource, []byte(classLevelID.String()+":"+resourceKey))
 }

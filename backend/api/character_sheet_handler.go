@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -71,17 +72,8 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 			return
 		}
 
-		conMod := abilityMod(character.Constitution)
 		dexMod := abilityMod(character.Dexterity)
 		primaryMod := primaryAbilityMod(character, class.PrimaryAbility)
-
-		// TotalHP = BaseHP + (AvgHitDie * (Level - 1)) + (ConMod * Level); BaseHP = HitDie (max at level 1)
-		avgHitDie := (class.HitDie + 1) / 2
-		baseHP := class.HitDie
-		totalHP := baseHP + (avgHitDie * (character.Level - 1)) + (conMod * character.Level)
-		if character.Level < 1 {
-			totalHP = baseHP + conMod
-		}
 
 		ac := 8 + classLevel.ProficiencyBonus + dexMod
 		saveDC := 8 + classLevel.ProficiencyBonus + primaryMod
@@ -111,14 +103,8 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 			availableComponents = append(availableComponents, comp)
 		}
 
-		// Use persisted HP values if set, otherwise fall back to computed
 		maxHP := character.MaxHP
 		currentHP := character.CurrentHP
-		if maxHP == 0 {
-			// First-time calculation for existing characters without HP
-			maxHP = totalHP
-			currentHP = totalHP
-		}
 
 		profBonus := classLevel.ProficiencyBonus
 		strMod := abilityMod(character.Strength)
@@ -183,11 +169,55 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 			})
 		}
 
+		// [MODIFIED] Ensure gathered classes see their natural components as infinite
+		componentsList := character.Components
+		if class.Name == "The Sanguinist" ||
+			class.Name == "The Ironwright" ||
+			class.Name == "The Lorewright" ||
+			class.Name == "The Rift Weaver" ||
+			class.Name == "The Powder Mage" ||
+			class.Name == "The Mutagen" ||
+			class.Name == "The Piston Brawler" ||
+			class.Name == "The Vapor Blade" {
+			// Create a map of existing character components for easy lookup
+			charCompMap := make(map[uuid.UUID]models.CharacterComponent)
+			for _, cc := range componentsList {
+				charCompMap[cc.ComponentID] = cc
+			}
+
+			// Iterate over class components (natural components)
+			for _, classComp := range class.Components {
+				// If component exists, update count. If not, create it.
+				// 999999 represents "Infinite"
+				if cc, exists := charCompMap[classComp.ID]; exists {
+					cc.Count = 999999
+					charCompMap[classComp.ID] = cc
+				} else {
+					charCompMap[classComp.ID] = models.CharacterComponent{
+						CharacterID: character.ID,
+						ComponentID: classComp.ID,
+						Count:       999999,
+						Component:   classComp,
+					}
+				}
+			}
+
+			// Rebuild componentsList
+			componentsList = make([]models.CharacterComponent, 0, len(charCompMap))
+			for _, cc := range charCompMap {
+				componentsList = append(componentsList, cc)
+			}
+		}
+
+		var harvestedAbilities models.HarvestedAbilities
+		if len(character.HarvestedAbilities) > 0 {
+			json.Unmarshal(character.HarvestedAbilities, &harvestedAbilities)
+		}
+
 		sheet := CharacterSheetResponse{
 			Character:                character,
 			Class:                    class,
 			ClassLevel:               classLevel,
-			TotalHP:                  maxHP, // Keep for backwards compatibility
 			MaxHP:                    maxHP,
 			CurrentHP:                currentHP,
 			TempHP:                   character.TempHP,
@@ -207,27 +237,9 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 			Lineage:                  lineage,
 			InventoryWeapons:         inventoryWeapons,
 			InventoryItems:           character.Items,
-			Components:               character.Components,
-
-			// --- Class-Specific Resources ---
-			ResourceType:      class.ResourceType,
-			ResourceName:      class.ResourceName,
-			CurrentStability:  character.CurrentStability,
-			MaxStability:      classLevel.MaxStability,
-			CurrentBloodIchor: character.CurrentBloodIchor,
-			MaxBloodIchor:     h.resourceService.ComputeMaxBloodIchor(character),
-			Notoriety:         character.SanguineNotoriety,
-			MadnessCastCount:  character.MadnessCastCount,
-			MadnessBaseDC:     classLevel.MadnessBaseDC,
-			FeralBonus:        classLevel.FeralBonus,
-			EchoSlots:         classLevel.EchoSlots,
-			EchoSlotsUsed:     character.EchoSlotsUsed,
-			ConcurrencyLimit:  classLevel.ConcurrencyLimit,
-			YieldDie:          classLevel.YieldDie,
-			TimerDuration:     classLevel.TimerDuration,
-			SpeedDialSlots:    classLevel.SpeedDialSlots,
-			MaxSpellLevel:     classLevel.MaxSpellLevel,
-			BiteDamageDice:    classLevel.BiteDamageDice,
+			Components:               componentsList,
+			HarvestedAbilities:       harvestedAbilities,
+			ClassResources:           h.buildClassResources(character.ClassID, character.Level, character.ID),
 		}
 
 		if class.Name == "The Lorewright" {

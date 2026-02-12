@@ -19,14 +19,6 @@ import (
 func AllSeeds() []Seed {
 	return []Seed{
 		{
-			Name: "01_components",
-			Run:  faradhaven_classes.SeedComponents,
-			HashData: func() (interface{}, int) {
-				data := faradhaven_classes.SpellSystemComponents()
-				return data, len(data)
-			},
-		},
-		{
 			Name: "02_items",
 			Run:  faradhaven_items.SeedFaradhavenItems,
 			HashData: func() (interface{}, int) {
@@ -51,11 +43,7 @@ func AllSeeds() []Seed {
 			Run:  faradhaven_classes.SeedFaradhavenClasses,
 			HashData: func() (interface{}, int) {
 				classes := faradhaven_classes.AllClasses()
-				components := faradhaven_classes.ClassComponentNames()
-				return struct {
-					Classes    interface{}
-					Components interface{}
-				}{classes, components}, len(classes)
+				return classes, len(classes)
 			},
 		},
 		{

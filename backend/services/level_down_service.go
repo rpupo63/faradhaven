@@ -12,7 +12,7 @@ import (
 // LevelDown reverts a character to their previous level using stored history
 func (s *LevelUpService) LevelDown(userID uuid.UUID, characterID uuid.UUID) (*LevelUpResponse, error) {
 	// 1. Load character
-	character, err := s.characterRepo.FindByID(characterID)
+	character, err := s.CharacterRepo.FindByID(characterID)
 	if err != nil {
 		return nil, fmt.Errorf("character not found: %w", err)
 	}

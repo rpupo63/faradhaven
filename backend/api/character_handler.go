@@ -17,36 +17,82 @@ import (
 )
 
 type characterHandler struct {
-	characterRepo   database.CharacterRepository
-	raceRepo        database.RaceRepository
-	classRepo       database.ClassRepository
-	itemRepo        database.ItemRepository
-	weaponRepo      database.WeaponRepository
-	spellRepo       database.SpellRepository
-	resourceService *services.ResourceService
-	s3Service       *services.S3Service
+	characterRepo         database.CharacterRepository
+	raceRepo              database.RaceRepository
+	classRepo             database.ClassRepository
+	characterResourceRepo database.CharacterResourceRepository
+	itemRepo              database.ItemRepository
+	weaponRepo            database.WeaponRepository
+	spellRepo             database.SpellRepository
+	resourceService       *services.ResourceService
+	notorietyService      services.NotorietyService
+	s3Service             *services.S3Service
+	componentInterpreter  *services.ComponentInterpreterService
 }
 
 func newCharacterHandler(
 	characterRepo database.CharacterRepository,
 	raceRepo database.RaceRepository,
 	classRepo database.ClassRepository,
+	characterResourceRepo database.CharacterResourceRepository,
 	itemRepo database.ItemRepository,
 	weaponRepo database.WeaponRepository,
 	spellRepo database.SpellRepository,
 	resourceService *services.ResourceService,
+	notorietyService services.NotorietyService,
 	s3Service *services.S3Service,
+	componentInterpreter *services.ComponentInterpreterService,
 ) *characterHandler {
 	return &characterHandler{
-		characterRepo:   characterRepo,
-		raceRepo:        raceRepo,
-		classRepo:       classRepo,
-		itemRepo:        itemRepo,
-		weaponRepo:      weaponRepo,
-		spellRepo:       spellRepo,
-		resourceService: resourceService,
-		s3Service:       s3Service,
+		characterRepo:         characterRepo,
+		raceRepo:              raceRepo,
+		classRepo:             classRepo,
+		characterResourceRepo: characterResourceRepo,
+		itemRepo:              itemRepo,
+		weaponRepo:            weaponRepo,
+		spellRepo:             spellRepo,
+		resourceService:       resourceService,
+		notorietyService:      notorietyService,
+		s3Service:             s3Service,
+		componentInterpreter:  componentInterpreter,
 	}
+}
+
+// buildClassResources aggregates resource definitions, level values, and character state
+// into a response-ready slice of ClassResourceResponse.
+func (h *characterHandler) buildClassResources(classID uuid.UUID, level int, characterID uuid.UUID) []ClassResourceResponse {
+	defs, err := h.classRepo.FindResourceDefinitionsByClassID(classID)
+	if err != nil || len(defs) == 0 {
+		return nil
+	}
+
+	resourceMap, _ := h.classRepo.GetLevelResourceMap(classID, level)
+	charResources, _ := h.characterResourceRepo.FindByCharacterID(characterID)
+	charResMap := make(map[string]*models.CharacterResource, len(charResources))
+	for _, cr := range charResources {
+		charResMap[cr.ResourceKey] = cr
+	}
+
+	result := make([]ClassResourceResponse, 0, len(defs))
+	for _, def := range defs {
+		resp := ClassResourceResponse{
+			Key:          def.ResourceKey,
+			DisplayName:  def.DisplayName,
+			Category:     def.Category,
+			Description:  def.Description,
+			Value:        resourceMap[def.ResourceKey],
+			IsTrackable:  def.IsTrackable,
+			DisplayOrder: def.DisplayOrder,
+		}
+		if def.IsTrackable {
+			if cr, ok := charResMap[def.ResourceKey]; ok {
+				resp.CurrentValue = &cr.CurrentValue
+				resp.MaxValue = cr.MaxValue
+			}
+		}
+		result = append(result, resp)
+	}
+	return result
 }
 
 // uploadProfilePicture handles uploading a character image to S3
@@ -484,13 +530,13 @@ func parseCost(costStr string) int64 {
 
 	var value int64
 	var unit string
-	
+
 	// Try to match "123 gp", "50 sp", etc.
 	// Since we don't have regex readily available without importing regexp and compiling it,
 	// we can do a simple scan if the format is consistent.
 	// But regexp is safer. Let's use basic string splitting for now as it's faster and usually sufficient if data is clean.
 	// "50 gp" -> ["50", "gp"]
-	
+
 	parts := strings.Fields(costStr)
 	if len(parts) < 1 {
 		return 0
@@ -499,13 +545,13 @@ func parseCost(costStr string) int64 {
 	// Parse number
 	// valFloat, _ := map[string]interface{}{"val": 0}.(map[string]interface{}) // dummy
 	// _ = valFloat
-	
+
 	// We'll use Sscanf
 	n, err := fmt.Sscanf(parts[0], "%d", &value)
 	if err != nil || n != 1 {
 		return 0
 	}
-	
+
 	if len(parts) > 1 {
 		unit = parts[1]
 	}
@@ -520,7 +566,7 @@ func parseCost(costStr string) int64 {
 	case "cp":
 		return value
 	default:
-		// Default to cp if no unit or unknown unit? Or GP? 
+		// Default to cp if no unit or unknown unit? Or GP?
 		// Assuming CP as base is safest, but usually things without unit might be GP in some contexts.
 		// Given the parser in frontend defaults to value if no match, let's assume value (cp).
 		return value
@@ -579,7 +625,7 @@ func (h *characterHandler) purchaseItem() http.HandlerFunc {
 			// Since we don't have handy association methods in repo, let's use the DB instance from repo if possible
 			// or assume Update works with associations if preloaded? No, Update usually updates fields.
 			// We should use the association API.
-			
+
 			if character.Money < cost {
 				respondError(w, http.StatusBadRequest, "Insufficient funds")
 				return
@@ -634,8 +680,8 @@ func (h *characterHandler) purchaseItem() http.HandlerFunc {
 		}
 
 		respondJSON(w, http.StatusOK, map[string]interface{}{
-			"message":      fmt.Sprintf("Purchased %s for %d cp", itemName, cost),
-			"money":        character.Money,
+			"message":       fmt.Sprintf("Purchased %s for %d cp", itemName, cost),
+			"money":         character.Money,
 			"cost_deducted": cost,
 		})
 	}
@@ -689,7 +735,18 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 		}
 		defer tx.Rollback()
 
+		// Determine if components should be consumed (Inventory Check vs Knowledge Check)
+		shouldConsumeComponents := true
+
+		// Faradhaven classes that use Knowledge/Resources instead of consumable components
+		switch class.Name {
+		case "The Rift Weaver", "The Powder Mage", "The Mutagen", "The Ironwright",
+			"The Piston Brawler", "The Sanguinist", "The Lorewright", "The Vapor Blade":
+			shouldConsumeComponents = false
+		}
+
 		// 0. Handle Spell Components
+		cost := 0
 		if req.SpellID != nil {
 			spell, err := h.spellRepo.FindByID(*req.SpellID)
 			if err != nil {
@@ -697,12 +754,13 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 				return
 			}
 
-			// First pass: Validation
+			// Validate Components
 			for _, comp := range spell.Components {
 				found := false
 				for _, charComp := range character.Components {
 					if charComp.ComponentID == comp.ID {
-						if charComp.Count < 1 {
+						// Only check count if we are actually consuming them
+						if shouldConsumeComponents && charComp.Count < 1 {
 							respondError(w, http.StatusBadRequest, fmt.Sprintf("Not enough %s", comp.Name))
 							return
 						}
@@ -711,50 +769,99 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 					}
 				}
 				if !found {
-					respondError(w, http.StatusBadRequest, fmt.Sprintf("Character is missing required component: %s", comp.Name))
+					// Even if not consuming, you must "know" (have) the component in your list
+					respondError(w, http.StatusBadRequest, fmt.Sprintf("Character is missing required component knowledge: %s", comp.Name))
 					return
 				}
 			}
 
-			// Second pass: Deduction
-			for _, comp := range spell.Components {
-				for i, charComp := range character.Components {
-					if charComp.ComponentID == comp.ID {
-						character.Components[i].Count--
-						// Save the updated component count using tx
-						if err := tx.Save(&character.Components[i]).Error; err != nil {
-							log.Error().Err(err).Msg("Failed to update character component count")
-							respondError(w, http.StatusInternalServerError, "Failed to update components")
-							return
+			// Consume if needed
+			if shouldConsumeComponents {
+				for _, comp := range spell.Components {
+					for i, charComp := range character.Components {
+						if charComp.ComponentID == comp.ID {
+							character.Components[i].Count--
+							if err := tx.Save(&character.Components[i]).Error; err != nil {
+								log.Error().Err(err).Msg("Failed to update character component count")
+								respondError(w, http.StatusInternalServerError, "Failed to update components")
+								return
+							}
+							break
 						}
-						break
 					}
 				}
 			}
 
-			if req.SpellLevel == 0 {
-				req.SpellLevel = spell.SlotLevel
+			// Calculate Cost
+			if class.Name == "The Rift Weaver" {
+				// Rift Weaver: Cost is 2 SP per component
+				cost = len(spell.Components) * 2
+			} else {
+				// Default: Cost is Spell Level
+				if req.SpellLevel == 0 {
+					cost = spell.SlotLevel
+				} else {
+					cost = req.SpellLevel
+				}
 			}
+		} else {
+			// Manual cast without ID
+			cost = req.SpellLevel
 		}
 
-		// 1. Deduct Spell Points
-		character.CurrentSpellPoints -= req.SpellLevel
-		if character.CurrentSpellPoints < 0 {
-			character.CurrentSpellPoints = 0
-		}
+		// 1. Deduct Resources based on Resource Definitions
+		var resourceKeyToDeduct string
+		var finalCost int // This will be the actual cost to deduct for the generic resources
 
-		// 2. Handle Class-Specific Side Effects
-		if class.ResourceType == "madness" {
-			character.MadnessCastCount++
-		} else if class.ResourceType == "stability" {
-			character.CurrentStability -= req.SpellLevel
-			if character.CurrentStability < 0 {
-				character.CurrentStability = 0
+		// Determine which resource key to deduct from.
+		// If provided in the request, use it. Otherwise, infer from class or default to "spell_points".
+		if req.ResourceKey != nil && *req.ResourceKey != "" {
+			resourceKeyToDeduct = *req.ResourceKey
+		} else {
+			// Fallback/Default based on class if not explicitly provided
+			switch class.Name {
+			case "The Rift Weaver":
+				resourceKeyToDeduct = "spell_points"
+			case "The Piston Brawler":
+				resourceKeyToDeduct = "max_stability" // Key used in ResourceDefinitions
+			case "The Sanguinist":
+				resourceKeyToDeduct = "max_blood_ichor" // Key used in ResourceDefinitions
+			case "The Vapor Blade":
+				resourceKeyToDeduct = "shadow_points" // Key used in ResourceDefinitions
+			default:
+				// Default to spell_points for classes without specific resource keys or for generic spell casting
+				resourceKeyToDeduct = "spell_points"
 			}
-		} else if class.ResourceType == "blood_ichor" {
-			character.CurrentBloodIchor -= req.SpellLevel
-			if character.CurrentBloodIchor < 0 {
-				character.CurrentBloodIchor = 0
+		}
+		finalCost = cost // Cost is already calculated above based on spell/components
+
+		// Handle Mutagen and Powder Mage as special cases that don't use generic resource deduction for casting cost
+		if class.Name == "The Mutagen" {
+			character.MadnessCastCount++ // Mutagen: MadnessCastCount is a direct increment
+		} else if class.Name == "The Powder Mage" {
+			// Powder Mage: Flash-Point Casting logic. Resource is "timer".
+			// The "timer" resource definition is not a pool to be deducted from.
+			// Its logic is unique.
+			spellResult, err := h.componentInterpreter.Interpret(req.Components)
+			if err != nil {
+				respondError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to interpret components: %v", err))
+				return
+			}
+			tx.Commit()
+			respondJSON(w, http.StatusOK, spellResult)
+			return
+		} else if resourceKeyToDeduct != "" {
+			// Generic resource deduction for other classes
+			err = h.resourceService.DeductResource(character.ID, resourceKeyToDeduct, finalCost)
+			if err != nil {
+				// Ensure resourceKeyToDeduct is not nil for logging
+				logResourceKey := ""
+				if resourceKeyToDeduct != "" {
+					logResourceKey = resourceKeyToDeduct
+				}
+				log.Error().Err(err).Str("resource_key", logResourceKey).Msg("Failed to deduct resource")
+				respondError(w, http.StatusInternalServerError, "Failed to deduct resource")
+				return
 			}
 		}
 
@@ -876,6 +983,61 @@ func (h *characterHandler) updateNotoriety() http.HandlerFunc {
 		respondJSON(w, http.StatusOK, map[string]interface{}{
 			"message":   "Notoriety updated successfully",
 			"notoriety": character.SanguineNotoriety,
+		})
+	}
+}
+
+func (h *characterHandler) updateSanguineNotorietyPoints() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "characterID")
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(id)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
+			return
+		}
+
+		// Verify user owns this character
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		if authUserID != character.UserID.String() {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		var req UpdateSanguineNotorietyRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		if err := h.notorietyService.UpdateNotoriety(id, req.MPChange, req.BRChange); err != nil {
+			log.Error().Err(err).Msg("Failed to update sanguine notoriety points")
+			respondError(w, http.StatusInternalServerError, "Failed to update notoriety points")
+			return
+		}
+
+		// Refetch character to get updated values
+		updatedCharacter, err := h.characterRepo.FindByID(id)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to refetch character after updating notoriety")
+			respondError(w, http.StatusInternalServerError, "Failed to fetch updated character")
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"message":            "Sanguine notoriety points updated successfully",
+			"sanguine_mp":        updatedCharacter.SanguineMP,
+			"sanguine_br":        updatedCharacter.SanguineBR,
+			"sanguine_notoriety": updatedCharacter.SanguineNotoriety,
 		})
 	}
 }

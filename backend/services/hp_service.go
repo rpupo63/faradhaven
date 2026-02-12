@@ -2,14 +2,15 @@ package services
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/google/uuid"
 	"github.com/rpupo63/unified-personal-site-backend/models"
 )
 
 // UpdateHP updates the character's current HP by the given delta (positive = heal, negative = damage)
-func (s *LevelUpService) UpdateHP(userID uuid.UUID, characterID uuid.UUID, delta int) (*models.Character, error) {
-	character, err := s.characterRepo.FindByID(characterID)
+func (s *LevelUpService) UpdateHP(userID uuid.UUID, characterID uuid.UUID, delta int, source string) (*models.Character, error) {
+	character, err := s.CharacterRepo.FindByID(characterID)
 	if err != nil {
 		return nil, fmt.Errorf("character not found: %w", err)
 	}
@@ -20,6 +21,53 @@ func (s *LevelUpService) UpdateHP(userID uuid.UUID, characterID uuid.UUID, delta
 
 	// Initialize HP if this is a legacy character
 	s.ensureHPInitialized(character)
+
+	// --- Sanguinist Moral Seesaw & Extraction Logic ---
+	if character.Class.Name == "The Sanguinist" {
+		// Sanguine Extraction
+		if source == "Bite" || source == "Siphon" {
+			unstableIchor, err := s.componentRepo.FindByName("Unstable Ichor")
+			if err != nil {
+				// Log error but don't fail the HP update
+				fmt.Printf("Error finding Unstable Ichor component: %v\n", err)
+			} else {
+				var amountToGrant int
+				if character.Level >= 1 && character.Level <= 4 {
+					amountToGrant = 1
+				} else if character.Level >= 5 && character.Level <= 10 {
+					amountToGrant = 2
+				} else {
+					amountToGrant = 3
+				}
+
+				err := s.CharacterRepo.UpdateComponentCount(character.ID, unstableIchor.ID, amountToGrant)
+				if err != nil {
+					fmt.Printf("Error granting Unstable Ichor: %v\n", err)
+				}
+			}
+		}
+
+		// Backfire Check
+		isDamageFeature := source == "Bite" || source == "Shadow Mist" || source == "Ichor Lash"
+		if delta < 0 && isDamageFeature && (character.SanguineMP-character.SanguineBR) >= 3 {
+			// Sanguine Backfire: damage self
+			backfireDamage := rand.Intn(8) + 1
+			// Call UpdateHP on self, with a specific source to prevent recursion
+			_, err := s.UpdateHP(userID, characterID, -backfireDamage, "Sanguine Backfire")
+			if err != nil {
+				// Log the error but continue with the original damage
+				fmt.Printf("Error applying sanguine backfire: %v\n", err)
+			}
+		}
+
+		// Ravenous Check
+		isHealingFeature := source == "Blood Graft"
+		if delta > 0 && isHealingFeature && (character.SanguineBR-character.SanguineMP) >= 3 {
+			// Ravenous: damage target before healing
+			ravenousDamage := rand.Intn(8) + 1
+			character.CurrentHP -= ravenousDamage
+		}
+	}
 
 	// Apply delta
 	character.CurrentHP += delta
@@ -42,7 +90,7 @@ func (s *LevelUpService) UpdateHP(userID uuid.UUID, characterID uuid.UUID, delta
 
 // SetTempHP sets the character's temporary HP (replaces, doesn't stack per 5e rules)
 func (s *LevelUpService) SetTempHP(userID uuid.UUID, characterID uuid.UUID, tempHP int) (*models.Character, error) {
-	character, err := s.characterRepo.FindByID(characterID)
+	character, err := s.CharacterRepo.FindByID(characterID)
 	if err != nil {
 		return nil, fmt.Errorf("character not found: %w", err)
 	}
@@ -78,7 +126,7 @@ type UseHitDiceResult struct {
 // UseHitDice spends hit dice during a short rest and heals HP
 // rolls is the array of roll results from the frontend (d{HitDie} + ConMod each)
 func (s *LevelUpService) UseHitDice(userID uuid.UUID, characterID uuid.UUID, rolls []int) (*UseHitDiceResult, error) {
-	character, err := s.characterRepo.FindByID(characterID)
+	character, err := s.CharacterRepo.FindByID(characterID)
 	if err != nil {
 		return nil, fmt.Errorf("character not found: %w", err)
 	}
@@ -128,7 +176,7 @@ func (s *LevelUpService) UseHitDice(userID uuid.UUID, characterID uuid.UUID, rol
 
 // ShortRest performs a short rest: allows using hit dice (call UseHitDice), restores spell points
 func (s *LevelUpService) ShortRest(userID uuid.UUID, characterID uuid.UUID) (*models.Character, error) {
-	character, err := s.characterRepo.FindByID(characterID)
+	character, err := s.CharacterRepo.FindByID(characterID)
 	if err != nil {
 		return nil, fmt.Errorf("character not found: %w", err)
 	}
@@ -158,7 +206,7 @@ func (s *LevelUpService) ShortRest(userID uuid.UUID, characterID uuid.UUID) (*mo
 
 // LongRest performs a long rest: restore HP to max, restore all hit dice, restore spell points
 func (s *LevelUpService) LongRest(userID uuid.UUID, characterID uuid.UUID) (*models.Character, error) {
-	character, err := s.characterRepo.FindByID(characterID)
+	character, err := s.CharacterRepo.FindByID(characterID)
 	if err != nil {
 		return nil, fmt.Errorf("character not found: %w", err)
 	}
@@ -185,6 +233,23 @@ func (s *LevelUpService) LongRest(userID uuid.UUID, characterID uuid.UUID) (*mod
 
 	// Restore class-specific resources
 	s.resourceService.RestoreClassResources(character, "long_rest", classLevel)
+
+	// Sanguinist Unstable Component Decay
+	if character.Class.Name == "The Sanguinist" {
+		unstableIchor, err := s.componentRepo.FindByName("Unstable Ichor")
+		if err != nil {
+			fmt.Printf("Error finding Unstable Ichor component during long rest: %v\n", err)
+		} else {
+			var charComp models.CharacterComponent
+			err := s.db.Where("character_id = ? AND component_id = ?", character.ID, unstableIchor.ID).First(&charComp).Error
+			if err == nil { // If the character has some
+				err := s.CharacterRepo.UpdateComponentCount(character.ID, unstableIchor.ID, -charComp.Count)
+				if err != nil {
+					fmt.Printf("Error decaying Unstable Ichor: %v\n", err)
+				}
+			}
+		}
+	}
 
 	if err := s.db.Save(character).Error; err != nil {
 		return nil, fmt.Errorf("failed to long rest: %w", err)

@@ -5,7 +5,15 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"gorm.io/datatypes"
 )
+
+// HarvestedAbilities defines the structure for storing Lorewright's harvested skills, attacks, and recipes.
+type HarvestedAbilities struct {
+	Skills  []string `json:"skills"`
+	Attacks []string `json:"attacks"` // Storing as string IDs/names for now
+	Recipes []string `json:"recipes"` // Storing as string IDs/names for now
+}
 
 // Character represents a player character in the game
 type Character struct {
@@ -33,13 +41,42 @@ type Character struct {
 	CurrentSpellPoints int `json:"current_spell_points" gorm:"type:int;default:0"`
 
 	// Class-specific resource tracking (current values; max comes from ClassLevel)
-	CurrentStability  int `json:"current_stability" gorm:"type:int;default:0"`   // Piston Brawler
-	CurrentBloodIchor int `json:"current_blood_ichor" gorm:"type:int;default:0"` // Sanguinist
-	SanguineNotoriety int `json:"sanguine_notoriety" gorm:"type:int;default:0"`  // Net value between -20 and +20
-	SanguineMP        int `json:"sanguine_mp" gorm:"type:int;default:0"`         // Medical Prodigy points
-	SanguineBR        int `json:"sanguine_br" gorm:"type:int;default:0"`         // Blood Rage points
-	MadnessCastCount  int `json:"madness_cast_count" gorm:"type:int;default:0"`  // Mutagen: casts since rest
-	EchoSlotsUsed     int `json:"echo_slots_used" gorm:"type:int;default:0"`     // Lorewright
+	CurrentStability   int              `json:"current_stability" gorm:"type:int;default:0"`   // Piston Brawler
+	CurrentBloodIchor  int              `json:"current_blood_ichor" gorm:"type:int;default:0"` // Sanguinist
+	SanguineNotoriety  int              `json:"sanguine_notoriety" gorm:"type:int;default:0"`  // Net value between -20 and +20
+	SanguineMP         int              `json:"sanguine_mp" gorm:"type:int;default:0"`         // Medical Prodigy points
+	SanguineBR         int              `json:"sanguine_br" gorm:"type:int;default:0"`         // Blood Rage points
+	EchoSlotsUsed      int              `json:"echo_slots_used" gorm:"type:int;default:0"`     // Lorewright (legacy)
+	HarvestSkillsUsed  int              `json:"harvest_skills_used" gorm:"type:int;default:0"`  // Lorewright: skill slots used
+	HarvestAttacksUsed int              `json:"harvest_attacks_used" gorm:"type:int;default:0"` // Lorewright: attack slots used
+	HarvestRecipesUsed int              `json:"harvest_recipes_used" gorm:"type:int;default:0"` // Lorewright: recipe slots used
+	HarvestedAbilities datatypes.JSON   `json:"harvested_abilities" gorm:"type:jsonb"`          // Lorewright: stored abilities
+	Trauma             int              `json:"trauma" gorm:"type:int;default:0"`               // Lorewright: psychological damage from harvesting
+	LastComponentUsed  *string          `json:"last_component_used,omitempty" gorm:"type:text"` // Powder Mage: for Echoing Components
+
+	// Mutagen Class Mechanics:
+	// The following fields track the state for the Mutagen's Madness mechanic.
+	// This state should be exposed to the backend API to be displayed in the Character Sheet UI.
+	//
+	// Formula for triggering a Madness Save:
+	// A save is required when a Mutagen casts a component-ability if:
+	//   `ability.Level >= 1` AND
+	//   (`ability.ComponentCount > character.ProficiencyBonus` OR `MadnessCastCount + 1 > character.ProficiencyBonus + character.ConstitutionModifier`)
+	//
+	// State Update Logic (on cast of ANY component ability):
+	// 1. Increment `MadnessCastCount` regardless of whether a save was triggered.
+	// 2. If the cast required a save (per the formula above), increase `CurrentMadnessDC`.
+	//    - Increase by +2 if Character.Level < 6.
+	//    - Increase by +1 if Character.Level >= 6.
+	//
+	// Reset Logic (on Short or Long Rest):
+	// - Set `CurrentMadnessDC` to 10.
+	// - Set `MadnessCastCount` to 0.
+	MadnessCastCount int `json:"madness_cast_count" gorm:"type:int;default:0"`  // Mutagen: casts since rest, used to determine if a save is needed.
+	CurrentMadnessDC int `json:"current_madness_dc" gorm:"type:int;default:10"` // Mutagen: escalating DC for Madness saves.
+
+	// Concentration tracking (for multi-concentration at high levels)
+	ConcentrationSlots pq.StringArray `json:"concentration_slots" gorm:"type:text[]"` // CharacterEffect IDs being concentrated on
 
 	// HP tracking (persisted, not computed)
 	CurrentHP int `json:"current_hp" gorm:"type:int;default:0"`
@@ -82,6 +119,7 @@ type Character struct {
 	Archetype          *Archetype           `json:"archetype,omitempty" gorm:"foreignKey:ArchetypeID;references:ID"`
 	SkillProficiencies []CharacterSkill     `json:"-" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
 	Components         []CharacterComponent `json:"components,omitempty" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
+	ActiveEffects      []CharacterEffect    `json:"active_effects,omitempty" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
 
 	// Inventory Relationships
 	CharacterWeapons []CharacterWeapon `json:"character_weapons,omitempty" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`

@@ -91,6 +91,22 @@ func NaturalWeapons() []WeaponSeed {
 				{DamageDice: "2d8", DamageType: "Necrotic", DamageCategory: "Base"},
 			},
 		},
+		{
+			Name:            "Mutagen Bite",
+			Description:     "A powerful jaw attack fueled by mutagenic transformation. Your teeth sharpen into fangs capable of rending flesh.",
+			Category:        "Natural Melee",
+			Rarity:          "Common",
+			RangeType:       "Melee",
+			Cost:            "0 gp",
+			Weight:          "0 lb.",
+			AttackModifier:  "Strength",
+			Properties:      []string{},
+			RangeNormal:     5,
+			SecondaryEffect: "On hit, regain HP equal to damage dealt (Feral Mode only).",
+			Damages: []WeaponDamageSeed{
+				{DamageDice: "1d10", DamageType: "Piercing", DamageCategory: "Base"},
+			},
+		},
 	}
 }
 

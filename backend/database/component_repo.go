@@ -37,3 +37,20 @@ func (r *ComponentRepo) GetComponentsByCategory(category models.ComponentCategor
 	err := r.db.Where("category = ?", category).Order("name ASC").Find(&components).Error
 	return components, err
 }
+
+// GetComponentsByNames returns components matching the given names.
+func (r *ComponentRepo) GetComponentsByNames(names []string) ([]models.Component, error) {
+	var components []models.Component
+	err := r.db.Where("name IN ?", names).Find(&components).Error
+	return components, err
+}
+
+// FindByName returns a single component by name.
+func (r *ComponentRepo) FindByName(name string) (*models.Component, error) {
+	var component models.Component
+	err := r.db.First(&component, "name = ?", name).Error
+	if err != nil {
+		return nil, err
+	}
+	return &component, nil
+}

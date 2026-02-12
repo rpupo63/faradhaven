@@ -1,5 +1,10 @@
 package faradhaven_effects
 
+import (
+	"fmt"
+	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_classes"
+)
+
 // EffectSeed defines the data structure for seeding effects
 type EffectSeed struct {
 	Name        string
@@ -10,8 +15,8 @@ type EffectSeed struct {
 
 // AllEffects returns all effect seeds
 func AllEffects() []EffectSeed {
-	return []EffectSeed{
-		// Custom Campaign Effects
+	effects := []EffectSeed{
+		// Custom Campaign Effects - General
 		{
 			Name:        "Madness",
 			Description: "A state of mental fracture caused by eldritch contact or traumatic magic.",
@@ -23,6 +28,14 @@ func AllEffects() []EffectSeed {
 			Description: "A state of primal rage where the subject loses the ability to distinguish friend from foe.",
 			Category:    "Condition",
 			Mechanics:   "Cannot cast spells. Must attack nearest creature. Resistance to Physical damage.",
+		},
+		
+		// Class Specific Conditions
+		{
+			Name:        "Sanguine Fatigue",
+			Description: "Exhaustion caused by overspending Blood Ichor.",
+			Category:    "Class Condition",
+			Mechanics:   "Disadvantage on the next attack roll.",
 		},
 
 		// Standard D&D 5e Conditions
@@ -117,4 +130,26 @@ func AllEffects() []EffectSeed {
 			Mechanics:   "Incapacitated, unaware, drop held items. Auto-fail Str/Dex saves. Attackers have Advantage. Melee hits within 5ft are auto-crits.",
 		},
 	}
+
+	// Add Mutagen Feral Effects
+	for roll, desc := range faradhaven_classes.MutagenFeralTable() {
+		effects = append(effects, EffectSeed{
+			Name:        fmt.Sprintf("Feral Mutation (Roll %d)", roll),
+			Description: desc,
+			Category:    "Mutagen Feral",
+			Mechanics:   desc,
+		})
+	}
+
+	// Add Lorewright Madness Effects
+	for roll, desc := range faradhaven_classes.LorewrightMadnessTable() {
+		effects = append(effects, EffectSeed{
+			Name:        fmt.Sprintf("Steampunk Madness (Roll %d)", roll),
+			Description: desc,
+			Category:    "Lorewright Madness",
+			Mechanics:   desc,
+		})
+	}
+
+	return effects
 }

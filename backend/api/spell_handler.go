@@ -129,15 +129,27 @@ func (h *spellHandler) createSpell() http.HandlerFunc {
 		}
 
 		spell := &models.Spell{
-			UserID:      req.UserID,
-			CharacterID: req.CharacterID,
-			Name:        req.Name,
-			Description: req.Description,
-			SlotLevel:   req.SlotLevel,
+			UserID:        req.UserID,
+			CharacterID:   req.CharacterID,
+			Name:          req.Name,
+			Description:   req.Description,
+			SlotLevel:     req.SlotLevel,
+			Type:          req.Type,
+			Range:         req.Range,
+			Duration:      req.Duration,
+			Concentration: req.Concentration,
+			SaveAttr:      req.SaveAttr,
+			DamageDice:    req.DamageDice,
+			DamageType:    req.DamageType,
+			AddModifier:   req.AddModifier,
 		}
 
 		if spell.SlotLevel == 0 {
 			spell.SlotLevel = 1
+		}
+
+		if spell.Type == "" {
+			spell.Type = "Utility"
 		}
 
 		if err := h.spellRepo.Add(spell, req.ComponentIDs); err != nil {
@@ -199,6 +211,30 @@ func (h *spellHandler) updateSpell() http.HandlerFunc {
 		}
 		if req.SlotLevel != nil {
 			spell.SlotLevel = *req.SlotLevel
+		}
+		if req.Type != nil {
+			spell.Type = *req.Type
+		}
+		if req.Range != nil {
+			spell.Range = req.Range
+		}
+		if req.Duration != nil {
+			spell.Duration = req.Duration
+		}
+		if req.Concentration != nil {
+			spell.Concentration = *req.Concentration
+		}
+		if req.SaveAttr != nil {
+			spell.SaveAttr = req.SaveAttr
+		}
+		if req.DamageDice != nil {
+			spell.DamageDice = req.DamageDice
+		}
+		if req.DamageType != nil {
+			spell.DamageType = req.DamageType
+		}
+		if req.AddModifier != nil {
+			spell.AddModifier = *req.AddModifier
 		}
 
 		if err := h.spellRepo.Update(spell); err != nil {

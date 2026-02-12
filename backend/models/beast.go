@@ -1,9 +1,12 @@
 package models
 
 import (
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 // Beast represents a bestiary entry (creature/monster).
@@ -29,15 +32,45 @@ type Beast struct {
 	Wisdom       int `json:"wisdom" gorm:"type:int;not null"`
 	Charisma     int `json:"charisma" gorm:"type:int;not null"`
 	// Combat
-	ChallengeRating  string    `json:"challenge_rating" gorm:"type:text;not null"`
-	Abilities        *string   `json:"abilities" gorm:"type:text"`
-	Actions          *string   `json:"actions" gorm:"type:text"`
-	LegendaryActions *string   `json:"legendary_actions" gorm:"type:text"`
-	Description      string    `json:"description" gorm:"type:text"`
-	CreatedAt        time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
-	UpdatedAt        time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
+	ChallengeRating  string         `json:"challenge_rating" gorm:"type:text;not null"`
+	Abilities        pq.StringArray `json:"abilities" gorm:"type:text[]"`
+	Actions          pq.StringArray `json:"actions" gorm:"type:text[]"`
+	LegendaryActions pq.StringArray `json:"legendary_actions" gorm:"type:text[]"`
+	Description      string         `json:"description" gorm:"type:text"`
+	CreatedAt        time.Time      `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
+	UpdatedAt        time.Time      `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationships
-	User    User     `json:"-" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	Attacks []Attack `json:"attacks,omitempty" gorm:"foreignKey:BeastID;references:ID;constraint:OnDelete:CASCADE"`
+	User    User         `json:"-" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	Attacks []Attack     `json:"attacks,omitempty" gorm:"foreignKey:BeastID;references:ID;constraint:OnDelete:CASCADE"`
+	Skills  []BeastSkill `json:"skills,omitempty" gorm:"foreignKey:BeastID;references:ID;constraint:OnDelete:CASCADE"`
+}
+
+// ParseChallengeRating converts the string ChallengeRating to a float64.
+// Handles formats like "1/2", "5", "20".
+func (b *Beast) ParseChallengeRating() float64 {
+	if b.ChallengeRating == "" {
+		return 0.0
+	}
+
+	// Try to parse as a fraction
+	parts := strings.Split(b.ChallengeRating, "/")
+	if len(parts) == 2 {
+		numerator, err := strconv.ParseFloat(parts[0], 64)
+		if err != nil {
+			return 0.0 // Or handle error appropriately
+		}
+		denominator, err := strconv.ParseFloat(parts[1], 64)
+		if err != nil || denominator == 0 {
+			return 0.0 // Or handle error appropriately
+		}
+		return numerator / denominator
+	}
+
+	// Try to parse as a whole number
+	cr, err := strconv.ParseFloat(b.ChallengeRating, 64)
+	if err != nil {
+		return 0.0 // Or handle error appropriately
+	}
+	return cr
 }

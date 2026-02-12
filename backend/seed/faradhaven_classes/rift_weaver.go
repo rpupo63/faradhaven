@@ -35,9 +35,10 @@ func RiftWeaver() FaradhavenClassSeed {
 		},
 		LevelFeatures:    riftWeaverLevelFeatures(),
 		LevelProgression: riftWeaverLevelProgression(),
-		ResourceType:        "spell_points",
-		ResourceName:        "Spell Points",
-		ResourceRestoreType: "long_rest",
+		ComponentPool:       []string{"Aqua", "Aer", "Fulgur", "Vita", "Umbra", "Lux", "Arcanum", "Sonus", "Psi", "Ignis", "Terra", "Acidum", "Push", "Pull", "Lift", "Pierce", "Focus", "Heat", "Cool", "Expand", "Shrink", "Haste", "Slow", "Teleport", "Echo", "Extreme", "Mend", "Wither", "Revive", "Projectile", "Beam", "Nova", "Wall", "Zone", "Self", "Cone", "Reflect", "Dispel", "Absorb", "Seal", "Summon", "Portal", "Sight", "Identify", "Predict", "Link", "Fear", "Frenzy", "Command", "Channel", "Chain", "Imbue", "Rupture", "Decoy", "Invisible", "Silence", "Disguise", "Phantom", "Soul", "Curse", "Transmute", "Burrow", "Fuse"},
+		ResourceDefinitions: []ResourceDefinitionSeed{
+			{Key: "spell_points", DisplayName: "Spell Points", Category: "pool", Description: "A pool of magical energy for casting spells.", IsTrackable: true, RestoreOnLongRest: true, DisplayOrder: 1},
+		},
 	}
 }
 
@@ -73,18 +74,18 @@ func riftWeaverLevelProgression() map[int]ClassLevelSeed {
 func riftWeaverLevelFeatures() map[int][]FeatureSeed {
 	return map[int][]FeatureSeed{
 		1: {
-			{Name: "Elemental Channeling", Description: "You spend spell points to channel universal components. Cost: 2 Spell Points per Component. Damage: 1d10 per Elemental Component. Area: 5ft radius per Shape Component. Save DC: 8 + Proficiency + Intelligence modifier. Attack: Proficiency + Intelligence modifier."},
+			{Name: "Elemental Channeling", Description: "You spend spell points to channel universal components. Cost: 2 Spell Points per Component. Damage: 1d10 per Elemental Component (stacking identical components yields diminishing returns). Area: 5ft radius per Shape Component. Save DC: 8 + Proficiency + Intelligence modifier. Attack: Proficiency + Intelligence modifier."},
 			{Name: "Elemental Sight", Description: "You can perceive elemental auras within 30 feet. Creatures or objects with elemental affinity appear as a faint glow. You have advantage on Arcana checks to identify elemental effects."},
 		},
 		2:  {{Name: "Ritual Attunement", Description: "As a ritual (10 minutes), you can cast a spell using components you know without spending spell points. The effect's duration is halved when cast this way."}},
 		3:  {{Name: "Overchannel", Description: "When you spend spell points on a damage-dealing component, you can spend 3 additional spell points to add your Intelligence modifier to the damage. Once per short rest."}},
 		5:  {{Name: "Elemental Surge", Description: "Once per short rest, when you cast a spell, you can double its range or area of effect. Alternatively, you can change the damage type of one component to another element you know."}},
-		6:  {{Name: "Potent Evocation", Description: "Your elemental damage ignores resistance to one damage type of your choice (Fire, Cold, Lightning, or Acid). You can change this choice after a long rest."}},
-		7:  {{Name: "Elemental Resilience", Description: "You gain resistance to one damage type of your choice (Fire, Cold, Lightning, or Acid). As a reaction when you take that damage, you can spend 5 spell points to reduce the damage taken by half again (after resistance)."}},
-		9:  {{Name: "Sculpt Spells", Description: "When you cast a spell that affects an area, you can choose a number of creatures equal to 1 + your Intelligence modifier. Those creatures automatically succeed on their saving throw and take no damage from the spell."}},
+		6:  {{Name: "Potent Evocation", Description: "Your elemental damage ignores resistance to one damage type of your choice (Fire [Ignis], Cold [Aqua], Lightning [Fulgur], or Acid/Earth [Acidum/Terra]). You can change this choice after a long rest."}},
+		7:  {{Name: "Elemental Resilience", Description: "You gain resistance to one damage type of your choice (Fire, Cold, Lightning, or Acid/Earth). As a reaction when you take that damage, you can spend 5 spell points to reduce the damage taken by half again (after resistance)."}},
+		9:  {{Name: "Sculpt Spells", Description: "When you cast a spell that affects an area, you can choose a number of creatures equal to 1 + your Intelligence modifier. Those creatures are unaffected by the spell: they automatically succeed on their saving throw and take no damage."}},
 		10: {{Name: "Elemental Amplification", Description: "When you deal elemental damage, you can spend 5 spell points to add 2d6 damage of the same type to one target. Additionally, elemental buffs you cast on allies last for 1 hour."}},
 		11: {{Name: "Elemental Barrage", Description: "When you cast a single-target spell, you can spend 5 additional spell points to target a second creature within 30 feet of the first with the same effect."}},
-		13: {{Name: "Elemental Veil", Description: "As an action, you spend 15 spell points to wreathe yourself in elemental energy for 1 minute. Creatures that hit you with a melee attack take 2d8 damage of your chosen element (Fire, Cold, Lightning, or Acid)."}},
+		13: {{Name: "Elemental Veil", Description: "As an action, you spend 15 spell points to wreathe yourself in elemental energy for 1 minute. Creatures that hit you with a melee attack take 2d8 damage of your chosen element (Fire, Cold, Lightning, or Acid/Earth)."}},
 		14: {{Name: "Dual Element", Description: "When you cast a spell, you can spend 10 additional spell points to add a second elemental component to the effect for free. Both elemental damage types apply simultaneously."}},
 		15: {{Name: "Elemental Mastery", Description: "You can maintain concentration on two elemental effects simultaneously. Additionally, targets have disadvantage on the first saving throw they make against your spells."}},
 		17: {{Name: "Elemental Overload", Description: "Once per long rest, you can spend all remaining spell points (minimum 20) to create a 30ft radius burst. Each creature of your choice takes 1d10 damage of your choice per 2 spell points spent (Dexterity save for half)."}},

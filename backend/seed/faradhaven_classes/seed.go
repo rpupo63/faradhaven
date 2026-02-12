@@ -3,7 +3,6 @@ package faradhaven_classes
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -74,47 +73,6 @@ func abilityScoreImprovementByLevel(level int) int {
 	}
 }
 
-// buildLevel1Features formats class features, proficiencies, and other metadata for ClassLevel.Features
-func buildLevel1Features(cs FaradhavenClassSeed) string {
-	var b strings.Builder
-	b.WriteString("Archetype: " + cs.Archetype + "\n")
-	b.WriteString("Concept: " + cs.Concept + "\n\n")
-	b.WriteString("D&D Skill Focus: " + strings.Join(cs.DnDSkillFocus, ", ") + "\n")
-	b.WriteString("Proficiencies: " + cs.Proficiencies + "\n")
-	b.WriteString("Skill Choice: " + strings.Join(cs.SkillChoice, ", ") + "\n")
-	b.WriteString("Tools: " + strings.Join(cs.Tools, ", ") + "\n")
-	b.WriteString("Saving Throws: " + strings.Join(cs.SavingThrows, ", ") + "\n")
-	b.WriteString("Starting Equipment: " + strings.Join(cs.AutomaticEquipNames, "; ") + "\n")
-	return b.String()
-}
-
-// SeedComponents creates Component rows for all spell system components.
-// This is run before classes to ensure components exist for linking.
-func SeedComponents(tx *gorm.DB) error {
-	componentSeeds := SpellSystemComponents()
-	components := make([]models.Component, 0, len(componentSeeds))
-
-	for _, comp := range componentSeeds {
-		componentID := uuids.ComponentUUID(comp.Name)
-		components = append(components, models.Component{
-			ID:          componentID,
-			Name:        comp.Name,
-			Symbol:      comp.Symbol,
-			Category:    comp.Category,
-			Description: comp.Description,
-			Element:     comp.Element,
-		})
-	}
-
-	// Batch upsert components (ON CONFLICT DO UPDATE)
-	if err := batch.UpsertBatchUpdateAll(tx, components, batch.DefaultBatchSize); err != nil {
-		return err
-	}
-	log.Printf("Upserted %d components", len(components))
-
-	return nil
-}
-
 // SeedFaradhavenClasses creates Class, ClassLevel, Archetype, LevelFeature, and ClassComponent rows.
 // Uses batch operations and deterministic UUIDs for efficient reseeding.
 func SeedFaradhavenClasses(tx *gorm.DB) error {
@@ -129,6 +87,8 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 	var allEquipmentOptions []models.ClassStartingEquipmentOption
 	var allClassComponents []ClassComponentLink
 	var allWeaponRequirements []models.ClassWeaponRequirement
+	var allResourceDefs []models.ClassResourceDefinition
+	var allLevelResources []models.ClassLevelResource
 
 	// Build archetype map for level feature references
 	archetypeMap := make(map[string]uuid.UUID) // "ClassName:ArchetypeName" -> archetypeID
@@ -163,9 +123,6 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 			StartingEquip:       pq.StringArray(cs.AutomaticEquipNames),
 			StartingWeaponIDs:   pq.StringArray(weaponIDs),
 			StartingItemIDs:     pq.StringArray(itemIDs),
-			ResourceType:        cs.ResourceType,
-			ResourceName:        cs.ResourceName,
-			ResourceRestoreType: cs.ResourceRestoreType,
 		})
 
 		// Collect archetypes
@@ -265,48 +222,18 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 					cl.SuperiorityDice = lp.SuperiorityDice
 					cl.SuperiorityDie = lp.SuperiorityDie
 					cl.BardicInspiration = lp.BardicInspiration
-
-					// Faradhaven class resources
-					cl.ConcurrencyLimit = lp.ConcurrencyLimit
-					cl.YieldDie = lp.YieldDie
-					cl.TimerDuration = lp.TimerDuration
-					cl.SpeedDialSlots = lp.SpeedDialSlots
-					cl.MadnessBaseDC = lp.MadnessBaseDC
-					cl.FeralBonus = lp.FeralBonus
-					cl.EchoSlots = lp.EchoSlots
-					cl.MaxStability = lp.MaxStability
 					cl.MaxSpellLevel = lp.MaxSpellLevel
-					cl.MaxBloodIchor = lp.MaxBloodIchor
-					cl.BiteDamageDice = lp.BiteDamageDice
-				}
-			}
 
-			// Set Features text
-			if level == 1 {
-				cl.Features = buildLevel1Features(cs)
-				if cs.LevelFeatures != nil {
-					if features, ok := cs.LevelFeatures[1]; ok && len(features) > 0 {
-						cl.Features = cl.Features + "\n\nLevel 1 Features:\n"
-						for _, f := range features {
-							cl.Features = cl.Features + "• " + f.Name
-							if f.Description != "" {
-								cl.Features = cl.Features + ": " + f.Description
-							}
-							cl.Features = cl.Features + "\n"
-						}
+					// Faradhaven class resources → ClassLevelResource rows
+					for key, value := range lp.Resources {
+						resID := uuids.ClassLevelResourceUUID(classLevelID, key)
+						allLevelResources = append(allLevelResources, models.ClassLevelResource{
+							ID:           resID,
+							ClassLevelID: classLevelID,
+							ResourceKey:  key,
+							Value:        value,
+						})
 					}
-				}
-			} else if cs.LevelFeatures != nil {
-				if features, ok := cs.LevelFeatures[level]; ok && len(features) > 0 {
-					var featureTexts []string
-					for _, f := range features {
-						text := f.Name
-						if f.Description != "" {
-							text = text + " — " + f.Description
-						}
-						featureTexts = append(featureTexts, text)
-					}
-					cl.Features = strings.Join(featureTexts, "\n")
 				}
 			}
 
@@ -360,14 +287,29 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 		}
 
 		// Collect class-component links
-		for _, m := range AllComponentClassMappings() {
-			if m.ClassName == cs.Name {
-				componentID := uuids.ComponentUUID(m.Component.Name)
-				allClassComponents = append(allClassComponents, ClassComponentLink{
-					ClassID:     classID.String(),
-					ComponentID: componentID.String(),
-				})
-			}
+		for _, compName := range cs.ComponentPool {
+			componentID := uuids.ComponentUUID(compName)
+			allClassComponents = append(allClassComponents, ClassComponentLink{
+				ClassID:     classID.String(),
+				ComponentID: componentID.String(),
+			})
+		}
+
+		// Collect class resource definitions
+		for _, rd := range cs.ResourceDefinitions {
+			defID := uuids.ClassResourceDefUUID(cs.Name, rd.Key)
+			allResourceDefs = append(allResourceDefs, models.ClassResourceDefinition{
+				ID:                 defID,
+				ClassID:            classID,
+				ResourceKey:        rd.Key,
+				DisplayName:        rd.DisplayName,
+				Category:           rd.Category,
+				Description:        rd.Description,
+				DisplayOrder:       rd.DisplayOrder,
+				IsTrackable:        rd.IsTrackable,
+				RestoreOnShortRest: rd.RestoreOnShortRest,
+				RestoreOnLongRest:  rd.RestoreOnLongRest,
+			})
 		}
 	}
 
@@ -376,6 +318,8 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 	tablesToClear := []string{
 		"class_starting_equipment_options",
 		"class_starting_equipment_choices",
+		"class_level_resources",
+		"class_resource_definitions",
 		"level_features",
 		"archetypes",
 		"class_levels",
@@ -405,6 +349,22 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 		return err
 	}
 	log.Printf("Inserted %d class levels", len(allClassLevels))
+
+	// Step 5a: Batch insert class resource definitions (depends on classes)
+	if len(allResourceDefs) > 0 {
+		if err := batch.InsertBatch(tx, allResourceDefs, batch.DefaultBatchSize); err != nil {
+			return err
+		}
+		log.Printf("Inserted %d class resource definitions", len(allResourceDefs))
+	}
+
+	// Step 5b: Batch insert class level resources (depends on class levels)
+	if len(allLevelResources) > 0 {
+		if err := batch.InsertBatch(tx, allLevelResources, batch.DefaultBatchSize); err != nil {
+			return err
+		}
+		log.Printf("Inserted %d class level resources", len(allLevelResources))
+	}
 
 	// Step 6: Batch insert level features
 	if err := batch.InsertBatch(tx, allLevelFeatures, batch.DefaultBatchSize); err != nil {

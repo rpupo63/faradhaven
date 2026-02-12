@@ -12,6 +12,7 @@ type BeastRepository interface {
 	FindAll() ([]*models.Beast, error)
 	FindByID(id uuid.UUID) (*models.Beast, error)
 	FindByIDWithAttacks(id uuid.UUID) (*models.Beast, error)
+	FindByIDWithRelations(id uuid.UUID) (*models.Beast, error)
 	FindByUserID(userID uuid.UUID) ([]*models.Beast, error)
 	FindByUserIDWithAttacks(userID uuid.UUID) ([]*models.Beast, error)
 	Add(beast *models.Beast) error
@@ -48,6 +49,16 @@ func (r *BeastRepo) FindByID(id uuid.UUID) (*models.Beast, error) {
 func (r *BeastRepo) FindByIDWithAttacks(id uuid.UUID) (*models.Beast, error) {
 	var beast models.Beast
 	err := r.db.Preload("Attacks").First(&beast, "id = ?", id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &beast, nil
+}
+
+// FindByIDWithRelations returns a beast by ID with all its relations
+func (r *BeastRepo) FindByIDWithRelations(id uuid.UUID) (*models.Beast, error) {
+	var beast models.Beast
+	err := r.db.Preload("Attacks").Preload("Skills").First(&beast, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}

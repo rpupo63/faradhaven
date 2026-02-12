@@ -9,6 +9,7 @@ import (
 type EffectRepository interface {
 	FindAll() ([]*models.Effect, error)
 	FindByID(id uuid.UUID) (*models.Effect, error)
+	FindByName(name string) (*models.Effect, error)
 }
 
 type EffectRepo struct {
@@ -29,6 +30,14 @@ func (r *EffectRepo) FindAll() ([]*models.Effect, error) {
 func (r *EffectRepo) FindByID(id uuid.UUID) (*models.Effect, error) {
 	var effect models.Effect
 	if err := r.db.First(&effect, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &effect, nil
+}
+
+func (r *EffectRepo) FindByName(name string) (*models.Effect, error) {
+	var effect models.Effect
+	if err := r.db.First(&effect, "name = ?", name).Error; err != nil {
 		return nil, err
 	}
 	return &effect, nil

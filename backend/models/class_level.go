@@ -28,8 +28,6 @@ type ClassLevel struct {
 	MaxSpellPoints int  `json:"max_spell_points" gorm:"type:int;not null"` // spell point pool (50-100+ scale)
 
 	// --- Class traits/features ---
-	// Text to display on the character sheet for features gained at this level (legacy)
-	Features string `json:"features,omitempty" gorm:"type:text"`
 	// Structured features with name and description
 	LevelFeatures []LevelFeature `json:"level_features,omitempty" gorm:"foreignKey:ClassLevelID"`
 
@@ -47,18 +45,12 @@ type ClassLevel struct {
 	SuperiorityDie    int `json:"superiority_die" gorm:"type:int;default:0"`    // superiority die size: 6, 8, 10, 12
 	BardicInspiration int `json:"bardic_inspiration" gorm:"type:int;default:0"` // die size for bardic inspiration: 6, 8, 10, 12
 
+	// --- Shared D&D mechanics ---
+	MaxSpellLevel int `json:"max_spell_level" gorm:"type:int;default:0"` // Spell level cap
+
 	// --- Faradhaven Class Resources ---
-	ConcurrencyLimit int `json:"concurrency_limit" gorm:"type:int;default:0"` // Ironwright: max active constructs
-	YieldDie         int `json:"yield_die" gorm:"type:int;default:0"`         // Ironwright: scavenge die size (4,6,8,10,12)
-	TimerDuration    int `json:"timer_duration" gorm:"type:int;default:0"`    // Powder Mage: casting seconds
-	SpeedDialSlots   int `json:"speed_dial_slots" gorm:"type:int;default:0"`  // Powder Mage: saved spell strings
-	MadnessBaseDC    int `json:"madness_base_dc" gorm:"type:int;default:0"`   // Mutagen: starting DC
-	FeralBonus       int `json:"feral_bonus" gorm:"type:int;default:0"`       // Mutagen: feral damage bonus
-	EchoSlots        int `json:"echo_slots" gorm:"type:int;default:0"`        // Lorewright: memory slots
-	MaxStability     int `json:"max_stability" gorm:"type:int;default:0"`     // Piston Brawler: stability pool max
-	MaxSpellLevel    int `json:"max_spell_level" gorm:"type:int;default:0"`   // Piston Brawler/Casters: spell level cap
-	MaxBloodIchor    int `json:"max_blood_ichor" gorm:"type:int;default:0"`   // Sanguinist: max ichor points
-	BiteDamageDice   int `json:"bite_damage_dice" gorm:"type:int;default:0"`  // Sanguinist: bite dice count
+	// Class-specific per-level resource values are stored in the ClassLevelResource table.
+	// Query via ClassRepo.GetLevelResourceMap(classID, level) or GetLevelResourceValue(classID, level, key).
 
 	Class Class `json:"-" gorm:"foreignKey:ClassID;references:ID"`
 }

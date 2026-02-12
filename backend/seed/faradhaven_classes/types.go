@@ -39,8 +39,9 @@ type WeaponRequirementSeed struct {
 	AllowedCategories []string // Weapon category restrictions (empty = all)
 }
 
-// ClassLevelSeed defines structured level progression data for seeding
-// These fields map directly to models.ClassLevel for level-up mechanics
+// ClassLevelSeed defines structured level progression data for seeding.
+// D&D-standard combat fields remain as explicit struct fields.
+// Faradhaven class-specific resources use the generic Resources map.
 type ClassLevelSeed struct {
 	CantripsKnown     *int // cantrips known at this level (nil = no change)
 	SpellsKnown       *int // spells known/prepared at this level (nil = no change)
@@ -53,19 +54,26 @@ type ClassLevelSeed struct {
 	SuperiorityDice   int  // number of superiority dice (battlemaster-like)
 	SuperiorityDie    int  // superiority die size: 6, 8, 10, 12
 	BardicInspiration int  // die size for inspiration: 6, 8, 10, 12
+	MaxSpellLevel     int  // Piston Brawler/Casters: spell level cap
 
-	// Faradhaven class resources
-	ConcurrencyLimit int // Ironwright: max active constructs at this level
-	YieldDie         int // Ironwright: scavenge die size (4,6,8,10,12)
-	TimerDuration    int // Powder Mage: casting seconds
-	SpeedDialSlots   int // Powder Mage: saved spell strings
-	MadnessBaseDC    int // Mutagen: starting DC (typically 10)
-	FeralBonus       int // Mutagen: feral damage bonus
-	EchoSlots        int // Lorewright: memory slots
-	MaxStability     int // Piston Brawler: stability pool max
-	MaxSpellLevel    int // Piston Brawler/Casters: spell level cap
-	MaxBloodIchor    int // Sanguinist: max ichor points
-	BiteDamageDice   int // Sanguinist: bite dice count (1 = 1d6, 2 = 2d6)
+	// Faradhaven class-specific resources (generic key-value map)
+	// Keys must match ResourceDefinitionSeed.Key in the class's ResourceDefinitions.
+	// Examples: "concurrency_limit": 2, "yield_die": 6, "max_stability": 20
+	Resources map[string]int
+}
+
+// ResourceDefinitionSeed defines a class resource type for seeding.
+// Each entry creates a ClassResourceDefinition row and optionally a CharacterResource
+// row when a character of this class is created.
+type ResourceDefinitionSeed struct {
+	Key                string // machine identifier, e.g. "concurrency_limit", "max_stability"
+	DisplayName        string // UI label, e.g. "Concurrency Limit", "Stability"
+	Category           string // rendering category: "pool", "die_size", "limit", "slot_count", "modifier", "state"
+	Description        string // tooltip/explanation text
+	IsTrackable        bool   // true if character tracks a mutable current value (pools, counters)
+	RestoreOnShortRest bool   // restore current_value on short rest (trackable only)
+	RestoreOnLongRest  bool   // restore current_value on long rest (trackable only)
+	DisplayOrder       int    // UI ordering (lower = first)
 }
 
 // FaradhavenClassSeed defines the full class data for seeding
@@ -108,10 +116,11 @@ type FaradhavenClassSeed struct {
 	// WeaponRequirement defines when this class requires primary weapon selection
 	WeaponRequirement *WeaponRequirementSeed
 
-	// Resource metadata
-	ResourceType        string // e.g., "spell_points", "stability", "blood_ichor", "components"
-	ResourceName        string // Display name for the resource
-	ResourceRestoreType string // "long_rest", "short_rest", "special", "none"
+	// ComponentPool lists the names of components this class is proficient with
+	ComponentPool []string
+
+	// Resource definitions for this class (generic system)
+	ResourceDefinitions []ResourceDefinitionSeed
 }
 
 // ComponentSeed defines component data for seeding (used in faradhaven_components.go)
@@ -121,4 +130,5 @@ type ComponentSeed struct {
 	Category    models.ComponentCategory
 	Description string
 	Element     string
+	Tier        int // 1 = basic (primordial/physical/shape), 2 = advanced
 }
