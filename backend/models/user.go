@@ -16,6 +16,8 @@ type User struct {
 	CreatedAt    time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedAt    time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
+	IsAdmin bool `json:"is_admin" gorm:"type:boolean;default:false"` // Added IsAdmin field
+
 	// Active character for shop purchases and quick access
 	ActiveCharacterID *uuid.UUID `json:"active_character_id,omitempty" gorm:"type:uuid;index"`
 

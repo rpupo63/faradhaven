@@ -28,8 +28,9 @@ type Corpse struct {
 	ComponentYield      int            `json:"component_yield" gorm:"type:int;default:1"` // Number of generic components
 
 	// State tracking
-	HasBeenHarvested bool `json:"has_been_harvested" gorm:"default:false"` // Ironwright scavenge
-	HasBeenConsumed  bool `json:"has_been_consumed" gorm:"default:false"`  // Lorewright psychometry
+	HasBeenHarvested  bool `json:"has_been_harvested" gorm:"default:false"`  // Ironwright scavenge
+	HasBeenConsumed   bool `json:"has_been_consumed" gorm:"default:false"`   // Lorewright psychometry
+	HasBeenScavenged  bool `json:"has_been_scavenged" gorm:"default:false"`  // Lorewright component scavenging
 
 	// Timing
 	DiedAt    time.Time  `json:"died_at" gorm:"type:timestamptz;not null;default:now()"`
@@ -74,6 +75,14 @@ func (c *Corpse) CanBeHarvested() bool {
 // CanBeConsumed checks if the corpse can be consumed for psychometry (within 1 hour)
 func (c *Corpse) CanBeConsumed() bool {
 	if c.HasBeenConsumed {
+		return false
+	}
+	return c.MinutesSinceDeath() <= 60
+}
+
+// CanBeScavenged checks if the corpse can be scavenged for components (within 1 hour)
+func (c *Corpse) CanBeScavenged() bool {
+	if c.HasBeenScavenged {
 		return false
 	}
 	return c.MinutesSinceDeath() <= 60

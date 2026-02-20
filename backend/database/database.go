@@ -28,7 +28,16 @@ type Database struct {
 	corpseRepo             *CorpseRepo
 	characterLinkRepo      *CharacterLinkRepo
 	noteRepo               *NoteRepo
-	mapRepo                *MapRepo
+	gameMapRepo            *GameMapRepo
+	mapTokenRepo           *MapTokenRepo
+	mapElementRepo         *MapElementRepo
+	monsterRepo            *MonsterRepo
+
+	// New Map Element Properties Repos
+	trapPropertiesRepo          *TrapPropertiesRepo
+	difficultTerrainPropertiesRepo *DifficultTerrainPropertiesRepo
+	elevationPropertiesRepo     *ElevationPropertiesRepo
+	wallPropertiesRepo          *WallPropertiesRepo
 }
 
 // New initializes a new Database struct with each repository using a shared GORM database instance
@@ -56,7 +65,16 @@ func New(db *gorm.DB) Database {
 		corpseRepo:             NewCorpseRepo(db),
 		characterLinkRepo:      NewCharacterLinkRepo(db),
 		noteRepo:               NewNoteRepo(db),
-		mapRepo:                NewMapRepo(db),
+		gameMapRepo:            NewGameMapRepo(db),
+		mapTokenRepo:           NewMapTokenRepo(db),
+		mapElementRepo:         NewMapElementRepo(db),
+		monsterRepo:            NewMonsterRepo(db),
+
+		// New Map Element Properties Repos
+		trapPropertiesRepo:          NewTrapPropertiesRepo(db),
+		difficultTerrainPropertiesRepo: NewDifficultTerrainPropertiesRepo(db),
+		elevationPropertiesRepo:     NewElevationPropertiesRepo(db),
+		wallPropertiesRepo:          NewWallPropertiesRepo(db),
 	}
 }
 
@@ -146,8 +164,37 @@ func (d Database) ConsumptionHistoryRepo() *ConsumptionHistoryRepo {
 	return d.consumptionHistoryRepo
 }
 
-func (d Database) MapRepo() *MapRepo {
-	return d.mapRepo
+func (d Database) GameMapRepo() *GameMapRepo {
+	return d.gameMapRepo
+}
+
+func (d Database) MapTokenRepo() *MapTokenRepo {
+	return d.mapTokenRepo
+}
+
+func (d Database) MapElementRepo() *MapElementRepo {
+	return d.mapElementRepo
+}
+
+func (d Database) MonsterRepo() *MonsterRepo {
+	return d.monsterRepo
+}
+
+// Accessor methods for new Map Element Properties Repos
+func (d Database) TrapPropertiesRepo() *TrapPropertiesRepo {
+	return d.trapPropertiesRepo
+}
+
+func (d Database) DifficultTerrainPropertiesRepo() *DifficultTerrainPropertiesRepo {
+	return d.difficultTerrainPropertiesRepo
+}
+
+func (d Database) ElevationPropertiesRepo() *ElevationPropertiesRepo {
+	return d.elevationPropertiesRepo
+}
+
+func (d Database) WallPropertiesRepo() *WallPropertiesRepo {
+	return d.wallPropertiesRepo
 }
 
 // AutoMigrate runs GORM auto-migration for all models

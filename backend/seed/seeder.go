@@ -65,12 +65,13 @@ func (s *Seeder) ClearAllData() error {
 		"race_components",
 		"lineages",
 
-		// Class child tables
+		// Class child tables (archetypes excluded — characters reference them)
+		"class_level_resources",
 		"level_features",
-		"archetypes",
 		"class_starting_equipment_options",
 		"class_starting_equipment_choices",
 		"class_weapon_requirements",
+		"class_resource_definitions",
 		"class_components",
 		"class_levels",
 	}

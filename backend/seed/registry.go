@@ -2,6 +2,7 @@ package seed
 
 import (
 	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_classes"
+	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_components"
 	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_effects"
 	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_items"
 	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_races"
@@ -18,6 +19,14 @@ import (
 // 4. Classes - references components and items
 func AllSeeds() []Seed {
 	return []Seed{
+		{
+			Name: "01_components",
+			Run:  faradhaven_components.SeedFaradhavenComponents,
+			HashData: func() (interface{}, int) {
+				data := faradhaven_components.AllComponents()
+				return data, len(data)
+			},
+		},
 		{
 			Name: "02_items",
 			Run:  faradhaven_items.SeedFaradhavenItems,
@@ -53,6 +62,10 @@ func AllSeeds() []Seed {
 				data := faradhaven_effects.AllEffects()
 				return data, len(data)
 			},
+		},
+		{
+			Name: "06_existing_spells",
+			Run:  SeedExistingSpells,
 		},
 	}
 }

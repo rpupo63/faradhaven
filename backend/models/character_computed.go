@@ -75,8 +75,64 @@ func (c *Character) ComputeStats() {
 	stats.SpellSaveDC = 8 + stats.ProficiencyBonus + primaryMod
 	stats.SpellAttackBonus = stats.ProficiencyBonus + primaryMod
 
-	// Base AC (unarmored) = 10 + Dex modifier
-	stats.ArmorClass = 10 + stats.DexterityMod
+	// --- Armor Class (AC) Calculation ---
+	baseAC := 10
+	dexModForAC := stats.DexterityMod
+	shieldsAllowed := true // Default
+
+	// Check for Unarmored Defense features
+	// This method assumes that c.Class.LevelFeatures and c.Race.Traits are preloaded.
+	unarmoredBaseAC, unarmoredAbilityMods, unarmoredShieldsAllowed := c.GetUnarmoredDefenseACBonus()
+
+	if c.EquippedArmor == nil && unarmoredBaseAC > 0 {
+		// Apply Unarmored Defense if no armor is equipped and a feature provides it
+		baseAC = unarmoredBaseAC
+		if unarmoredAbilityMods["dexterity"] {
+			baseAC += stats.DexterityMod
+		}
+		if unarmoredAbilityMods["constitution"] {
+			baseAC += stats.ConstitutionMod
+		}
+		if unarmoredAbilityMods["wisdom"] {
+			baseAC += stats.WisdomMod
+		}
+		if unarmoredAbilityMods["charisma"] {
+			baseAC += stats.CharismaMod
+		}
+		dexModForAC = 0 // Dex modifier already incorporated into baseAC if it was part of Unarmored Defense
+		shieldsAllowed = unarmoredShieldsAllowed
+	} else if c.EquippedArmor != nil {
+		// Existing armor calculation logic if armor is equipped
+		if c.EquippedArmor.BaseAC != nil {
+			baseAC = *c.EquippedArmor.BaseAC
+		}
+		if c.EquippedArmor.ArmorType != nil {
+			switch *c.EquippedArmor.ArmorType {
+			case "Heavy":
+				dexModForAC = 0 // Heavy armor gets no dexterity bonus
+			case "Medium":
+				if dexModForAC > 2 {
+					dexModForAC = 2 // Medium armor has a max dex bonus of +2
+				}
+			case "Light":
+				// No change to dexModForAC
+			default:
+				// "Unarmored" or other cases, do nothing special
+			}
+		}
+	} else {
+		// Default unarmored AC: 10 + Dex modifier if no armor and no specific Unarmored Defense feature
+		baseAC = 10
+		// dexModForAC already set to stats.DexterityMod
+	}
+
+	// Calculate final AC from base + any remaining dex bonus
+	stats.ArmorClass = baseAC + dexModForAC
+
+	// Add shield bonus if a shield is equipped and allowed by unarmored defense (if active)
+	if c.EquippedShield != nil && c.EquippedShield.BaseAC != nil && shieldsAllowed {
+		stats.ArmorClass += *c.EquippedShield.BaseAC
+	}
 
 	// Attack bonuses (proficiency + ability modifier)
 	stats.MeleeAttackBonus = stats.ProficiencyBonus + stats.StrengthMod

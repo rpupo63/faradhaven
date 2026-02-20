@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -59,6 +60,34 @@ func (s *S3Service) UploadFile(file multipart.File, fileHeader *multipart.FileHe
 	// Construct URL
 	// If region is empty, it might be a problem for constructing the URL accurately
 	// default to us-east-1 if needed or rely on config
+	region := s.region
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	url := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", s.bucket, region, key)
+	return url, nil
+}
+
+// UploadStream uploads an object to S3 from an io.Reader, generating a unique key.
+func (s *S3Service) UploadStream(ctx context.Context, reader io.Reader, filename, contentType string) (string, error) {
+	if s.bucket == "" {
+		return "", fmt.Errorf("AWS_S3_BUCKET not set")
+	}
+
+	ext := filepath.Ext(filename)
+	key := fmt.Sprintf("monsters/%s%s", uuid.New().String(), ext) // Use "monsters" prefix
+
+	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:      aws.String(s.bucket),
+		Key:         aws.String(key),
+		Body:        reader,
+		ContentType: aws.String(contentType),
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to upload stream to S3: %v", err)
+	}
+
 	region := s.region
 	if region == "" {
 		region = "us-east-1"

@@ -43,7 +43,16 @@ func Mutagen() FaradhavenClassSeed {
 			{Key: "madness_base_dc", DisplayName: "Madness Base DC", Category: "state", Description: "Starting DC for Madness saving throws (resets on rest)", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 1},
 			{Key: "feral_bonus", DisplayName: "Feral Bonus", Category: "modifier", Description: "Extra melee damage while in Feral Mode", DisplayOrder: 2},
 		},
-		ComponentPool:       []string{"Aqua", "Vita", "Acidum", "Psi", "Sanctus", "Push", "Crush", "Pierce", "Focus", "Heat", "Cool", "Expand", "Shrink", "Haste", "Slow", "Extreme", "Mend", "Wither", "Revive", "Drain", "Self", "Touch", "Absorb", "Insulate", "Grease", "Sight", "Identify", "Fear", "Frenzy", "Disguise", "Invisible", "Curse", "Sacrifice", "Transmute", "Burrow", "Fuse"},
+		ComponentPool: []string{
+			// Forma (Shape)
+			"Self", "Aura",
+			// Essentia (Matter & Energy)
+			"Vita", "Mortis", "Ignis", "Terra", "Anger", "Fear",
+			// Actio (Verbs)
+			"Mutate", "Crush", "Pierce", "Push", "Grab", "Destroy",
+			// Magnitudo (Modifiers)
+			"Increase", "Decrease", "Strong", "Weak", "Extreme",
+		},
 		Archetypes: []ArchetypeSeed{
 			{
 				Name:        "The Behemoth",

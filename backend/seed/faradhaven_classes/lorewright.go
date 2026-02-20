@@ -41,7 +41,20 @@ func Lorewright() FaradhavenClassSeed {
 		LevelProgression:    lorewrightLevelProgression(),
 		ArchetypeLevel:      &archetypeLevel,
 		Archetypes:          lorewrightArchetypes(),
-		ComponentPool:       []string{"Aqua", "Aer", "Fulgur", "Vita", "Lux", "Arcanum", "Psi", "Sanctus", "Push", "Pull", "Focus", "Homing", "Heat", "Cool", "Conduct", "Expand", "Shrink", "Slow", "Echo", "Teleport", "Mend", "Wither", "Revive", "Projectile", "Beam", "Wall", "Zone", "Self", "Trap", "Reflect", "Dispel", "Absorb", "Seal", "Summon", "Portal", "Grease", "Sight", "Identify", "Predict", "Link", "Fear", "Taunt", "Frenzy", "Command", "Channel", "Chain", "Decoy", "Invisible", "Silence", "Disguise", "Phantom", "Soul", "Curse", "Transmute", "Burrow", "Fuse"},
+		ComponentPool: []string{
+			// Forma (Shape)
+			"Aura", "Self",
+			// Scopus (Targeting)
+			"Target", "Self",
+			// Essentia (Matter & Energy)
+			"Vita", "Mortis", "Odor", "Arcanum",
+			// Essentia (Pathos)
+			"Anger", "Sadness", "Fear", "Happiness", "Disgust", "Embarrassment",
+			// Actio (Verbs)
+			"Mutate", "Bind", "Crush", "Pierce", "Destroy",
+			// Magnitudo (Modifiers)
+			"Increase", "Decrease", "Strong", "Weak",
+		},
 		ResourceDefinitions: []ResourceDefinitionSeed{
 			{Key: "echo_slots", DisplayName: "Harvest Slots", Category: "slot_count", Description: "Total harvest slots for storing absorbed abilities", DisplayOrder: 1},
 		},

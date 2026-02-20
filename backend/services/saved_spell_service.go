@@ -67,12 +67,6 @@ func (s *SavedSpellService) SaveSpell(characterID uuid.UUID, slotIndex int, req 
 		return nil, fmt.Errorf("invalid slot index (must be 0-%d)", maxSlots-1)
 	}
 
-	// Validate MaxSpellLength if set
-	maxSpellLength := resourceMap["max_spell_length"]
-	if maxSpellLength > 0 && len(req.ComponentIDs) > maxSpellLength {
-		return nil, fmt.Errorf("blueprint exceeds max spell length (%d components allowed, got %d)", maxSpellLength, len(req.ComponentIDs))
-	}
-
 	// Calculate tier-based cost from component data
 	computedCost, err := s.CalculateBlueprintCost(req.ComponentIDs)
 	if err != nil {

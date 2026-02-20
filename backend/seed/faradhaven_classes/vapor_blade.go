@@ -33,67 +33,75 @@ func VaporBlade() FaradhavenClassSeed {
 				},
 			},
 		},
-		        LevelFeatures:    vaporBladeLevelFeatures(),
-				LevelProgression: vaporBladeLevelProgression(),
-				ComponentPool:       []string{"Aer", "Umbra", "Acidum", "Psi", "Sonus", "Push", "Spin", "Pierce", "Scatter", "Focus", "Haste", "Slow", "Teleport", "Shrink", "Wither", "Drain", "Projectile", "Zone", "Self", "Trap", "Cone", "Absorb", "Sight", "Predict", "Fear", "Taunt", "Imbue", "Rupture", "Decoy", "Invisible", "Silence", "Disguise", "Phantom", "Curse", "Burrow", "Transmute"},
-				ResourceDefinitions: []ResourceDefinitionSeed{
-					{Key: "shadow_points", DisplayName: "Shadow Points", Category: "pool", Description: "A pool of shadowy energy for fueling abilities, equal to Dexterity Modifier + Proficiency Bonus.", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 1},
-				},
-			}
+		LevelFeatures:    vaporBladeLevelFeatures(),
+		LevelProgression: vaporBladeLevelProgression(),
+		ComponentPool: []string{
+			// Forma (Shape)
+			"Aura", "Self", "Projectile", "Zone", "Cone",
+			// Scopus (Targeting)
+			"Target", "Self",
+			// Essentia (Matter & Energy)
+			"Umbra", "Mortis", "Odor", "Aer", "Sonus", "Fear",
+			// Actio (Verbs)
+			"Pierce", "Destroy", "Bind",
+			// Magnitudo (Modifiers)
+			"Decrease", "Weak",
+		},
+		ResourceDefinitions: []ResourceDefinitionSeed{
+			{Key: "shadow_points", DisplayName: "Shadow Points", Category: "pool", Description: "A pool of shadowy energy for fueling abilities, equal to Dexterity Modifier + Proficiency Bonus.", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 1},
+		},
+	}
+}
+
+func vaporBladeLevelProgression() map[int]ClassLevelSeed {
+	// Vapor Blade gets Extra Attack at 5 and Sneak Strike damage scales
+	// Sneak Strike: 2d6 at level 2, +2d6 with Death Mark at level 10, unlimited at 20
+	// Shadow Points are Dex Mod + Proficiency Bonus
+	levelProgression := make(map[int]ClassLevelSeed)
+	for i := 1; i <= 20; i++ {
+		pb := proficiencyByLevel(i)
+		// A simple baseline if we have to set a value here for max.
+		// For now, let's just make it scale with proficiency bonus, as the actual
+		// calculation of Dex Mod happens at runtime.
+		// The description states "Uses equal to Dex Mod (min 1)", so the actual current/max
+		// will be handled by the frontend dynamically or a service.
+		// We'll just define the resource definition, and then if needed, set a base value here.
+		// For now, let's default to a minimal pool that expands with PB.
+		shadowPoints := pb + 1 // Example scaling
+		entry := ClassLevelSeed{
+			SneakAttackDice: 0,
+			Resources: map[string]int{
+				"shadow_points": shadowPoints,
+			},
 		}
-		
-		func vaporBladeLevelProgression() map[int]ClassLevelSeed {
-			// Vapor Blade gets Extra Attack at 5 and Sneak Strike damage scales
-			// Sneak Strike: 2d6 at level 2, +2d6 with Death Mark at level 10, unlimited at 20
-			// Shadow Points are Dex Mod + Proficiency Bonus
-					levelProgression := make(map[int]ClassLevelSeed)
-					for i := 1; i <= 20; i++ {
-						pb := proficiencyByLevel(i)
-						// A simple baseline if we have to set a value here for max.
-						// For now, let's just make it scale with proficiency bonus, as the actual
-						// calculation of Dex Mod happens at runtime.
-						// The description states "Uses equal to Dex Mod (min 1)", so the actual current/max
-						// will be handled by the frontend dynamically or a service.
-						// We'll just define the resource definition, and then if needed, set a base value here.
-						// For now, let's default to a minimal pool that expands with PB.
-						shadowPoints := pb + 1 // Example scaling		
-				entry := ClassLevelSeed{
-					SneakAttackDice: 0,
-					Resources: map[string]int{
-						"shadow_points": shadowPoints,
-					},
-				}
-		
-				// Adjust SneakAttackDice based on level
-				switch i {
-				case 2, 3, 4:
-					entry.SneakAttackDice = 2
-				case 5, 6, 7, 8:
-					entry.ExtraAttackCount = 1
-					entry.SneakAttackDice = 2
-				case 9:
-					entry.ExtraAttackCount = 1
-					entry.SneakAttackDice = 3
-				case 10:
-					entry.ExtraAttackCount = 1
-					entry.SneakAttackDice = 4 // Death Mark adds +2d6
-				case 11, 12:
-					entry.ExtraAttackCount = 1
-					entry.SneakAttackDice = 4
-				case 13, 14, 15, 16:
-					entry.ExtraAttackCount = 1
-					entry.SneakAttackDice = 5
-				case 17, 18, 19:
-					entry.ExtraAttackCount = 1
-					entry.SneakAttackDice = 6
-				case 20:
-					entry.ExtraAttackCount = 1
-					entry.SneakAttackDice = 7
-				}
-				levelProgression[i] = entry
-			}
-			return levelProgression
+
+		// Adjust SneakAttackDice based on level
+		switch {
+		case i >= 17:
+			entry.ExtraAttackCount = 1
+			entry.SneakAttackDice = 6
+		case i >= 13:
+			entry.ExtraAttackCount = 1
+			entry.SneakAttackDice = 5
+		case i == 10:
+			entry.ExtraAttackCount = 1
+			entry.SneakAttackDice = 4 // Death Mark adds +2d6
+		case i == 9:
+			entry.ExtraAttackCount = 1
+			entry.SneakAttackDice = 3
+		case i >= 5:
+			entry.ExtraAttackCount = 1
+			entry.SneakAttackDice = 2
+		case i >= 2:
+			entry.SneakAttackDice = 2
 		}
+		if i == 20 {
+			entry.SneakAttackDice = 7
+		}
+		levelProgression[i] = entry
+	}
+	return levelProgression
+}
 func vaporBladeLevelFeatures() map[int][]FeatureSeed {
 	return map[int][]FeatureSeed{
 		1: {

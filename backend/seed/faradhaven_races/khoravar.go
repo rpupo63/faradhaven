@@ -11,7 +11,7 @@ func Khoravar() FaradhavenRaceSeed {
 		BaseSpeed:      30,
 		Languages:      []string{"Common", "Elvish"},
 		Traits:         khoravarTraits(),
-		ComponentNames: []string{"Taunt", "Self"},
+		ComponentNames: []string{"Anger", "Self"},
 	}
 }
 
@@ -32,7 +32,7 @@ func khoravarTraits() []TraitSeed {
 		},
 		{
 			Name:        "Fey Gift",
-			Description: "You know the Taunt + Self component combination (magically enhancing your charisma to influence others). Whenever you finish a Long Rest, you can replace that combination with a different cantrip-tier component combination from the Cleric, Druid, or Wizard spell list. Intelligence, Wisdom, or Charisma is your spellcasting ability for the spell you cast with this trait (chosen when you select this species).",
+			Description: "You know the Anger + Self component combination (magically enhancing your charisma to influence others). Whenever you finish a Long Rest, you can replace that combination with a different cantrip-tier component combination from the Cleric, Druid, or Wizard spell list. Intelligence, Wisdom, or Charisma is your spellcasting ability for the spell you cast with this trait (chosen when you select this species).",
 			LevelReq:    1,
 			ActionType:  "Passive",
 		},

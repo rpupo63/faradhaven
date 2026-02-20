@@ -14,6 +14,8 @@ type Spell struct {
 	Name        string     `json:"name" gorm:"type:text;not null"`
 	Description string     `json:"description" gorm:"type:text"`
 	SlotLevel   int        `json:"slot_level" gorm:"type:int;not null;default:1"`
+	ManaCost    int        `json:"mana_cost" gorm:"type:int;not null;default:0"`
+	BaseTier    int        `json:"base_tier" gorm:"type:int;not null;default:1"`
 
 	// Spell Mechanics
 	Type          string      `json:"type" gorm:"type:text;default:'Utility'"` // Attack, Save, Effect, Healing, Utility

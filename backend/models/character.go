@@ -1,11 +1,14 @@
 package models
 
 import (
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"gorm.io/datatypes"
+	"regexp"
 )
 
 // HarvestedAbilities defines the structure for storing Lorewright's harvested skills, attacks, and recipes.
@@ -43,7 +46,7 @@ type Character struct {
 	// Class-specific resource tracking (current values; max comes from ClassLevel)
 	CurrentStability   int              `json:"current_stability" gorm:"type:int;default:0"`   // Piston Brawler
 	CurrentBloodIchor  int              `json:"current_blood_ichor" gorm:"type:int;default:0"` // Sanguinist
-	SanguineNotoriety  int              `json:"sanguine_notoriety" gorm:"type:int;default:0"`  // Net value between -20 and +20
+	SanguineNotoriety  int              `json:"sanguine_notoriety" gorm:"type:int;default:0"`
 	SanguineMP         int              `json:"sanguine_mp" gorm:"type:int;default:0"`         // Medical Prodigy points
 	SanguineBR         int              `json:"sanguine_br" gorm:"type:int;default:0"`         // Blood Rage points
 	EchoSlotsUsed      int              `json:"echo_slots_used" gorm:"type:int;default:0"`     // Lorewright (legacy)
@@ -107,6 +110,10 @@ type Character struct {
 	// Inventory (Text Array) - Stores names of automatic/legacy items
 	Inventory pq.StringArray `json:"inventory" gorm:"type:text[]"`
 
+	// Equipment IDs
+	EquippedArmorID  *uuid.UUID `json:"equipped_armor_id,omitempty" gorm:"type:uuid"`
+	EquippedShieldID *uuid.UUID `json:"equipped_shield_id,omitempty" gorm:"type:uuid"`
+
 	CreatedAt time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
@@ -125,6 +132,8 @@ type Character struct {
 	CharacterWeapons []CharacterWeapon `json:"character_weapons,omitempty" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
 	Weapons          []Weapon          `json:"weapons,omitempty" gorm:"many2many:character_weapons_v2;constraint:OnDelete:CASCADE"`
 	Items            []Item            `json:"items,omitempty" gorm:"many2many:character_items;constraint:OnDelete:CASCADE"`
+	EquippedArmor    *Item             `json:"equipped_armor,omitempty" gorm:"foreignKey:EquippedArmorID;references:ID"`
+	EquippedShield   *Item             `json:"equipped_shield,omitempty" gorm:"foreignKey:EquippedShieldID;references:ID"`
 
 	// ============================================================
 	// COMPUTED SUB-MODELS: Not stored in DB, populated in Go code
@@ -142,4 +151,137 @@ type Character struct {
 	// Computed stats (HP, AC, etc.) - calculated in backend, not stored
 	// See character_computed.go for CharacterComputedStats and ComputeStats()
 	ComputedStats *CharacterComputedStats `json:"computed_stats,omitempty" gorm:"-"`
+
+	// Carried Weight (calculated)
+	CarriedWeight float64 `json:"carried_weight" gorm:"-"`
+}
+
+// GetUnarmoredDefenseACBonus retrieves the unarmored defense bonus from character features.
+// It returns the base AC (e.g., 10), a map of ability modifiers to add (e.g., {"dexterity": true, "charisma": true}),
+// and a boolean indicating if shields are allowed with this unarmored defense.
+func (c *Character) GetUnarmoredDefenseACBonus() (int, map[string]bool, bool) {
+	baseAC := 0
+	abilityMods := make(map[string]bool)
+	shieldsAllowed := true
+
+	// Check Class Level Features (flattened from Class.Levels[].LevelFeatures)
+	for _, level := range c.Class.Levels {
+		if level.Level > c.Level {
+			continue
+		}
+		for _, feature := range level.LevelFeatures {
+			if feature.ArchetypeID == nil || (c.ArchetypeID != nil && *feature.ArchetypeID == *c.ArchetypeID) {
+				if result, ok := parseUnarmoredDefense(feature.Name, feature.Description); ok {
+					return result.baseAC, result.abilityMods, result.shieldsAllowed
+				}
+			}
+		}
+	}
+
+	// Check Race Traits
+	for _, trait := range c.Race.Traits {
+		if trait.LevelReq <= c.Level {
+			if result, ok := parseUnarmoredDefense(trait.Name, trait.Description); ok {
+				return result.baseAC, result.abilityMods, result.shieldsAllowed
+			}
+		}
+	}
+
+	return baseAC, abilityMods, shieldsAllowed
+}
+
+type unarmoredDefenseResult struct {
+	baseAC        int
+	abilityMods   map[string]bool
+	shieldsAllowed bool
+}
+
+// parseUnarmoredDefense checks if a feature/trait grants Unarmored Defense and extracts the AC formula.
+func parseUnarmoredDefense(name, description string) (unarmoredDefenseResult, bool) {
+	if !strings.Contains(description, "Unarmored Defense") && !strings.Contains(name, "Unarmored Defense") {
+		return unarmoredDefenseResult{}, false
+	}
+
+	result := unarmoredDefenseResult{
+		abilityMods:    make(map[string]bool),
+		shieldsAllowed: true,
+	}
+
+	re := regexp.MustCompile(`AC equals (\d+) \+ (?:your )?(\w+) modifier(?: \+ (?:your )?(\w+) modifier)?`)
+	matches := re.FindStringSubmatch(description)
+
+	validAbilities := map[string]bool{"dexterity": true, "constitution": true, "wisdom": true, "charisma": true}
+
+	if len(matches) > 0 {
+		parsedBaseAC, err := strconv.Atoi(matches[1])
+		if err == nil {
+			result.baseAC = parsedBaseAC
+			if key := strings.ToLower(matches[2]); validAbilities[key] {
+				result.abilityMods[key] = true
+			}
+			if len(matches) > 3 && matches[3] != "" {
+				if key := strings.ToLower(matches[3]); validAbilities[key] {
+					result.abilityMods[key] = true
+				}
+			}
+		}
+	} else {
+		// Fallback for descriptions the regex can't parse
+		switch {
+		case strings.Contains(description, "AC equals 10 + your Dexterity modifier + your Charisma modifier"):
+			result.baseAC = 10
+			result.abilityMods["dexterity"] = true
+			result.abilityMods["charisma"] = true
+		case strings.Contains(description, "AC equals 10 + your Dexterity modifier + your Constitution modifier"):
+			result.baseAC = 10
+			result.abilityMods["dexterity"] = true
+			result.abilityMods["constitution"] = true
+		case strings.Contains(description, "AC equals 10 + your Wisdom modifier + your Constitution modifier"):
+			result.baseAC = 10
+			result.abilityMods["wisdom"] = true
+			result.abilityMods["constitution"] = true
+		case strings.Contains(description, "AC equals 10 + your Dexterity modifier"):
+			result.baseAC = 10
+			result.abilityMods["dexterity"] = true
+		}
+	}
+
+	if strings.Contains(description, "You cannot use a shield with this feature") {
+		result.shieldsAllowed = false
+	}
+
+	return result, result.baseAC > 0
+}
+
+// COINS_PER_POUND defines how many coins (of any type) weigh one pound.
+const COINS_PER_POUND = 50.0
+
+// CalculateCarriedWeight calculates the total weight carried by the character.
+// This includes money, items, and weapons.
+func (c *Character) CalculateCarriedWeight() {
+	var totalWeight float64
+
+	// 1. Weight from Money (Copper Pieces)
+	// Assuming 1 gp = 100 cp, and 50 coins weigh 1 pound.
+	// So, (c.Money / 100) gives gold pieces. Each gold piece is effectively 1 coin.
+	// Total coins = c.Money (assuming all currency is standardized to copper for weight calc, or convert to gold equiv)
+	// A more accurate D&D 5e rule: 50 coins (of any denomination) weigh 1 lb.
+	// Since Money is in copper pieces, we need to convert it to "number of coins".
+	// For simplicity, let's assume 1 cp, 1 sp, 1 gp, 1 pp all count as 1 coin for weight purposes.
+	// We'll approximate total coin weight by dividing total copper pieces by 100 to get an approximate "gold piece equivalent" count, then divide by COINS_PER_POUND.
+	// This is a simplification, but better than nothing.
+	goldPieces := float64(c.Money) / 100.0
+	totalWeight += goldPieces / COINS_PER_POUND
+
+	// 2. Weight from Items
+	for _, item := range c.Items {
+		totalWeight += ParseWeightString(item.Weight)
+	}
+
+	// 3. Weight from Weapons
+	for _, weapon := range c.Weapons {
+		totalWeight += ParseWeightString(weapon.Weight)
+	}
+
+	c.CarriedWeight = totalWeight
 }

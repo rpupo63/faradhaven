@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/rpupo63/unified-personal-site-backend/models"
 )
 
@@ -21,12 +22,16 @@ type routeHandlers struct {
 	resourceHandler        *resourceHandler
 	minionHandler          *minionHandler
 	noteHandler            *noteHandler
-	mapHandler             *mapHandler
+	gameMapHandler         *gameMapHandler
+	mapTokenHandler        *mapTokenHandler
+	mapElementHandler      *mapElementHandler
 	mechanicsHandler       *MechanicsHandler
 	corpseHandler          *corpseHandler
 	linkHandler            *linkHandler
 	harvestHandler         *harvestHandler
 	madnessHandler         *madnessHandler
+	lootHandler            *LootHandler
+	monsterHandler         *monsterHandler
 }
 
 // ErrorResponse represents an error response from the API
@@ -59,6 +64,7 @@ type UpdateMapRequest struct {
 
 type CreateTokenRequest struct {
 	CharacterID    *uuid.UUID `json:"character_id,omitempty"`
+	MonsterID      *uuid.UUID `json:"monster_id,omitempty"`
 	AssignedUserID *uuid.UUID `json:"assigned_user_id,omitempty"`
 	Name           string     `json:"name"`
 	ImageURL       string     `json:"image_url"`
@@ -77,32 +83,59 @@ type UpdateTokenRequest struct {
 	Size           *int       `json:"size,omitempty"`
 	Color          *string    `json:"color,omitempty"`
 	AssignedUserID *uuid.UUID `json:"assigned_user_id,omitempty"` // For DM to reassign
+	CharacterID    *uuid.UUID `json:"character_id,omitempty"`     // DM re-link to character
+	MonsterID      *uuid.UUID `json:"monster_id,omitempty"`       // DM re-link to monster
+	Name           *string    `json:"name,omitempty"`
+	ImageURL       *string    `json:"image_url,omitempty"`
+	TokenType      *string    `json:"token_type,omitempty"`
 }
 
-// User Request/Response Types
+type CreateMapElementRequest struct {
+	Type  models.MapElementType `json:"type"`
+	GridX int                   `json:"grid_x"`
+	GridY int                   `json:"grid_y"`
 
-type CreateUserRequest struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	// Specific properties for different element types (nullable)
+	TrapName              *string `json:"trap_name,omitempty"`
+	TrapDescription       *string `json:"trap_description,omitempty"`
+	TrapVisibleToPlayers  *bool   `json:"trap_visible_to_players,omitempty"`
+	DifficultTerrainColor *string `json:"difficult_terrain_color,omitempty"`
+	ElevationLevel        *int    `json:"elevation_level,omitempty"`
+	WallDetails           *string `json:"wall_details,omitempty"`
 }
 
-type UpdateUserRequest struct {
-	Name              *string    `json:"name,omitempty"`
-	Email             *string    `json:"email,omitempty"`
-	ActiveCharacterID *uuid.UUID `json:"active_character_id,omitempty"`
+type CreateMultipleMapElementsRequest struct {
+	Elements []CreateMapElementRequest `json:"elements"`
 }
 
-type SetActiveCharacterRequest struct {
-	CharacterID *uuid.UUID `json:"character_id"` // nil to clear active character
+type SetInitiativeRequest struct {
+	Entries []InitiativeEntry `json:"entries"`
 }
 
-// Character Request/Response Types
+type InitiativeEntry struct {
+	TokenID uuid.UUID `json:"token_id"`
+	Order   int       `json:"order"`
+}
+
+type GenerateLootRequest struct {
+	CharacterID uuid.UUID `json:"character_id"`
+	Source      string    `json:"source"`
+	Tier        string    `json:"tier"`
+}
+
+// Character Creation Types
+
+type CreationOptionsResponse struct {
+	Races     []models.Race  `json:"races"`
+	Classes   []models.Class `json:"classes"`
+	PointsMax int            `json:"points_max"`
+}
 
 type CreateCharacterRequest struct {
 	UserID             uuid.UUID   `json:"user_id"`
 	Name               string      `json:"name"`
 	RaceID             uuid.UUID   `json:"race_id"`
-	LineageID          *uuid.UUID  `json:"lineage_id"`
+	LineageID          *uuid.UUID  `json:"lineage_id,omitempty"`
 	ClassID            uuid.UUID   `json:"class_id"`
 	Level              int         `json:"level"`
 	Spellbook          []string    `json:"spellbook"`
@@ -114,202 +147,66 @@ type CreateCharacterRequest struct {
 	Charisma           int         `json:"charisma"`
 	CurrentSpellPoints int         `json:"current_spell_points"`
 	Money              int64       `json:"money"`
-	SkillProficiencies []string    `json:"skill_proficiencies"`         // D&D 5e skill ids (e.g. "persuasion", "stealth")
-	Languages          []string    `json:"languages"`                   // Languages chosen during character creation
-	EquipmentChoices   []uuid.UUID `json:"equipment_choices"`           // IDs of selected ClassStartingEquipmentOption
-	PrimaryWeaponID    *uuid.UUID  `json:"primary_weapon_id,omitempty"` // selected primary weapon for signature items
+	Languages          []string    `json:"languages"`
+	SkillProficiencies []string    `json:"skill_proficiencies"`
+	EquipmentChoices   []uuid.UUID `json:"equipment_choices"`
+	PrimaryWeaponID    *uuid.UUID  `json:"primary_weapon_id,omitempty"`
 }
 
-type CreationOptionsResponse struct {
-	Races     []models.Race  `json:"races"`
-	Classes   []models.Class `json:"classes"`
-	PointsMax int            `json:"points_max"` // e.g. 27 for point buy
-}
+// Class/Compendium Types
 
-type UpdateCharacterRequest struct {
-	Name               *string    `json:"name,omitempty"`
-	RaceID             *uuid.UUID `json:"race_id,omitempty"`
-	LineageID          *uuid.UUID `json:"lineage_id,omitempty"`
-	ClassID            *uuid.UUID `json:"class_id,omitempty"`
-	Level              *int       `json:"level,omitempty"`
-	Spellbook          []string   `json:"spellbook,omitempty"`
-	Strength           *int       `json:"strength,omitempty"`
-	Dexterity          *int       `json:"dexterity,omitempty"`
-	Constitution       *int       `json:"constitution,omitempty"`
-	Intelligence       *int       `json:"intelligence,omitempty"`
-	Wisdom             *int       `json:"wisdom,omitempty"`
-	Charisma           *int       `json:"charisma,omitempty"`
-	CurrentSpellPoints *int       `json:"current_spell_points,omitempty"`
-	Money              *int64     `json:"money,omitempty"`
-	Notoriety          *int       `json:"notoriety,omitempty"`
-	Notes              *string    `json:"notes,omitempty"`
-	SkillProficiencies []string   `json:"skill_proficiencies,omitempty"` // D&D 5e skill ids
-}
-
-type CastSpellRequest struct {
-	SpellID     *uuid.UUID `json:"spell_id,omitempty"`
-	SpellLevel  int        `json:"spell_level"`
-	Components  []string   `json:"components,omitempty"` // For dynamic casting like Powder Mage
-	ResourceKey *string    `json:"resource_key,omitempty"` // Key of the resource to deduct from (e.g., "spell_points", "shadow_points")
-}
-
-// UpdateNotorietyRequest is used to update notoriety manually
-type UpdateNotorietyRequest struct {
-	Delta int `json:"delta"`
-}
-
-// UpdateSanguineNotorietyRequest is used to update sanguine notoriety points from modular choices
-type UpdateSanguineNotorietyRequest struct {
-	MPChange int `json:"mp_change"`
-	BRChange int `json:"br_change"`
-}
-
-// ClassWithLevelsResponse is a class with all levels 1-20 for the compendium/book view
 type ClassWithLevelsResponse struct {
-	*models.Class
+	Class        *models.Class       `json:"class"`
 	Levels       []models.ClassLevel `json:"levels"`
 	MadnessTable map[int]string      `json:"madness_table,omitempty"`
 }
 
-// CharacterSheetResponse is the fully calculated character sheet (Class + ClassLevel joined)
-type CharacterSheetResponse struct {
-	Character                *models.Character           `json:"character"`
-	Class                    *models.Class               `json:"class"`
-	ClassLevel               *models.ClassLevel          `json:"class_level"`
-	MadnessTable             map[int]string              `json:"madness_table,omitempty"`
-	MaxHP                    int                         `json:"max_hp"`     // Character's maximum HP (persisted)
-	CurrentHP                int                         `json:"current_hp"` // Character's current HP (persisted)
-	TempHP                   int                         `json:"temp_hp"`    // Temporary HP
-	AC                       int                         `json:"ac"`         // 8 + ProficiencyBonus + DexMod
-	SaveDC                   int                         `json:"save_dc"`    // 8 + ProficiencyBonus + PrimaryAbilityMod
-	MaxSpellPoints           int                         `json:"max_spell_points"`
-	CurrentSpellPoints       int                         `json:"current_spell_points"`
-	SavingThrowProficiencies []string                    `json:"saving_throw_proficiencies"`    // ability ids from class.SavingThrows
-	AvailableComponents      []models.Component          `json:"available_components"`          // combined class + race components for spell crafting
-	HitDiceTotal             int                         `json:"hit_dice_total"`                // Total hit dice = Level
-	HitDiceRemaining         int                         `json:"hit_dice_remaining"`            // Available hit dice = Level - HitDiceUsed
-	HitDie                   int                         `json:"hit_die"`                       // Class hit die (e.g., 10 for d10)
-	Money                    int64                       `json:"money"`                         // Currency in copper pieces
-	MeleeAttackBonus         int                         `json:"melee_attack_bonus"`            // Proficiency + STR mod
-	RangedAttackBonus        int                         `json:"ranged_attack_bonus"`           // Proficiency + DEX mod
-	RaceTraits               []models.Trait              `json:"race_traits"`                   // Race traits for the character's race
-	Lineage                  *models.Lineage             `json:"lineage,omitempty"`             // Character's lineage (sub-race)
-	InventoryWeapons         []CharacterWeaponResponse   `json:"inventory_weapons"`             // Detailed weapon objects with modifiers
-	InventoryItems           []models.Item               `json:"inventory_items"`               // Detailed item objects
-	Components               []models.CharacterComponent `json:"components"`                    // Character's current component inventory
-	HarvestedAbilities       models.HarvestedAbilities   `json:"harvested_abilities,omitempty"` // Lorewright's harvested abilities
-
-	// --- Generic Class Resources ---
-	ClassResources []ClassResourceResponse `json:"class_resources,omitempty"` // Dynamic class resource array
-}
-
-// ClassResourceResponse represents a single class resource in the character sheet API.
-// This is the generic system that replaces individual class-specific resource fields.
 type ClassResourceResponse struct {
-	Key          string `json:"key"`                     // machine identifier (e.g., "concurrency_limit")
-	DisplayName  string `json:"display_name"`            // UI label (e.g., "Concurrency Limit")
-	Category     string `json:"category"`                // rendering hint: "pool", "die_size", "limit", "slot_count", "modifier", "state"
-	Description  string `json:"description,omitempty"`   // tooltip text
-	Value        int    `json:"value"`                   // progression value at current level (from ClassLevelResource)
-	CurrentValue *int   `json:"current_value,omitempty"` // mutable current value (from CharacterResource, nil if not trackable)
-	MaxValue     *int   `json:"max_value,omitempty"`     // max value (from CharacterResource, nil if not trackable)
-	IsTrackable  bool   `json:"is_trackable"`            // whether this has mutable state
-	DisplayOrder int    `json:"display_order"`           // UI ordering
+	Key          string `json:"key"`
+	DisplayName  string `json:"display_name"`
+	Category     string `json:"category"`
+	Description  string `json:"description"`
+	Value        int    `json:"value"`
+	IsTrackable  bool   `json:"is_trackable"`
+	DisplayOrder int    `json:"display_order"`
+	CurrentValue *int   `json:"current_value,omitempty"`
+	MaxValue     *int   `json:"max_value,omitempty"`
 }
 
-type CharacterWeaponResponse struct {
-	CharacterWeaponID string                   `json:"character_weapon_id"`
-	Weapon            models.Weapon            `json:"weapon"`
-	IsPrimary         bool                     `json:"is_primary"`
-	CustomName        *string                  `json:"custom_name,omitempty"`
-	ActiveModifiers   []WeaponModifierResponse `json:"active_modifiers,omitempty"`
-}
-
-type WeaponModifierResponse struct {
-	ModifierType string            `json:"modifier_type"`
-	IsActive     bool              `json:"is_active"`
-	BonusDamage  []BonusDamageInfo `json:"bonus_damage,omitempty"`
-	Metadata     interface{}       `json:"metadata,omitempty"`
-}
-
-type BonusDamageInfo struct {
-	Dice       string `json:"dice"`
-	DamageType string `json:"damage_type"`
-}
-
-// Spell Request/Response Types
-
-type CreateSpellRequest struct {
-	UserID        uuid.UUID          `json:"user_id"`
-	CharacterID   *uuid.UUID         `json:"character_id,omitempty"` // Optional: character who prepared this spell
-	Name          string             `json:"name"`
-	Description   string             `json:"description"`
-	ComponentIDs  []uuid.UUID        `json:"component_ids"`
-	SlotLevel     int                `json:"slot_level"`
-	Type          string             `json:"type"`
-	Range         *string            `json:"range,omitempty"`
-	Duration      *string            `json:"duration,omitempty"`
-	Concentration bool               `json:"concentration"`
-	SaveAttr      *string            `json:"save_attr,omitempty"`
-	DamageDice    *string            `json:"damage_dice,omitempty"`
-	DamageType    *models.DamageType `json:"damage_type,omitempty"`
-	AddModifier   bool               `json:"add_modifier"`
-}
-
-type UpdateSpellRequest struct {
-	Name          *string            `json:"name,omitempty"`
-	Description   *string            `json:"description,omitempty"`
-	ComponentIDs  []uuid.UUID        `json:"component_ids,omitempty"`
-	SlotLevel     *int               `json:"slot_level,omitempty"`
-	CharacterID   *uuid.UUID         `json:"character_id,omitempty"`
-	Type          *string            `json:"type,omitempty"`
-	Range         *string            `json:"range,omitempty"`
-	Duration      *string            `json:"duration,omitempty"`
-	Concentration *bool              `json:"concentration,omitempty"`
-	SaveAttr      *string            `json:"save_attr,omitempty"`
-	DamageDice    *string            `json:"damage_dice,omitempty"`
-	DamageType    *models.DamageType `json:"damage_type,omitempty"`
-	AddModifier   *bool              `json:"add_modifier,omitempty"`
-}
-
-// Purchase Request Types
-
-type PurchaseItemRequest struct {
-	ItemID   uuid.UUID `json:"item_id"`
-	ItemType string    `json:"item_type"` // "item" or "weapon"
-}
-
-// UpdateBackstoryRequest is used to update a character's backstory
-type UpdateBackstoryRequest struct {
-	Backstory         string  `json:"backstory"`
-	BackstoryHexColor *string `json:"backstory_hex_color,omitempty"`
-}
-
-// Beast Request/Response Types
+// Beast Types
 
 type CreateBeastRequest struct {
-	UserID           uuid.UUID             `json:"user_id"`
-	Name             string                `json:"name"`
-	ImageURL         *string               `json:"image_url,omitempty"`
-	Size             models.CreatureSize   `json:"size"`
-	Type             models.CreatureType   `json:"type"`
-	Alignment        string                `json:"alignment"`
-	ArmorClass       int                   `json:"armor_class"`
-	HitPoints        int                   `json:"hit_points"`
-	HitDice          string                `json:"hit_dice"`
-	Speed            string                `json:"speed"`
-	Strength         int                   `json:"strength"`
-	Dexterity        int                   `json:"dexterity"`
-	Constitution     int                   `json:"constitution"`
-	Intelligence     int                   `json:"intelligence"`
-	Wisdom           int                   `json:"wisdom"`
-	Charisma         int                   `json:"charisma"`
-	ChallengeRating  string                `json:"challenge_rating"`
-	Abilities        []string              `json:"abilities,omitempty"`
-	Actions          []string              `json:"actions,omitempty"`
-	LegendaryActions []string              `json:"legendary_actions,omitempty"`
-	Description      string                `json:"description"`
-	Attacks          []CreateAttackRequest `json:"attacks,omitempty"`
+	UserID           uuid.UUID           `json:"user_id"`
+	Name             string              `json:"name"`
+	ImageURL         *string             `json:"image_url,omitempty"`
+	Size             models.CreatureSize `json:"size"`
+	Type             models.CreatureType `json:"type"`
+	Alignment        string              `json:"alignment"`
+	ArmorClass       int                 `json:"armor_class"`
+	HitPoints        int                 `json:"hit_points"`
+	HitDice          string              `json:"hit_dice"`
+	Speed            string              `json:"speed"`
+	Strength         int                 `json:"strength"`
+	Dexterity        int                 `json:"dexterity"`
+	Constitution     int                 `json:"constitution"`
+	Intelligence     int                 `json:"intelligence"`
+	Wisdom           int                 `json:"wisdom"`
+	Charisma         int                 `json:"charisma"`
+	ChallengeRating  string              `json:"challenge_rating"`
+	Abilities        pq.StringArray      `json:"abilities"`
+	Actions          pq.StringArray      `json:"actions"`
+	LegendaryActions pq.StringArray      `json:"legendary_actions"`
+	Description      string              `json:"description"`
+	Attacks          []AttackRequest     `json:"attacks"`
+}
+
+type AttackRequest struct {
+	Name        string            `json:"name"`
+	AttackBonus int               `json:"attack_bonus"`
+	DamageType  models.DamageType `json:"damage_type"`
+	DamageDice  string            `json:"damage_dice"`
+	Reach       *string           `json:"reach,omitempty"`
+	Description *string           `json:"description,omitempty"`
 }
 
 type UpdateBeastRequest struct {
@@ -329,142 +226,13 @@ type UpdateBeastRequest struct {
 	Wisdom           *int                 `json:"wisdom,omitempty"`
 	Charisma         *int                 `json:"charisma,omitempty"`
 	ChallengeRating  *string              `json:"challenge_rating,omitempty"`
-	Abilities        []string             `json:"abilities,omitempty"`
-	Actions          []string             `json:"actions,omitempty"`
-	LegendaryActions []string             `json:"legendary_actions,omitempty"`
+	Abilities        pq.StringArray       `json:"abilities,omitempty"`
+	Actions          pq.StringArray       `json:"actions,omitempty"`
+	LegendaryActions pq.StringArray       `json:"legendary_actions,omitempty"`
 	Description      *string              `json:"description,omitempty"`
 }
 
-// Attack Request/Response Types
-
-type CreateAttackRequest struct {
-	Name        string            `json:"name"`
-	AttackBonus int               `json:"attack_bonus"`
-	DamageType  models.DamageType `json:"damage_type"`
-	DamageDice  string            `json:"damage_dice"`
-	Reach       *string           `json:"reach,omitempty"`
-	Description *string           `json:"description,omitempty"`
-}
-
-// HP Management Request/Response Types
-
-// UpdateHPRequest is used to apply damage or healing
-type UpdateHPRequest struct {
-	Delta    int        `json:"delta"` // Positive = heal, negative = damage
-	Source   *string    `json:"source,omitempty"`
-	TargetID *uuid.UUID `json:"target_id,omitempty"` // ID of the beast being attacked (for Lorewright's Predator's Strike)
-	WeaponID *uuid.UUID `json:"weapon_id,omitempty"` // ID of the weapon used (for damage calculations)
-}
-
-// SetTempHPRequest sets temporary HP
-type SetTempHPRequest struct {
-	TempHP int `json:"temp_hp"`
-}
-
-// UseHitDiceRequest contains the rolled values for hit dice
-type UseHitDiceRequest struct {
-	Rolls []int `json:"rolls"` // Array of roll results (d{HitDie} + ConMod each)
-}
-
-// UseHitDiceResponse returns the result of using hit dice
-type UseHitDiceResponse struct {
-	CurrentHP        int   `json:"current_hp"`
-	MaxHP            int   `json:"max_hp"`
-	HPHealed         int   `json:"hp_healed"`
-	DiceUsed         int   `json:"dice_used"`
-	DiceResults      []int `json:"dice_results"`
-	HitDiceRemaining int   `json:"hit_dice_remaining"`
-}
-
-// RestResponse returns HP state after a rest
-type RestResponse struct {
-	CurrentHP          int `json:"current_hp"`
-	MaxHP              int `json:"max_hp"`
-	TempHP             int `json:"temp_hp"`
-	CurrentSpellPoints int `json:"current_spell_points"`
-	MaxSpellPoints     int `json:"max_spell_points"`
-	HitDiceRemaining   int `json:"hit_dice_remaining"`
-	HitDiceTotal       int `json:"hit_dice_total"`
-
-	// Generic class resources (updated after rest)
-	ClassResources []ClassResourceResponse `json:"class_resources,omitempty"`
-}
-
-// Mechanics Request/Response Types
-
-type RollTableRequest struct {
-	TableName string `json:"table_name"` // "mutagen_feral", "lorewright_madness"
-}
-
-type RollTableResponse struct {
-	Effect *models.Effect `json:"effect"`
-	Roll   int            `json:"roll"`
-}
-
-type MutagenCastRequest struct {
-	ComponentCount int `json:"component_count"`
-}
-
-type MutagenCastResponse struct {
-	MadnessCastCount int  `json:"madness_cast_count"`
-	CurrentDC        int  `json:"current_dc"`
-	RequiresSave     bool `json:"requires_save"`
-	SaveDC           int  `json:"save_dc"`
-}
-
-type ActiveEffectResponse struct {
-	ID          uuid.UUID `json:"id"`
-	EffectID    uuid.UUID `json:"effect_id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Mechanics   string    `json:"mechanics"`
-	Duration    string    `json:"duration"`
-	Source      string    `json:"source"`
-	Category    string    `json:"category"`
-}
-
-// Character Effect Management Request/Response Types
-
-type ApplyEffectRequest struct {
-	EffectID          uuid.UUID  `json:"effect_id"`
-	Stacks            int        `json:"stacks,omitempty"`
-	MaxStacks         int        `json:"max_stacks,omitempty"`
-	DurationRounds    *int       `json:"duration_rounds,omitempty"`
-	DurationMinutes   *int       `json:"duration_minutes,omitempty"`
-	Source            string     `json:"source,omitempty"`
-	SourceCharacterID *uuid.UUID `json:"source_character_id,omitempty"`
-	SourceSpellID     *uuid.UUID `json:"source_spell_id,omitempty"`
-	IsConcentration   bool       `json:"is_concentration,omitempty"`
-	StackIfExists     bool       `json:"stack_if_exists,omitempty"`
-}
-
-type ModifyStacksRequest struct {
-	Delta int `json:"delta"` // Positive = add stacks, negative = remove stacks
-}
-
-type RemoveEffectRequest struct {
-	RemoveAllStacks bool `json:"remove_all_stacks,omitempty"`
-	StacksToRemove  int  `json:"stacks_to_remove,omitempty"`
-}
-
-type TickDurationRequest struct {
-	Rounds int `json:"rounds,omitempty"` // Default 1
-}
-
-type TickDurationResponse struct {
-	Expired []ExpiredEffectInfo `json:"expired"`
-	Rounds  int                 `json:"rounds"`
-}
-
-type ExpiredEffectInfo struct {
-	EffectID   uuid.UUID `json:"effect_id"`
-	EffectName string    `json:"effect_name"`
-	Reason     string    `json:"reason"`
-}
-
-type BreakConcentrationResponse struct {
-	Broken []ExpiredEffectInfo `json:"broken"`
-}
+// Character Effect Types
 
 type CharacterEffectResponse struct {
 	ID                uuid.UUID  `json:"id"`
@@ -484,45 +252,180 @@ type CharacterEffectResponse struct {
 	IsConcentration   bool       `json:"is_concentration"`
 }
 
-// Character Resource Request/Response Types
-
-type CreateResourceRequest struct {
-	ResourceKey        string `json:"resource_key"`
-	ResourceName       string `json:"resource_name"`
-	CurrentValue       int    `json:"current_value"`
-	MaxValue           *int   `json:"max_value,omitempty"`
-	RestoreOnShortRest bool   `json:"restore_on_short_rest,omitempty"`
-	RestoreOnLongRest  bool   `json:"restore_on_long_rest,omitempty"`
-	RestoreAmount      *int   `json:"restore_amount,omitempty"`
-	DecaysOnLongRest   bool   `json:"decays_on_long_rest,omitempty"`
+type ApplyEffectRequest struct {
+	EffectID          uuid.UUID  `json:"effect_id"`
+	Stacks            int        `json:"stacks"`
+	MaxStacks         int        `json:"max_stacks"`
+	DurationRounds    *int       `json:"duration_rounds,omitempty"`
+	DurationMinutes   *int       `json:"duration_minutes,omitempty"`
+	Source            string     `json:"source"`
+	SourceCharacterID *uuid.UUID `json:"source_character_id,omitempty"`
+	SourceSpellID     *uuid.UUID `json:"source_spell_id,omitempty"`
+	IsConcentration   bool       `json:"is_concentration"`
+	StackIfExists     bool       `json:"stack_if_exists"`
 }
 
-type ResourceDeltaRequest struct {
-	Amount int `json:"amount"`
-}
-
-// Minion Request/Response Types
-
-type CreateMinionRequest struct {
-	MinionType  string `json:"minion_type"` // "construct", "echo", "drone"
-	TemplateKey string `json:"template_key,omitempty"`
-	CustomName  string `json:"custom_name,omitempty"`
-	// Drone-specific: which component to spend
-	ComponentID *uuid.UUID `json:"component_id,omitempty"`
-	// Echo-specific fields
-	SlotIndex          int    `json:"slot_index,omitempty"`
-	AbilityName        string `json:"ability_name,omitempty"`
-	AbilityDescription string `json:"ability_description,omitempty"`
-	AbilityType        string `json:"ability_type,omitempty"`
-	SourceCreatureType string `json:"source_creature_type,omitempty"`
-}
-
-type UpdateMinionHPRequest struct {
+type ModifyStacksRequest struct {
 	Delta int `json:"delta"`
 }
 
-// Corpse Request/Response Types
+type RemoveEffectRequest struct {
+	RemoveAllStacks bool `json:"remove_all_stacks"`
+	StacksToRemove  int  `json:"stacks_to_remove"`
+}
 
+type TickDurationRequest struct {
+	Rounds int `json:"rounds"`
+}
+
+type ExpiredEffectInfo struct {
+	EffectID   uuid.UUID `json:"effect_id"`
+	EffectName string    `json:"effect_name"`
+	Reason     string    `json:"reason"`
+}
+
+type TickDurationResponse struct {
+	Expired []ExpiredEffectInfo `json:"expired"`
+	Rounds  int                 `json:"rounds"`
+}
+
+type BreakConcentrationResponse struct {
+	Broken []ExpiredEffectInfo `json:"broken"`
+}
+
+type UpdateMapElementRequest struct {
+	Type  *models.MapElementType `json:"type,omitempty"`
+	GridX *int                   `json:"grid_x,omitempty"`
+	GridY *int                   `json:"grid_y,omitempty"`
+
+	// Specific properties for different element types (nullable)
+	TrapName              *string `json:"trap_name,omitempty"`
+	TrapDescription       *string `json:"trap_description,omitempty"`
+	TrapVisibleToPlayers  *bool   `json:"trap_visible_to_players,omitempty"`
+	DifficultTerrainColor *string `json:"difficult_terrain_color,omitempty"`
+	ElevationLevel        *int    `json:"elevation_level,omitempty"`
+	WallDetails           *string `json:"wall_details,omitempty"`
+}
+
+// Character handler request/response types (character_handler.go, character_sheet_handler.go)
+
+// UpdateCharacterRequest is the request body for PATCH /characters/:id
+type UpdateCharacterRequest struct {
+	Name               *string    `json:"name,omitempty"`
+	RaceID             *uuid.UUID `json:"race_id,omitempty"`
+	LineageID          *uuid.UUID `json:"lineage_id,omitempty"`
+	ClassID            *uuid.UUID `json:"class_id,omitempty"`
+	Level              *int       `json:"level,omitempty"`
+	Spellbook          []string   `json:"spellbook,omitempty"`
+	Strength           *int       `json:"strength,omitempty"`
+	Dexterity          *int       `json:"dexterity,omitempty"`
+	Constitution       *int       `json:"constitution,omitempty"`
+	Intelligence       *int       `json:"intelligence,omitempty"`
+	Wisdom             *int       `json:"wisdom,omitempty"`
+	Charisma           *int       `json:"charisma,omitempty"`
+	CurrentSpellPoints *int       `json:"current_spell_points,omitempty"`
+	Money              *int64     `json:"money,omitempty"`
+	Notoriety          *int       `json:"notoriety,omitempty"`
+	Notes              *string    `json:"notes,omitempty"`
+	SkillProficiencies []string   `json:"skill_proficiencies,omitempty"`
+}
+
+// UpdateBackstoryRequest is the request body for updating a character's backstory
+type UpdateBackstoryRequest struct {
+	Backstory         string  `json:"backstory"`
+	BackstoryHexColor *string `json:"backstory_hex_color,omitempty"`
+}
+
+// PurchaseItemRequest is the request body for purchasing an item or weapon
+type PurchaseItemRequest struct {
+	ItemType string    `json:"item_type"` // "weapon" or "item"
+	ItemID   uuid.UUID `json:"item_id"`
+}
+
+// CastSpellRequest is the request body for casting a spell
+type CastSpellRequest struct {
+	SpellID     *uuid.UUID `json:"spell_id,omitempty"`
+	SpellLevel  int        `json:"spell_level"`
+	ResourceKey *string    `json:"resource_key,omitempty"`
+	Components  []string   `json:"components,omitempty"`
+}
+
+// ExtractRequest is the request body for Sanguine Extraction (Sanguinist)
+type ExtractRequest struct {
+	Source string `json:"source"` // e.g. "siphon", "bite"
+}
+
+// UpdateNotorietyRequest is the request body for manual notoriety delta update
+type UpdateNotorietyRequest struct {
+	Delta int `json:"delta"`
+}
+
+// UpdateSanguineNotorietyRequest is the request body for updating Sanguine MP/BR points
+type UpdateSanguineNotorietyRequest struct {
+	MPChange int `json:"mp_change"`
+	BRChange int `json:"br_change"`
+}
+
+// CharacterWeaponResponse is a weapon in the character sheet inventory
+type CharacterWeaponResponse struct {
+	CharacterWeaponID string                   `json:"character_weapon_id"`
+	Weapon            models.Weapon            `json:"weapon"`
+	IsPrimary         bool                     `json:"is_primary"`
+	IsEquipped        bool                     `json:"is_equipped"`
+	CustomName        *string                  `json:"custom_name,omitempty"`
+	ActiveModifiers   []WeaponModifierResponse `json:"active_modifiers"`
+}
+
+// WeaponModifierResponse is a modifier on a character weapon in the sheet
+type WeaponModifierResponse struct {
+	ModifierType string                  `json:"modifier_type"`
+	IsActive     bool                    `json:"is_active"`
+	BonusDamage  []BonusDamageInfo       `json:"bonus_damage"`
+	Metadata     models.ModifierMetadata `json:"metadata,omitempty"`
+}
+
+// BonusDamageInfo describes bonus damage (dice + type) for a weapon modifier
+type BonusDamageInfo struct {
+	Dice       string `json:"dice"`
+	DamageType string `json:"damage_type"`
+}
+
+// CharacterSheetResponse is the response for GET character sheet
+type CharacterSheetResponse struct {
+	Character                *models.Character           `json:"character"`
+	Class                    *models.Class               `json:"class"`
+	ClassLevel               *models.ClassLevel          `json:"class_level"`
+	MaxHP                    int                         `json:"max_hp"`
+	CurrentHP                int                         `json:"current_hp"`
+	TempHP                   int                         `json:"temp_hp"`
+	AC                       int                         `json:"ac"`
+	SaveDC                   int                         `json:"save_dc"`
+	MaxSpellPoints           int                         `json:"max_spell_points"`
+	CurrentSpellPoints       int                         `json:"current_spell_points"`
+	SavingThrowProficiencies []string                    `json:"saving_throw_proficiencies"`
+	AvailableComponents      []models.Component          `json:"available_components"`
+	HitDiceTotal             int                         `json:"hit_dice_total"`
+	HitDiceRemaining         int                         `json:"hit_dice_remaining"`
+	HitDie                   int                         `json:"hit_die"`
+	Money                    int64                       `json:"money"`
+	MeleeAttackBonus         int                         `json:"melee_attack_bonus"`
+	RangedAttackBonus        int                         `json:"ranged_attack_bonus"`
+	RaceTraits               []models.Trait              `json:"race_traits"`
+	Lineage                  *models.Lineage             `json:"lineage,omitempty"`
+	InventoryWeapons         []CharacterWeaponResponse   `json:"inventory_weapons"`
+	InventoryItems           []models.Item               `json:"inventory_items"`
+	Components               []models.CharacterComponent `json:"components"`
+	HarvestedAbilities       models.HarvestedAbilities   `json:"harvested_abilities"`
+	ClassResources           []ClassResourceResponse     `json:"class_resources"`
+	MadnessTable             map[int]string              `json:"madness_table,omitempty"`
+}
+
+// ConsumeCorpseRequest is the request body for consuming a corpse (Lorewright Visceral Psychometry)
+type ConsumeCorpseRequest struct {
+	CharacterID uuid.UUID `json:"character_id"`
+}
+
+// CreateCorpseRequest is the request body for creating a corpse
 type CreateCorpseRequest struct {
 	MapID               *uuid.UUID `json:"map_id,omitempty"`
 	Name                string     `json:"name"`
@@ -537,29 +440,179 @@ type CreateCorpseRequest struct {
 	ExpiresInMinutes    *int       `json:"expires_in_minutes,omitempty"`
 }
 
+// HarvestCorpseRequest is the request body for harvesting a corpse (Ironwright Scavenge)
 type HarvestCorpseRequest struct {
 	CharacterID uuid.UUID `json:"character_id"`
 }
 
-type ConsumeCorpseRequest struct {
+// RestResponse is the response for short/long rest endpoints
+type RestResponse struct {
+	CurrentHP          int                     `json:"current_hp"`
+	MaxHP              int                     `json:"max_hp"`
+	TempHP             int                     `json:"temp_hp"`
+	CurrentSpellPoints int                     `json:"current_spell_points"`
+	MaxSpellPoints     int                     `json:"max_spell_points"`
+	HitDiceRemaining   int                     `json:"hit_dice_remaining"`
+	HitDiceTotal       int                     `json:"hit_dice_total"`
+	ClassResources     []ClassResourceResponse `json:"class_resources"`
+}
+
+// ScavengeComponentsRequest is the request body for Lorewright component scavenging from a corpse
+type ScavengeComponentsRequest struct {
 	CharacterID uuid.UUID `json:"character_id"`
 }
 
-// Initiative Request/Response Types
-
-type InitiativeEntry struct {
-	TokenID uuid.UUID `json:"token_id"`
-	Order   int       `json:"order"`
+// SetTempHPRequest is the request body for PUT temp-hp
+type SetTempHPRequest struct {
+	TempHP int `json:"temp_hp"`
 }
 
-type SetInitiativeRequest struct {
-	Entries []InitiativeEntry `json:"entries"`
+// UpdateHPRequest is the request body for PATCH hp
+type UpdateHPRequest struct {
+	Delta    int        `json:"delta"`
+	Source   *string    `json:"source,omitempty"`
+	TargetID *uuid.UUID `json:"target_id,omitempty"`
 }
 
-// API Response Types
+// UseHitDiceRequest is the request body for POST hit-dice
+type UseHitDiceRequest struct {
+	Rolls []int `json:"rolls"`
+}
 
-type APIResponse struct {
-	Success bool        `json:"success"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
+// UseHitDiceResponse is the response for POST hit-dice
+type UseHitDiceResponse struct {
+	CurrentHP        int   `json:"current_hp"`
+	MaxHP            int   `json:"max_hp"`
+	HPHealed         int   `json:"hp_healed"`
+	DiceUsed         int   `json:"dice_used"`
+	DiceResults      []int `json:"dice_results"`
+	HitDiceRemaining int   `json:"hit_dice_remaining"`
+}
+
+// Mechanics handler types (mechanics_handler.go)
+
+// ActiveEffectResponse is the response for GET active effects
+type ActiveEffectResponse struct {
+	ID          uuid.UUID `json:"id"`
+	EffectID    uuid.UUID `json:"effect_id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Mechanics   string    `json:"mechanics"`
+	Category    string    `json:"category"`
+	Duration    string    `json:"duration"`
+	Source      string    `json:"source"`
+}
+
+// MutagenCastRequest is the request body for Mutagen cast (madness logic)
+type MutagenCastRequest struct {
+	ComponentCount int `json:"component_count"`
+}
+
+// MutagenCastResponse is the response for Mutagen cast
+type MutagenCastResponse struct {
+	MadnessCastCount int  `json:"madness_cast_count"`
+	CurrentDC        int  `json:"current_dc"`
+	RequiresSave     bool `json:"requires_save"`
+	SaveDC           int  `json:"save_dc"`
+}
+
+// RollTableRequest is the request body for rolling on an effect table
+type RollTableRequest struct {
+	TableName string `json:"table_name"`
+}
+
+// RollTableResponse is the response for rolling on an effect table
+type RollTableResponse struct {
+	Effect *models.Effect `json:"effect"`
+	Roll   int            `json:"roll"`
+}
+
+// Minion handler types (minion_handler.go)
+
+// CreateMinionRequest is the request body for creating a minion (construct, drone, or echo)
+type CreateMinionRequest struct {
+	MinionType         string     `json:"minion_type"` // "construct", "drone", "echo"
+	TemplateKey        string     `json:"template_key,omitempty"`
+	CustomName         string     `json:"custom_name,omitempty"`
+	ComponentID        *uuid.UUID `json:"component_id,omitempty"`
+	SlotIndex          int        `json:"slot_index,omitempty"`
+	AbilityName        string     `json:"ability_name,omitempty"`
+	AbilityDescription string     `json:"ability_description,omitempty"`
+	AbilityType        string     `json:"ability_type,omitempty"`
+	SourceCreatureType string     `json:"source_creature_type,omitempty"`
+}
+
+// UpdateMinionHPRequest is the request body for updating a minion's HP
+type UpdateMinionHPRequest struct {
+	Delta int `json:"delta"`
+}
+
+// Resource handler types (resource_handler.go)
+
+// CreateResourceRequest is the request body for creating a character resource
+type CreateResourceRequest struct {
+	ResourceKey        string `json:"resource_key"`
+	ResourceName       string `json:"resource_name"`
+	CurrentValue       int    `json:"current_value"`
+	MaxValue           *int   `json:"max_value,omitempty"`
+	RestoreOnShortRest bool   `json:"restore_on_short_rest"`
+	RestoreOnLongRest  bool   `json:"restore_on_long_rest"`
+	RestoreAmount      *int   `json:"restore_amount,omitempty"`
+	DecaysOnLongRest   bool   `json:"decays_on_long_rest"`
+}
+
+// ResourceDeltaRequest is the request body for spending or gaining a resource
+type ResourceDeltaRequest struct {
+	Amount int `json:"amount"`
+}
+
+// Spell Types
+
+type CreateSpellRequest struct {
+	UserID        uuid.UUID          `json:"user_id"`
+	CharacterID   *uuid.UUID         `json:"character_id,omitempty"`
+	Name          string             `json:"name"`
+	Description   string             `json:"description"`
+	SlotLevel     int                `json:"slot_level"`
+	Type          string             `json:"type"`
+	Range         *string            `json:"range,omitempty"`
+	Duration      *string            `json:"duration,omitempty"`
+	Concentration bool               `json:"concentration"`
+	SaveAttr      *string            `json:"save_attr,omitempty"`
+	DamageDice    *string            `json:"damage_dice,omitempty"`
+	DamageType    *models.DamageType `json:"damage_type,omitempty"`
+	AddModifier   bool               `json:"add_modifier"`
+	ComponentIDs  []uuid.UUID        `json:"component_ids"`
+}
+
+type UpdateSpellRequest struct {
+	Name          *string            `json:"name,omitempty"`
+	Description   *string            `json:"description,omitempty"`
+	SlotLevel     *int               `json:"slot_level,omitempty"`
+	Type          *string            `json:"type,omitempty"`
+	Range         *string            `json:"range,omitempty"`
+	Duration      *string            `json:"duration,omitempty"`
+	Concentration *bool              `json:"concentration,omitempty"`
+	SaveAttr      *string            `json:"save_attr,omitempty"`
+	DamageDice    *string            `json:"damage_dice,omitempty"`
+	DamageType    *models.DamageType `json:"damage_type,omitempty"`
+	AddModifier   *bool              `json:"add_modifier,omitempty"`
+	ComponentIDs  []uuid.UUID        `json:"component_ids,omitempty"`
+}
+
+// User Types
+
+type CreateUserRequest struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+type UpdateUserRequest struct {
+	Name              *string    `json:"name,omitempty"`
+	Email             *string    `json:"email,omitempty"`
+	ActiveCharacterID *uuid.UUID `json:"active_character_id,omitempty"`
+}
+
+type SetActiveCharacterRequest struct {
+	CharacterID *uuid.UUID `json:"character_id"`
 }

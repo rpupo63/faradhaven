@@ -164,6 +164,11 @@ func (s *CorpseService) GetCorpses(mapID *uuid.UUID) ([]*models.Corpse, error) {
 	return s.corpseRepo.FindAll()
 }
 
+// UpdateCorpse persists changes to a corpse
+func (s *CorpseService) UpdateCorpse(corpse *models.Corpse) error {
+	return s.corpseRepo.Update(corpse)
+}
+
 // DeleteCorpse removes a corpse
 func (s *CorpseService) DeleteCorpse(corpseID uuid.UUID) error {
 	return s.corpseRepo.Delete(corpseID)

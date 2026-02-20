@@ -15,7 +15,7 @@ func Dragonborn() FaradhavenRaceSeed {
 		},
 		Languages:      []string{"Common", "Draconic"},
 		Traits:         dragonbornTraits(),
-		ComponentNames: []string{"Ignis", "Fulgur", "Cool", "Wither", "Aer", "Nova", "Channel"},
+		ComponentNames: []string{"Ignis", "Fulgur", "Decrease", "Aer", "Nova", "Beam"},
 	}
 }
 
@@ -30,7 +30,7 @@ func dragonbornTraits() []TraitSeed {
 		},
 		{
 			Name:           "Breath Weapon",
-			Description:    "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy using your ancestral element component in either Nova (15-foot Cone) or Channel (30-foot Line that is 5 feet wide) shape, chosen each time. Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 damage of the type determined by your Draconic Ancestry trait. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10). You can use this Breath Weapon a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest.",
+			Description:    "When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy using your ancestral element component in either Nova (15-foot Cone) or Beam (30-foot Line that is 5 feet wide) shape, chosen each time. Each creature in that area must make a Dexterity saving throw (DC 8 plus your Constitution modifier and Proficiency Bonus). On a failed save, a creature takes 1d10 damage of the type determined by your Draconic Ancestry trait. On a successful save, a creature takes half as much damage. This damage increases by 1d10 when you reach character levels 5 (2d10), 11 (3d10), and 17 (4d10). You can use this Breath Weapon a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest.",
 			LevelReq:       1,
 			ActionType:     "Action",
 			UsesPerRest:    "Proficiency Bonus",
@@ -64,15 +64,15 @@ func dragonbornTraits() []TraitSeed {
 
 func dragonbornAncestryOptions() []TraitOptionSeed {
 	return []TraitOptionSeed{
-		{Name: "Black", Description: "Wither component (Acid damage)."},
+		{Name: "Black", Description: "Mortis component (Necrotic damage)."},
 		{Name: "Blue", Description: "Fulgur component (Lightning damage)."},
 		{Name: "Brass", Description: "Ignis component (Fire damage)."},
 		{Name: "Bronze", Description: "Fulgur component (Lightning damage)."},
-		{Name: "Copper", Description: "Wither component (Acid damage)."},
+		{Name: "Copper", Description: "Mortis component (Necrotic damage)."},
 		{Name: "Gold", Description: "Ignis component (Fire damage)."},
-		{Name: "Green", Description: "Wither + Aer components (Poison damage)."},
+		{Name: "Green", Description: "Mortis + Aer components (Poison damage)."},
 		{Name: "Red", Description: "Ignis component (Fire damage)."},
-		{Name: "Silver", Description: "Cool component (Cold damage)."},
-		{Name: "White", Description: "Cool component (Cold damage)."},
+		{Name: "Silver", Description: "Aqua component (Cold damage)."},
+		{Name: "White", Description: "Aqua component (Cold damage)."},
 	}
 }

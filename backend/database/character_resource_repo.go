@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -68,6 +69,7 @@ func (r *CharacterResourceRepo) DeleteByCharacterID(characterID uuid.UUID) error
 }
 
 // UpdateCurrentValue updates the CurrentValue of a CharacterResource, ensuring it stays within bounds.
+// For deductions (negative delta), returns an error if the character doesn't have enough.
 func (r *CharacterResourceRepo) UpdateCurrentValue(characterID uuid.UUID, resourceKey string, delta int) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		resource, err := r.FindByCharacterAndKey(characterID, resourceKey)
@@ -75,14 +77,12 @@ func (r *CharacterResourceRepo) UpdateCurrentValue(characterID uuid.UUID, resour
 			return err
 		}
 
-		resource.CurrentValue += delta
-
-		// Ensure CurrentValue doesn't go below 0
-		if resource.CurrentValue < 0 {
-			resource.CurrentValue = 0
+		if delta < 0 && resource.CurrentValue+delta < 0 {
+			return fmt.Errorf("insufficient %s: have %d, need %d", resource.ResourceName, resource.CurrentValue, -delta)
 		}
 
-		// Ensure CurrentValue doesn't exceed MaxValue if it exists
+		resource.CurrentValue += delta
+
 		if resource.MaxValue != nil && resource.CurrentValue > *resource.MaxValue {
 			resource.CurrentValue = *resource.MaxValue
 		}

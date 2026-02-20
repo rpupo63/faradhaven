@@ -39,7 +39,20 @@ func Sanguinist() FaradhavenClassSeed {
 		LevelProgression:    sanguinistLevelProgression(),
 		ArchetypeLevel:      nil, // Modular progression instead of rigid archetype
 		Archetypes:          nil,
-		ComponentPool: []string{"Vita", "Umbra", "Mend", "Wither", "Drain", "Self", "Zone", "Soul", "Sacrifice", "Curse", "Rupture", "Unstable Ichor"},
+		ComponentPool: []string{
+			// Forma (Shape)
+			"Aura", "Self", "Projectile", "Zone",
+			// Scopus (Targeting)
+			"Target", "Self",
+			// Essentia (Matter & Energy)
+			"Vita", "Mortis", "Umbra", "Odor",
+			// Essentia (Pathos)
+			"Anger", "Fear", "Sadness",
+			// Actio (Verbs)
+			"Bind", "Pull", "Pierce", "Destroy", "Mutate", "Increase", "Decrease",
+			// Magnitudo (Modifiers)
+			"Strong", "Weak",
+		},
 		ResourceDefinitions: []ResourceDefinitionSeed{
 			{Key: "max_blood_ichor", DisplayName: "Blood Ichor", Category: "pool", Description: "Blood Ichor pool for fueling vampiric abilities", IsTrackable: true, RestoreOnLongRest: true, DisplayOrder: 1},
 			{Key: "bite_damage_dice", DisplayName: "Bite Damage Dice", Category: "die_size", Description: "Number of d8 dice for Bite attack damage", DisplayOrder: 2},

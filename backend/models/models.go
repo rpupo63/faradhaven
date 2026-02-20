@@ -42,6 +42,11 @@ func AllModels() []interface{} {
 		&Spell{},
 		&SpellComponent{},
 
+		// Monster hierarchy
+		&Monster{},
+		&MonsterAttack{},
+		&MonsterAction{},
+
 		// Beast hierarchy
 		&Beast{},
 		&Attack{},
@@ -67,5 +72,10 @@ func AllModels() []interface{} {
 		// Game Map
 		&GameMap{},
 		&MapToken{},
+		&MapElement{},
+		&TrapProperties{},
+		&DifficultTerrainProperties{},
+		&ElevationProperties{},
+		&WallProperties{},
 	}
 }

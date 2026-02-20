@@ -10,6 +10,7 @@ import (
 	"github.com/rpupo63/unified-personal-site-backend/seed/batch"
 	"github.com/rpupo63/unified-personal-site-backend/seed/uuids"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // AllClasses returns all Faradhaven class seeds for seeding
@@ -107,22 +108,22 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 		}
 
 		classes = append(classes, models.Class{
-			ID:                  classID,
-			Name:                cs.Name,
-			Description:         cs.Description,
-			HitDie:              cs.HitDie,
-			PrimaryAbility:      cs.PrimaryAbility,
-			PhotoURL:            cs.PhotoURL,
-			ArchetypeLevel:      cs.ArchetypeLevel,
-			Proficiencies:       cs.Proficiencies,
-			SkillFocus:          pq.StringArray(cs.DnDSkillFocus),
-			SkillChoice:         pq.StringArray(cs.SkillChoice),
-			SkillChoiceCount:    2, // D&D 5e standard
-			Tools:               pq.StringArray(cs.Tools),
-			SavingThrows:        pq.StringArray(cs.SavingThrows),
-			StartingEquip:       pq.StringArray(cs.AutomaticEquipNames),
-			StartingWeaponIDs:   pq.StringArray(weaponIDs),
-			StartingItemIDs:     pq.StringArray(itemIDs),
+			ID:                classID,
+			Name:              cs.Name,
+			Description:       cs.Description,
+			HitDie:            cs.HitDie,
+			PrimaryAbility:    cs.PrimaryAbility,
+			PhotoURL:          cs.PhotoURL,
+			ArchetypeLevel:    cs.ArchetypeLevel,
+			Proficiencies:     cs.Proficiencies,
+			SkillFocus:        pq.StringArray(cs.DnDSkillFocus),
+			SkillChoice:       pq.StringArray(cs.SkillChoice),
+			SkillChoiceCount:  2, // D&D 5e standard
+			Tools:             pq.StringArray(cs.Tools),
+			SavingThrows:      pq.StringArray(cs.SavingThrows),
+			StartingEquip:     pq.StringArray(cs.AutomaticEquipNames),
+			StartingWeaponIDs: pq.StringArray(weaponIDs),
+			StartingItemIDs:   pq.StringArray(itemIDs),
 		})
 
 		// Collect archetypes
@@ -321,7 +322,6 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 		"class_level_resources",
 		"class_resource_definitions",
 		"level_features",
-		"archetypes",
 		"class_levels",
 		"class_components",
 		"class_weapon_requirements",
@@ -338,11 +338,11 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 	}
 	log.Printf("Upserted %d classes", len(classes))
 
-	// Step 4: Batch insert archetypes
-	if err := batch.InsertBatch(tx, allArchetypes, batch.DefaultBatchSize); err != nil {
+	// Step 4: Batch upsert archetypes (characters reference them, so can't clear+insert)
+	if err := batch.UpsertBatchUpdateAll(tx, allArchetypes, batch.DefaultBatchSize); err != nil {
 		return err
 	}
-	log.Printf("Inserted %d archetypes", len(allArchetypes))
+	log.Printf("Upserted %d archetypes", len(allArchetypes))
 
 	// Step 5: Batch insert class levels
 	if err := batch.InsertBatch(tx, allClassLevels, batch.DefaultBatchSize); err != nil {
@@ -384,12 +384,22 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 	}
 	log.Printf("Inserted %d equipment options", len(allEquipmentOptions))
 
-	// Step 9: Batch insert class-component links
+	// Step 9: Upsert class-component links (ON CONFLICT DO NOTHING for composite PK)
 	if len(allClassComponents) > 0 {
-		if err := tx.CreateInBatches(allClassComponents, batch.DefaultBatchSize).Error; err != nil {
+		seen := make(map[[2]string]struct{}, len(allClassComponents))
+		deduped := make([]ClassComponentLink, 0, len(allClassComponents))
+		for _, link := range allClassComponents {
+			key := [2]string{link.ClassID, link.ComponentID}
+			if _, exists := seen[key]; !exists {
+				seen[key] = struct{}{}
+				deduped = append(deduped, link)
+			}
+		}
+		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).
+			CreateInBatches(deduped, batch.DefaultBatchSize).Error; err != nil {
 			return err
 		}
-		log.Printf("Inserted %d class-component links", len(allClassComponents))
+		log.Printf("Upserted %d class-component links", len(deduped))
 	}
 
 	// Step 10: Batch insert weapon requirements

@@ -76,15 +76,19 @@ func SeedFaradhavenItems(tx *gorm.DB) error {
 	for _, is := range itemSeeds {
 		itemID := uuids.ItemUUID(is.Name)
 		items = append(items, models.Item{
-			ID:           itemID,
-			Name:         is.Name,
-			Description:  is.Description,
-			Category:     is.Category,
-			Rarity:       is.Rarity,
-			Cost:         is.Cost,
-			Weight:       is.Weight,
-			Effects:      is.Effects,
-			IsConsumable: is.IsConsumable,
+			ID:                  itemID,
+			Name:                is.Name,
+			Description:         is.Description,
+			Category:            is.Category,
+			Rarity:              is.Rarity,
+			Cost:                is.Cost,
+			Weight:              is.Weight,
+			Effects:             is.Effects,
+			IsConsumable:        is.IsConsumable,
+			ArmorType:           is.ArmorType,
+			BaseAC:              is.BaseAC,
+			StrengthRequirement: is.StrengthRequirement,
+			StealthDisadvantage: is.StealthDisadvantage,
 		})
 	}
 

@@ -67,45 +67,9 @@ const (
 type ComponentCategory string
 
 const (
-	// Primordial Elements - base materials that give spells substance
-	CategoryPrimordial ComponentCategory = "primordial"
-
-	// Physical Forces - dictate how spells move or interact with physics
-	CategoryPhysical ComponentCategory = "physical"
-
-	// Thermodynamic & State Modifiers - change state of matter
-	CategoryThermodynamic ComponentCategory = "thermodynamic"
-
-	// Spatial & Temporal Forces - manipulate the fabric of the world
-	CategorySpatial ComponentCategory = "spatial"
-
-	// Life - interact with living things, life force, and vitality
-	CategoryLife ComponentCategory = "life"
-
-	// Spell Shapes - define how spells are delivered
-	CategoryShape ComponentCategory = "shape"
-
-	// Abjuration - the school of protection (blocking, banishing, protecting)
-	CategoryAbjuration ComponentCategory = "abjuration"
-
-	// Conjuration - the school of summoning (transporting objects, creating creatures)
-	CategoryConjuration ComponentCategory = "conjuration"
-
-	// Divination - the school of information (revealing secrets, predicting)
-	CategoryDivination ComponentCategory = "divination"
-
-	// Enchantment - the school of influence (affecting minds)
-	CategoryEnchantment ComponentCategory = "enchantment"
-
-	// Evocation - the school of energy (raw destructive power)
-	CategoryEvocation ComponentCategory = "evocation"
-
-	// Illusion - the school of deception (tricking the senses)
-	CategoryIllusion ComponentCategory = "illusion"
-
-	// Necromancy - the school of life & death (manipulating soul and body)
-	CategoryNecromancy ComponentCategory = "necromancy"
-
-	// Transmutation - the school of change (altering physical properties)
-	CategoryTransmutation ComponentCategory = "transmutation"
+	CategoryForma     ComponentCategory = "Forma"     // Shape — physical manifestation/delivery
+	CategoryScopus    ComponentCategory = "Scopus"    // Targeting — anchor point
+	CategoryEssentia  ComponentCategory = "Essentia"  // Domain/Matter — elemental substance
+	CategoryActio     ComponentCategory = "Actio"     // Kinetic Verbs — what the spell does
+	CategoryMagnitudo ComponentCategory = "Magnitudo" // Scale/Modifiers — power dials
 )

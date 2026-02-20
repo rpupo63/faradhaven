@@ -40,6 +40,18 @@ type Weapon struct {
 	// If the weapon has the "Versatile" property, this stores the damage dice when used with two hands.
 	VersatileDamageDice *string `json:"versatile_damage_dice" gorm:"type:text"` // e.g. "1d10"
 
+	// Explicit Two-Handed Properties (if different from base and not just Versatile)
+	TwoHandedDamageDice *string        `json:"two_handed_damage_dice,omitempty" gorm:"type:text"` // e.g. "1d10"
+	TwoHandedProperties pq.StringArray `json:"two_handed_properties,omitempty" gorm:"type:text[]"`
+
+	// Transformation Properties
+	// If this weapon can transform into another weapon, this points to the ID of the transformed weapon.
+	TransformedToWeaponID *uuid.UUID `json:"transformed_to_weapon_id,omitempty" gorm:"type:uuid"`
+	TransformationDescription string     `json:"transformation_description,omitempty" gorm:"type:text"`
+	// For self-modifying transformations (e.g., Saw Cleaver extending)
+	TransformedSelfDamageDice *string        `json:"transformed_self_damage_dice,omitempty" gorm:"type:text"` // e.g. "1d10"
+	TransformedSelfProperties pq.StringArray `json:"transformed_self_properties,omitempty" gorm:"type:text[]"`
+
 	// Secondary effects (text description of special rules, magical effects, etc.)
 	SecondaryEffect string `json:"secondary_effect" gorm:"type:text"`
 

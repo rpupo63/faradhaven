@@ -38,7 +38,18 @@ func Ironwright() FaradhavenClassSeed {
 		LevelProgression:    ironwrightLevelProgression(),
 		ArchetypeLevel:      &archetypeLevel,
 		Archetypes:          ironwrightArchetypes(),
-		ComponentPool: []string{"Fulgur", "Ferrum", "Ignis", "Push", "Crush", "Heat", "Conduct", "Mend", "Zone", "Imbue"},
+		ComponentPool: []string{
+			// Forma (Shape)
+			"Projectile", "Beam", "Nova", "Wall", "Zone", "Cone", "Aura",
+			// Scopus (Targeting)
+			"Target", "Self", "Ground",
+			// Essentia (Matter & Energy)
+			"Ignis", "Terra", "Ferrum", "Fulgur", "Arcanum", "Spatium", "Sonus",
+			// Actio (Verbs)
+			"Push", "Pull", "Grab", "Lift", "Spin", "Crush", "Pierce", "Create", "Destroy", "Mutate", "Bind",
+			// Magnitudo (Modifiers)
+			"Increase", "Decrease", "Strong", "Weak", "Extreme",
+		},
 		ResourceDefinitions: []ResourceDefinitionSeed{
 			{Key: "concurrency_limit", DisplayName: "Concurrency Limit", Category: "limit", Description: "Maximum number of active constructs", DisplayOrder: 1},
 			{Key: "yield_die", DisplayName: "Scavenge Yield Die", Category: "die_size", Description: "Die size rolled when scavenging components from fallen creatures", DisplayOrder: 2},

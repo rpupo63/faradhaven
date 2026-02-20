@@ -35,7 +35,18 @@ func RiftWeaver() FaradhavenClassSeed {
 		},
 		LevelFeatures:    riftWeaverLevelFeatures(),
 		LevelProgression: riftWeaverLevelProgression(),
-		ComponentPool:       []string{"Aqua", "Aer", "Fulgur", "Vita", "Umbra", "Lux", "Arcanum", "Sonus", "Psi", "Ignis", "Terra", "Acidum", "Push", "Pull", "Lift", "Pierce", "Focus", "Heat", "Cool", "Expand", "Shrink", "Haste", "Slow", "Teleport", "Echo", "Extreme", "Mend", "Wither", "Revive", "Projectile", "Beam", "Nova", "Wall", "Zone", "Self", "Cone", "Reflect", "Dispel", "Absorb", "Seal", "Summon", "Portal", "Sight", "Identify", "Predict", "Link", "Fear", "Frenzy", "Command", "Channel", "Chain", "Imbue", "Rupture", "Decoy", "Invisible", "Silence", "Disguise", "Phantom", "Soul", "Curse", "Transmute", "Burrow", "Fuse"},
+		ComponentPool: []string{
+			// Forma (Shape)
+			"Projectile", "Beam", "Nova", "Wall", "Zone", "Cone", "Aura",
+			// Scopus (Targeting)
+			"Target", "Self", "Ground", "Chain",
+			// Essentia (Matter & Energy)
+			"Ignis", "Aqua", "Terra", "Aer", "Fulgur", "Spatium", "Arcanum",
+			// Actio (Verbs)
+			"Create", "Destroy", "Push", "Pull", "Crush", "Pierce",
+			// Magnitudo (Modifiers)
+			"Increase", "Decrease", "Strong", "Weak", "Extreme",
+		},
 		ResourceDefinitions: []ResourceDefinitionSeed{
 			{Key: "spell_points", DisplayName: "Spell Points", Category: "pool", Description: "A pool of magical energy for casting spells.", IsTrackable: true, RestoreOnLongRest: true, DisplayOrder: 1},
 		},

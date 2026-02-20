@@ -45,6 +45,13 @@ func (r *ComponentRepo) GetComponentsByNames(names []string) ([]models.Component
 	return components, err
 }
 
+// GetComponentsByIDs returns components matching the given IDs.
+func (r *ComponentRepo) GetComponentsByIDs(ids []uuid.UUID) ([]models.Component, error) {
+	var components []models.Component
+	err := r.db.Where("id IN ?", ids).Find(&components).Error
+	return components, err
+}
+
 // FindByName returns a single component by name.
 func (r *ComponentRepo) FindByName(name string) (*models.Component, error) {
 	var component models.Component

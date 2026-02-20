@@ -2,6 +2,8 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
+	"math"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -206,5 +208,108 @@ func (h *corpseHandler) DeleteCorpse() http.HandlerFunc {
 		}
 
 		respondJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+	}
+}
+
+// ScavengeComponents handles Lorewright component scavenging from a corpse
+func (h *corpseHandler) ScavengeComponents() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		corpseID, err := uuid.Parse(chi.URLParam(r, "corpseID"))
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid corpse ID")
+			return
+		}
+
+		var req ScavengeComponentsRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(req.CharacterID)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Character not found")
+			return
+		}
+
+		if character.Class.Name != "The Lorewright" {
+			respondError(w, http.StatusBadRequest, "Only Lorewrights can scavenge components")
+			return
+		}
+
+		// Check component capacity: total count vs Wisdom modifier
+		wisMod := int(math.Floor(float64(character.Wisdom-10) / 2))
+		if wisMod < 1 {
+			wisMod = 1
+		}
+		currentTotal := 0
+		for _, cc := range character.Components {
+			currentTotal += cc.Count
+		}
+		if currentTotal >= wisMod {
+			respondError(w, http.StatusBadRequest, fmt.Sprintf("Component capacity full (%d/%d, Wisdom modifier)", currentTotal, wisMod))
+			return
+		}
+
+		corpse, err := h.corpseService.GetCorpse(corpseID)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Corpse not found")
+			return
+		}
+
+		if !corpse.CanBeScavenged() {
+			if corpse.HasBeenScavenged {
+				respondError(w, http.StatusBadRequest, "Corpse has already been scavenged")
+				return
+			}
+			respondError(w, http.StatusBadRequest, "Corpse is too old to scavenge (must be within 1 hour of death)")
+			return
+		}
+
+		// Calculate yield
+		yield := corpse.ComponentYield
+		// Level 7+ (Essence Decanting): +1 component per harvest, min 2
+		if character.Level >= 7 {
+			yield++
+			if yield < 2 {
+				yield = 2
+			}
+		}
+
+		// Cap yield by remaining capacity
+		remaining := wisMod - currentTotal
+		if yield > remaining {
+			yield = remaining
+		}
+
+		// Add components to character inventory
+		componentNames := make([]string, 0)
+		for _, compIDStr := range corpse.AvailableComponents {
+			compID, err := uuid.Parse(compIDStr)
+			if err != nil {
+				continue
+			}
+			for i := 0; i < yield; i++ {
+				if err := h.characterRepo.UpdateComponentCount(req.CharacterID, compID, 1); err != nil {
+					log.Error().Err(err).Str("componentID", compIDStr).Msg("Failed to add scavenged component")
+				}
+			}
+			comp, err := h.componentRepo.GetComponentByID(compID)
+			if err == nil {
+				componentNames = append(componentNames, comp.Name)
+			}
+		}
+
+		// Mark corpse as scavenged
+		corpse.HasBeenScavenged = true
+		h.corpseService.UpdateCorpse(corpse)
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"components_yielded": yield,
+			"component_names":    componentNames,
+			"capacity_used":      currentTotal + (yield * len(corpse.AvailableComponents)),
+			"capacity_max":       wisMod,
+			"message":            fmt.Sprintf("Scavenged %d components from %s", yield*len(corpse.AvailableComponents), corpse.Name),
+		})
 	}
 }

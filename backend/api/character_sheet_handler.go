@@ -23,20 +23,10 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 			return
 		}
 
-		character, err := h.characterRepo.FindByIDWithSkills(id)
+		character, err := h.characterRepo.FindByID(id)
 		if err != nil {
-			log.Error().Err(err).Str("characterID", idStr).Msg("Failed to get character")
 			respondError(w, http.StatusNotFound, "Character not found")
 			return
-		}
-
-		// Preload weapons with modifiers and items for the sheet
-		if err := h.characterRepo.GetDB().
-			Preload("CharacterWeapons.Weapon.Damages").
-			Preload("CharacterWeapons.Modifiers").
-			Preload("Items").
-			First(character, "id = ?", id).Error; err != nil {
-			log.Error().Err(err).Str("characterID", idStr).Msg("Failed to preload equipment")
 		}
 
 		authUserID, err := ctxGetUserID(r.Context())
@@ -49,207 +39,186 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 			return
 		}
 
-		// Fetch class with components for spell crafting
-		class, err := h.classRepo.FindByIDWithLevels(character.ClassID)
+		sheet, err := h.getCharacterSheetData(id)
 		if err != nil {
-			log.Error().Err(err).Str("class_id", character.ClassID.String()).Msg("Class not found")
-			respondError(w, http.StatusNotFound, "Class not found for character")
+			log.Error().Err(err).Msg("Failed to get character sheet data")
+			respondError(w, http.StatusInternalServerError, "Failed to get character sheet")
 			return
-		}
-
-		// Fetch race with components for spell crafting
-		race, err := h.raceRepo.FindByID(character.RaceID)
-		if err != nil {
-			log.Error().Err(err).Str("race_id", character.RaceID.String()).Msg("Race not found")
-			respondError(w, http.StatusNotFound, "Race not found for character")
-			return
-		}
-
-		classLevel, err := h.classRepo.FindLevelByClassAndLevel(character.ClassID, character.Level)
-		if err != nil {
-			log.Error().Err(err).Int("level", character.Level).Msg("ClassLevel not found")
-			respondError(w, http.StatusNotFound, "Level data not found for class")
-			return
-		}
-
-		dexMod := abilityMod(character.Dexterity)
-		primaryMod := primaryAbilityMod(character, class.PrimaryAbility)
-
-		ac := 8 + classLevel.ProficiencyBonus + dexMod
-		saveDC := 8 + classLevel.ProficiencyBonus + primaryMod
-
-		maxSP := classLevel.MaxSpellPoints
-		currentSP := character.CurrentSpellPoints
-		if currentSP > maxSP {
-			currentSP = maxSP
-		}
-
-		// Map class.SavingThrows (ability names) to ability ids for frontend
-		saveProfs := make([]string, 0, len(class.SavingThrows))
-		for _, name := range class.SavingThrows {
-			saveProfs = append(saveProfs, strings.ToLower(strings.TrimSpace(name)))
-		}
-
-		// Combine class and race components for spell crafting (deduplicated by ID)
-		componentMap := make(map[uuid.UUID]models.Component)
-		for _, comp := range class.Components {
-			componentMap[comp.ID] = comp
-		}
-		for _, comp := range race.Components {
-			componentMap[comp.ID] = comp
-		}
-		availableComponents := make([]models.Component, 0, len(componentMap))
-		for _, comp := range componentMap {
-			availableComponents = append(availableComponents, comp)
-		}
-
-		maxHP := character.MaxHP
-		currentHP := character.CurrentHP
-
-		profBonus := classLevel.ProficiencyBonus
-		strMod := abilityMod(character.Strength)
-
-		// Race Traits
-		raceTraits, err := h.raceRepo.FindByIDWithTraits(character.RaceID)
-		var traits []models.Trait
-		if err == nil {
-			traits = raceTraits.Traits
-		}
-
-		// Lineage Traits
-		var lineage *models.Lineage
-		if character.LineageID != nil {
-			lineage, err = h.raceRepo.FindLineageByIDWithTraits(*character.LineageID)
-			if err == nil && lineage != nil {
-				traits = append(traits, lineage.LineageTraits...)
-			}
-		}
-
-		// Map CharacterWeapons to response format
-		inventoryWeapons := make([]CharacterWeaponResponse, 0, len(character.CharacterWeapons))
-		for _, cw := range character.CharacterWeapons {
-			activeModifiers := make([]WeaponModifierResponse, 0, len(cw.Modifiers))
-			for _, m := range cw.Modifiers {
-				bonusDamage := []BonusDamageInfo{}
-
-				// Compute bonus damage based on modifier type and character stats
-				if m.ModifierType == models.ModifierTypePistonCore && m.IsActive {
-					intMod := abilityMod(character.Intelligence)
-					if intMod > 0 {
-						bonusDamage = append(bonusDamage, BonusDamageInfo{
-							Dice:       fmt.Sprintf("%+d", intMod),
-							DamageType: "Fixed", // Adds to base damage
-						})
-					}
-				} else if m.ModifierType == models.ModifierTypeVenomCoating && m.IsActive {
-					dice := "1d4"
-					if character.Level >= 6 {
-						dice = "2d4"
-					}
-					bonusDamage = append(bonusDamage, BonusDamageInfo{
-						Dice:       dice,
-						DamageType: "Poison",
-					})
-				}
-
-				activeModifiers = append(activeModifiers, WeaponModifierResponse{
-					ModifierType: string(m.ModifierType),
-					IsActive:     m.IsActive,
-					BonusDamage:  bonusDamage,
-					Metadata:     m.Metadata,
-				})
-			}
-
-			inventoryWeapons = append(inventoryWeapons, CharacterWeaponResponse{
-				CharacterWeaponID: cw.ID.String(),
-				Weapon:            cw.Weapon,
-				IsPrimary:         cw.IsPrimary,
-				CustomName:        cw.CustomName,
-				ActiveModifiers:   activeModifiers,
-			})
-		}
-
-		// [MODIFIED] Ensure gathered classes see their natural components as infinite
-		componentsList := character.Components
-		if class.Name == "The Sanguinist" ||
-			class.Name == "The Ironwright" ||
-			class.Name == "The Lorewright" ||
-			class.Name == "The Rift Weaver" ||
-			class.Name == "The Powder Mage" ||
-			class.Name == "The Mutagen" ||
-			class.Name == "The Piston Brawler" ||
-			class.Name == "The Vapor Blade" {
-			// Create a map of existing character components for easy lookup
-			charCompMap := make(map[uuid.UUID]models.CharacterComponent)
-			for _, cc := range componentsList {
-				charCompMap[cc.ComponentID] = cc
-			}
-
-			// Iterate over class components (natural components)
-			for _, classComp := range class.Components {
-				// If component exists, update count. If not, create it.
-				// 999999 represents "Infinite"
-				if cc, exists := charCompMap[classComp.ID]; exists {
-					cc.Count = 999999
-					charCompMap[classComp.ID] = cc
-				} else {
-					charCompMap[classComp.ID] = models.CharacterComponent{
-						CharacterID: character.ID,
-						ComponentID: classComp.ID,
-						Count:       999999,
-						Component:   classComp,
-					}
-				}
-			}
-
-			// Rebuild componentsList
-			componentsList = make([]models.CharacterComponent, 0, len(charCompMap))
-			for _, cc := range charCompMap {
-				componentsList = append(componentsList, cc)
-			}
-		}
-
-		var harvestedAbilities models.HarvestedAbilities
-		if len(character.HarvestedAbilities) > 0 {
-			json.Unmarshal(character.HarvestedAbilities, &harvestedAbilities)
-		}
-
-		sheet := CharacterSheetResponse{
-			Character:                character,
-			Class:                    class,
-			ClassLevel:               classLevel,
-			MaxHP:                    maxHP,
-			CurrentHP:                currentHP,
-			TempHP:                   character.TempHP,
-			AC:                       ac,
-			SaveDC:                   saveDC,
-			MaxSpellPoints:           maxSP,
-			CurrentSpellPoints:       currentSP,
-			SavingThrowProficiencies: saveProfs,
-			AvailableComponents:      availableComponents,
-			HitDiceTotal:             character.Level,
-			HitDiceRemaining:         character.Level - character.HitDiceUsed,
-			HitDie:                   class.HitDie,
-			Money:                    character.Money,
-			MeleeAttackBonus:         profBonus + strMod,
-			RangedAttackBonus:        profBonus + dexMod,
-			RaceTraits:               traits,
-			Lineage:                  lineage,
-			InventoryWeapons:         inventoryWeapons,
-			InventoryItems:           character.Items,
-			Components:               componentsList,
-			HarvestedAbilities:       harvestedAbilities,
-			ClassResources:           h.buildClassResources(character.ClassID, character.Level, character.ID),
-		}
-
-		if class.Name == "The Lorewright" {
-			sheet.MadnessTable = faradhaven_classes.LorewrightMadnessTable()
-		}
-
-		if class.Name == "The Mutagen" {
-			sheet.MadnessTable = faradhaven_classes.MutagenFeralTable()
 		}
 
 		respondJSON(w, http.StatusOK, sheet)
 	}
+}
+
+func (h *characterHandler) getCharacterSheetData(id uuid.UUID) (*CharacterSheetResponse, error) {
+	character, err := h.characterRepo.FindByIDWithSkills(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get character: %w", err)
+	}
+
+	// Preload weapons with modifiers and items for the sheet
+	if err := h.characterRepo.GetDB().
+		Preload("CharacterWeapons.Weapon.Damages").
+		Preload("CharacterWeapons.Modifiers").
+		Preload("Items").
+		Preload("EquippedArmor").
+		Preload("EquippedShield").
+		First(character, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("failed to preload equipment: %w", err)
+	}
+
+	// Fetch class with components for spell crafting
+	class, err := h.classRepo.FindByIDWithLevels(character.ClassID)
+	if err != nil {
+		return nil, fmt.Errorf("class not found for character: %w", err)
+	}
+
+	// Fetch race with components for spell crafting
+	race, err := h.raceRepo.FindByID(character.RaceID)
+	if err != nil {
+		return nil, fmt.Errorf("race not found for character: %w", err)
+	}
+
+	classLevel, err := h.classRepo.FindLevelByClassAndLevel(character.ClassID, character.Level)
+	if err != nil {
+		return nil, fmt.Errorf("level data not found for class: %w", err)
+	}
+
+	// Assign fully-loaded class (with Levels + LevelFeatures) so ComputeStats
+	// can resolve Unarmored Defense and other level-gated features.
+	character.Class = *class
+	character.CurrentClassLevel = classLevel
+	character.ComputeStats()
+	stats := character.ComputedStats
+
+	maxSP := classLevel.MaxSpellPoints
+	currentSP := character.CurrentSpellPoints
+	if currentSP > maxSP {
+		currentSP = maxSP
+	}
+
+	// Map class.SavingThrows (ability names) to ability ids for frontend
+	saveProfs := make([]string, 0, len(class.SavingThrows))
+	for _, name := range class.SavingThrows {
+		saveProfs = append(saveProfs, strings.ToLower(strings.TrimSpace(name)))
+	}
+
+	// Combine class and race components for spell crafting (deduplicated by ID)
+	componentMap := make(map[uuid.UUID]models.Component)
+	for _, comp := range class.Components {
+		componentMap[comp.ID] = comp
+	}
+	for _, comp := range race.Components {
+		componentMap[comp.ID] = comp
+	}
+	availableComponents := make([]models.Component, 0, len(componentMap))
+	for _, comp := range componentMap {
+		availableComponents = append(availableComponents, comp)
+	}
+
+	// Race Traits
+	raceTraits, err := h.raceRepo.FindByIDWithTraits(character.RaceID)
+	var traits []models.Trait
+	if err == nil {
+		traits = raceTraits.Traits
+	}
+
+	// Lineage Traits
+	var lineage *models.Lineage
+	if character.LineageID != nil {
+		lineage, err = h.raceRepo.FindLineageByIDWithTraits(*character.LineageID)
+		if err == nil && lineage != nil {
+			traits = append(traits, lineage.LineageTraits...)
+		}
+	}
+
+	// Map CharacterWeapons to response format
+	inventoryWeapons := make([]CharacterWeaponResponse, 0, len(character.CharacterWeapons))
+	for _, cw := range character.CharacterWeapons {
+		activeModifiers := make([]WeaponModifierResponse, 0, len(cw.Modifiers))
+		for _, m := range cw.Modifiers {
+			bonusDamage := []BonusDamageInfo{}
+
+			// Compute bonus damage based on modifier type and character stats
+			if m.ModifierType == models.ModifierTypePistonCore && m.IsActive {
+				intMod := abilityMod(character.Intelligence)
+				if intMod > 0 {
+					bonusDamage = append(bonusDamage, BonusDamageInfo{
+						Dice:       fmt.Sprintf("%+d", intMod),
+						DamageType: "Fixed", // Adds to base damage
+					})
+				}
+			} else if m.ModifierType == models.ModifierTypeVenomCoating && m.IsActive {
+				dice := "1d4"
+				if character.Level >= 6 {
+					dice = "2d4"
+				}
+				bonusDamage = append(bonusDamage, BonusDamageInfo{
+					Dice:       dice,
+					DamageType: "Poison",
+				})
+			}
+
+			activeModifiers = append(activeModifiers, WeaponModifierResponse{
+				ModifierType: string(m.ModifierType),
+				IsActive:     m.IsActive,
+				BonusDamage:  bonusDamage,
+				Metadata:     m.Metadata,
+			})
+		}
+
+		inventoryWeapons = append(inventoryWeapons, CharacterWeaponResponse{
+			CharacterWeaponID: cw.ID.String(),
+			Weapon:            cw.Weapon,
+			IsPrimary:         cw.IsPrimary,
+			IsEquipped:        cw.IsEquipped,
+			CustomName:        cw.CustomName,
+			ActiveModifiers:   activeModifiers,
+		})
+	}
+
+	componentsList := character.Components
+
+	var harvestedAbilities models.HarvestedAbilities
+	if len(character.HarvestedAbilities) > 0 {
+		json.Unmarshal(character.HarvestedAbilities, &harvestedAbilities)
+	}
+
+	sheet := &CharacterSheetResponse{
+		Character:                character,
+		Class:                    class,
+		ClassLevel:               classLevel,
+		MaxHP:                    stats.MaxHP,
+		CurrentHP:                stats.CurrentHP,
+		TempHP:                   stats.TempHP,
+		AC:                       stats.ArmorClass,
+		SaveDC:                   stats.SpellSaveDC,
+		MaxSpellPoints:           maxSP,
+		CurrentSpellPoints:       currentSP,
+		SavingThrowProficiencies: saveProfs,
+		AvailableComponents:      availableComponents,
+		HitDiceTotal:             stats.HitDiceTotal,
+		HitDiceRemaining:         stats.HitDiceRemaining,
+		HitDie:                   stats.HitDie,
+		Money:                    character.Money,
+		MeleeAttackBonus:         stats.MeleeAttackBonus,
+		RangedAttackBonus:        stats.RangedAttackBonus,
+		RaceTraits:               traits,
+		Lineage:                  lineage,
+		InventoryWeapons:         inventoryWeapons,
+		InventoryItems:           character.Items,
+		Components:               componentsList,
+		HarvestedAbilities:       harvestedAbilities,
+		ClassResources:           h.buildClassResources(character.ClassID, character.Level, character.ID),
+	}
+
+	if class.Name == "The Lorewright" {
+		sheet.MadnessTable = faradhaven_classes.LorewrightMadnessTable()
+	}
+
+	if class.Name == "The Mutagen" {
+		sheet.MadnessTable = faradhaven_classes.MutagenFeralTable()
+	}
+
+	return sheet, nil
 }

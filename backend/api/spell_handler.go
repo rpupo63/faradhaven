@@ -8,15 +8,30 @@ import (
 	"github.com/google/uuid"
 	"github.com/rpupo63/unified-personal-site-backend/database"
 	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/unified-personal-site-backend/services"
 	"github.com/rs/zerolog/log"
 )
 
 type spellHandler struct {
-	spellRepo database.SpellRepository
+	spellRepo          database.SpellRepository
+	synthesisService   *services.SpellSynthesisService
+	interpreterService *services.ComponentInterpreterService
 }
 
-func newSpellHandler(spellRepo database.SpellRepository) *spellHandler {
-	return &spellHandler{spellRepo: spellRepo}
+func newSpellHandler(spellRepo database.SpellRepository, synthesisService *services.SpellSynthesisService, interpreterService *services.ComponentInterpreterService) *spellHandler {
+	return &spellHandler{spellRepo: spellRepo, synthesisService: synthesisService, interpreterService: interpreterService}
+}
+
+// SpellResponse is a custom response for a spell that includes character details
+type SpellResponse struct {
+	*models.Spell
+	CharacterName  *string `json:"character_name,omitempty"`
+	CharacterClass *string `json:"character_class,omitempty"`
+}
+
+// SynthesizeRequest is the request body for the synthesize endpoint
+type SynthesizeRequest struct {
+	ComponentIDs []uuid.UUID `json:"component_ids"`
 }
 
 // getAllSpells returns all spells
@@ -28,7 +43,19 @@ func (h *spellHandler) getAllSpells() http.HandlerFunc {
 			respondError(w, http.StatusInternalServerError, "Failed to get spells")
 			return
 		}
-		respondJSON(w, http.StatusOK, spells)
+
+		response := make([]SpellResponse, len(spells))
+		for i, spell := range spells {
+			response[i] = SpellResponse{
+				Spell: spell,
+			}
+			if spell.Character != nil {
+				response[i].CharacterName = &spell.Character.Name
+				response[i].CharacterClass = &spell.Character.Class.Name
+			}
+		}
+
+		respondJSON(w, http.StatusOK, response)
 	}
 }
 
@@ -62,7 +89,6 @@ func (h *spellHandler) getSpellsByUser() http.HandlerFunc {
 			return
 		}
 
-		// Verify user is accessing their own data
 		authUserID, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
@@ -103,6 +129,32 @@ func (h *spellHandler) getSpellsByCharacter() http.HandlerFunc {
 	}
 }
 
+// synthesizeSpell returns auto-derived spell properties from components
+func (h *spellHandler) synthesizeSpell() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req SynthesizeRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		if len(req.ComponentIDs) == 0 {
+			respondError(w, http.StatusBadRequest, "At least one component ID is required")
+			return
+		}
+
+		components, err := h.synthesisService.FetchComponents(req.ComponentIDs)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to fetch components for synthesis")
+			respondError(w, http.StatusInternalServerError, "Failed to fetch components")
+			return
+		}
+
+		synthesis := h.synthesisService.Synthesize(components)
+		respondJSON(w, http.StatusOK, synthesis)
+	}
+}
+
 // createSpell creates a new spell
 func (h *spellHandler) createSpell() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -117,7 +169,6 @@ func (h *spellHandler) createSpell() http.HandlerFunc {
 			return
 		}
 
-		// Verify user is creating for themselves
 		authUserID, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
@@ -144,10 +195,57 @@ func (h *spellHandler) createSpell() http.HandlerFunc {
 			AddModifier:   req.AddModifier,
 		}
 
+		// Run synthesis if components are provided
+		if len(req.ComponentIDs) > 0 {
+			components, err := h.synthesisService.FetchComponents(req.ComponentIDs)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to fetch components for synthesis")
+				respondError(w, http.StatusInternalServerError, "Failed to fetch components")
+				return
+			}
+
+			synthesis := h.synthesisService.Synthesize(components)
+
+			if len(synthesis.ValidationErrors) > 0 {
+				respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+					"error":             "Component validation failed",
+					"validation_errors": synthesis.ValidationErrors,
+				})
+				return
+			}
+
+			// Always set computed fields
+			spell.ManaCost = synthesis.ManaCost
+			spell.BaseTier = synthesis.BaseTier
+
+			// Hybrid fill: use request value if provided, else fall back to suggestion
+			if spell.SlotLevel == 0 {
+				spell.SlotLevel = synthesis.SlotLevel
+			}
+			if spell.Type == "" {
+				spell.Type = synthesis.SuggestedType
+			}
+			if spell.Range == nil && synthesis.SuggestedRange != nil {
+				spell.Range = synthesis.SuggestedRange
+			}
+			if spell.DamageType == nil && synthesis.SuggestedDamageType != nil {
+				dt := models.DamageType(*synthesis.SuggestedDamageType)
+				spell.DamageType = &dt
+			}
+			if spell.DamageDice == nil && synthesis.SuggestedDamageDice != nil {
+				spell.DamageDice = synthesis.SuggestedDamageDice
+			}
+			if spell.Duration == nil && synthesis.SuggestedDuration != nil {
+				spell.Duration = synthesis.SuggestedDuration
+			}
+			if !spell.Concentration && synthesis.SuggestedConcentration {
+				spell.Concentration = true
+			}
+		}
+
 		if spell.SlotLevel == 0 {
 			spell.SlotLevel = 1
 		}
-
 		if spell.Type == "" {
 			spell.Type = "Utility"
 		}
@@ -179,7 +277,6 @@ func (h *spellHandler) updateSpell() http.HandlerFunc {
 			return
 		}
 
-		// Verify user owns this spell
 		authUserID, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
@@ -196,18 +293,41 @@ func (h *spellHandler) updateSpell() http.HandlerFunc {
 			return
 		}
 
-		if req.Name != nil {
-			spell.Name = *req.Name
-		}
-		if req.Description != nil {
-			spell.Description = *req.Description
-		}
-		if req.ComponentIDs != nil {
+		// If components change, re-run synthesis
+		if len(req.ComponentIDs) > 0 {
+			components, err := h.synthesisService.FetchComponents(req.ComponentIDs)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to fetch components for synthesis")
+				respondError(w, http.StatusInternalServerError, "Failed to fetch components")
+				return
+			}
+
+			synthesis := h.synthesisService.Synthesize(components)
+
+			if len(synthesis.ValidationErrors) > 0 {
+				respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+					"error":             "Component validation failed",
+					"validation_errors": synthesis.ValidationErrors,
+				})
+				return
+			}
+
+			// Always recompute cost fields
+			spell.ManaCost = synthesis.ManaCost
+			spell.BaseTier = synthesis.BaseTier
+
 			if err := h.spellRepo.ReplaceComponents(spell.ID, req.ComponentIDs); err != nil {
 				log.Error().Err(err).Msg("Failed to update spell components")
 				respondError(w, http.StatusInternalServerError, "Failed to update spell components")
 				return
 			}
+		}
+
+		if req.Name != nil {
+			spell.Name = *req.Name
+		}
+		if req.Description != nil {
+			spell.Description = *req.Description
 		}
 		if req.SlotLevel != nil {
 			spell.SlotLevel = *req.SlotLevel
@@ -264,7 +384,6 @@ func (h *spellHandler) deleteSpell() http.HandlerFunc {
 			return
 		}
 
-		// Verify user owns this spell
 		authUserID, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
@@ -282,5 +401,31 @@ func (h *spellHandler) deleteSpell() http.HandlerFunc {
 		}
 
 		respondJSON(w, http.StatusOK, map[string]string{"message": "Spell deleted successfully"})
+	}
+}
+
+// getSpellExecution returns the interpreted execution details for a spell
+func (h *spellHandler) getSpellExecution() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "spellID")
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid spell ID")
+			return
+		}
+
+		spell, err := h.spellRepo.FindByID(id)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Spell not found")
+			return
+		}
+
+		execution, err := h.interpreterService.InterpretModels(spell.Components)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to interpret spell")
+			return
+		}
+
+		respondJSON(w, http.StatusOK, execution)
 	}
 }

@@ -234,18 +234,33 @@ func (s *LevelUpService) LongRest(userID uuid.UUID, characterID uuid.UUID) (*mod
 	// Restore class-specific resources
 	s.resourceService.RestoreClassResources(character, "long_rest", classLevel)
 
-	// Sanguinist Unstable Component Decay
+	// Sanguinist: All extracted components decay on Long Rest
 	if character.Class.Name == "The Sanguinist" {
-		unstableIchor, err := s.componentRepo.FindByName("Unstable Ichor")
-		if err != nil {
-			fmt.Printf("Error finding Unstable Ichor component during long rest: %v\n", err)
-		} else {
-			var charComp models.CharacterComponent
-			err := s.db.Where("character_id = ? AND component_id = ?", character.ID, unstableIchor.ID).First(&charComp).Error
-			if err == nil { // If the character has some
-				err := s.CharacterRepo.UpdateComponentCount(character.ID, unstableIchor.ID, -charComp.Count)
-				if err != nil {
-					fmt.Printf("Error decaying Unstable Ichor: %v\n", err)
+		if err := s.CharacterRepo.ClearComponentsForCharacter(character.ID); err != nil {
+			fmt.Printf("Error clearing Sanguinist components during long rest: %v\n", err)
+		}
+	}
+
+	// Ironwright: Automated Logistics (Level 15) — baseline components restored on Long Rest
+	if character.Class.Name == "The Ironwright" && character.Level >= 15 {
+		class, classErr := s.classRepo.FindByIDWithLevels(character.ClassID)
+		if classErr == nil && len(class.Components) > 0 {
+			// Distribute baseline (= character level) evenly across class component pool
+			perComponent := character.Level / len(class.Components)
+			if perComponent < 1 {
+				perComponent = 1
+			}
+			for _, comp := range class.Components {
+				// Check current count; only top up if below baseline
+				var charComp models.CharacterComponent
+				err := s.db.Where("character_id = ? AND component_id = ?", character.ID, comp.ID).First(&charComp).Error
+				currentCount := 0
+				if err == nil {
+					currentCount = charComp.Count
+				}
+				if currentCount < perComponent {
+					delta := perComponent - currentCount
+					_ = s.CharacterRepo.UpdateComponentCount(character.ID, comp.ID, delta)
 				}
 			}
 		}

@@ -11,7 +11,7 @@ func Rimekin() FaradhavenRaceSeed {
 		BaseSpeed:      30,
 		Languages:      []string{"Common", "Primordial"},
 		Traits:         rimekinTraits(),
-		ComponentNames: []string{"Cool", "Beam", "Aqua", "Projectile", "Imbue"},
+		ComponentNames: []string{"Decrease", "Beam", "Aqua", "Projectile", "Create"},
 	}
 }
 
@@ -32,7 +32,7 @@ func rimekinTraits() []TraitSeed {
 		},
 		{
 			Name:           "Cold Fire Magic",
-			Description:    "You know the Cool + Beam component combination (a ray of freezing cold). When you reach character levels 3 and 5, you learn Aqua + Cool + Projectile (an exploding shard of ice) and Cool + Imbue (a blade of frigid cold), respectively. You always have those component combinations prepared. You can cast each once without a spell slot, and you regain the ability to cast these spells in this way when you finish a Long Rest. You can also cast the spells using any spell slots you have of the appropriate level. Intelligence, Wisdom, or Charisma is your spellcasting ability for these spells (choose the ability when you select this species).",
+			Description:    "You know the Decrease + Beam component combination (a ray of freezing cold). When you reach character levels 3 and 5, you learn Aqua + Decrease + Projectile (an exploding shard of ice) and Decrease + Create (a blade of frigid cold), respectively. You always have those component combinations prepared. You can cast each once without a spell slot, and you regain the ability to cast these spells in this way when you finish a Long Rest. You can also cast the spells using any spell slots you have of the appropriate level. Intelligence, Wisdom, or Charisma is your spellcasting ability for these spells (choose the ability when you select this species).",
 			LevelReq:       1,
 			ActionType:     "Passive",
 			UsesPerRest:    "1 per spell",
@@ -46,15 +46,15 @@ func rimekinSpellcastingOptions() []TraitOptionSeed {
 	return []TraitOptionSeed{
 		{
 			Name:        "Intelligence",
-			Description: "Intelligence is your spellcasting ability for Cool + Beam, Aqua + Cool + Projectile, and Cool + Imbue when you cast them with this trait.",
+			Description: "Intelligence is your spellcasting ability for Decrease + Beam, Aqua + Decrease + Projectile, and Decrease + Create when you cast them with this trait.",
 		},
 		{
 			Name:        "Wisdom",
-			Description: "Wisdom is your spellcasting ability for Cool + Beam, Aqua + Cool + Projectile, and Cool + Imbue when you cast them with this trait.",
+			Description: "Wisdom is your spellcasting ability for Decrease + Beam, Aqua + Decrease + Projectile, and Decrease + Create when you cast them with this trait.",
 		},
 		{
 			Name:        "Charisma",
-			Description: "Charisma is your spellcasting ability for Cool + Beam, Aqua + Cool + Projectile, and Cool + Imbue when you cast them with this trait.",
+			Description: "Charisma is your spellcasting ability for Decrease + Beam, Aqua + Decrease + Projectile, and Decrease + Create when you cast them with this trait.",
 		},
 	}
 }

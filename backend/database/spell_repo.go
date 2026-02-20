@@ -30,7 +30,7 @@ func NewSpellRepo(db *gorm.DB) *SpellRepo {
 // FindAll returns all spells with components preloaded
 func (r *SpellRepo) FindAll() ([]*models.Spell, error) {
 	var spells []*models.Spell
-	err := r.db.Preload("Components").Find(&spells).Error
+	err := r.db.Preload("Components").Preload("Character").Find(&spells).Error
 	return spells, err
 }
 

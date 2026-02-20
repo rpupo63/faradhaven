@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -381,12 +382,6 @@ func (h *characterHandler) updateCharacter() http.HandlerFunc {
 		}
 		if req.Notoriety != nil {
 			character.SanguineNotoriety = *req.Notoriety
-			// Cap notoriety between -20 and 20
-			if character.SanguineNotoriety > 20 {
-				character.SanguineNotoriety = 20
-			} else if character.SanguineNotoriety < -20 {
-				character.SanguineNotoriety = -20
-			}
 		}
 		if req.Notes != nil {
 			character.Notes = *req.Notes
@@ -720,8 +715,8 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 			return
 		}
 
-		// Preload class to check resource type
-		class, err := h.classRepo.FindByID(character.ClassID)
+		// Preload class with component pool for knowledge validation
+		class, err := h.classRepo.FindByIDWithLevels(character.ClassID)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, "Failed to load class data")
 			return
@@ -735,14 +730,10 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 		}
 		defer tx.Rollback()
 
-		// Determine if components should be consumed (Inventory Check vs Knowledge Check)
-		shouldConsumeComponents := true
-
-		// Faradhaven classes that use Knowledge/Resources instead of consumable components
-		switch class.Name {
-		case "The Rift Weaver", "The Powder Mage", "The Mutagen", "The Ironwright",
-			"The Piston Brawler", "The Sanguinist", "The Lorewright", "The Vapor Blade":
-			shouldConsumeComponents = false
+		// Build class component pool set for O(1) lookup
+		classPoolIDs := make(map[uuid.UUID]bool, len(class.Components))
+		for _, c := range class.Components {
+			classPoolIDs[c.ID] = true
 		}
 
 		// 0. Handle Spell Components
@@ -754,13 +745,15 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 				return
 			}
 
-			// Validate Components
+			// Validate: pool components pass freely; non-pool must be in inventory
 			for _, comp := range spell.Components {
+				if classPoolIDs[comp.ID] {
+					continue
+				}
 				found := false
 				for _, charComp := range character.Components {
 					if charComp.ComponentID == comp.ID {
-						// Only check count if we are actually consuming them
-						if shouldConsumeComponents && charComp.Count < 1 {
+						if charComp.Count < 1 {
 							respondError(w, http.StatusBadRequest, fmt.Sprintf("Not enough %s", comp.Name))
 							return
 						}
@@ -769,25 +762,25 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 					}
 				}
 				if !found {
-					// Even if not consuming, you must "know" (have) the component in your list
-					respondError(w, http.StatusBadRequest, fmt.Sprintf("Character is missing required component knowledge: %s", comp.Name))
+					respondError(w, http.StatusBadRequest, fmt.Sprintf("Character does not have component: %s", comp.Name))
 					return
 				}
 			}
 
-			// Consume if needed
-			if shouldConsumeComponents {
-				for _, comp := range spell.Components {
-					for i, charComp := range character.Components {
-						if charComp.ComponentID == comp.ID {
-							character.Components[i].Count--
-							if err := tx.Save(&character.Components[i]).Error; err != nil {
-								log.Error().Err(err).Msg("Failed to update character component count")
-								respondError(w, http.StatusInternalServerError, "Failed to update components")
-								return
-							}
-							break
+			// Consume only non-pool components from inventory
+			for _, comp := range spell.Components {
+				if classPoolIDs[comp.ID] {
+					continue
+				}
+				for i, charComp := range character.Components {
+					if charComp.ComponentID == comp.ID {
+						character.Components[i].Count--
+						if err := tx.Save(&character.Components[i]).Error; err != nil {
+							log.Error().Err(err).Msg("Failed to update character component count")
+							respondError(w, http.StatusInternalServerError, "Failed to update components")
+							return
 						}
+						break
 					}
 				}
 			}
@@ -811,37 +804,35 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 
 		// 1. Deduct Resources based on Resource Definitions
 		var resourceKeyToDeduct string
-		var finalCost int // This will be the actual cost to deduct for the generic resources
+		var finalCost int
+		skipResourceDeduction := false
 
 		// Determine which resource key to deduct from.
-		// If provided in the request, use it. Otherwise, infer from class or default to "spell_points".
 		if req.ResourceKey != nil && *req.ResourceKey != "" {
 			resourceKeyToDeduct = *req.ResourceKey
 		} else {
-			// Fallback/Default based on class if not explicitly provided
 			switch class.Name {
 			case "The Rift Weaver":
 				resourceKeyToDeduct = "spell_points"
 			case "The Piston Brawler":
-				resourceKeyToDeduct = "max_stability" // Key used in ResourceDefinitions
+				resourceKeyToDeduct = "max_stability"
 			case "The Sanguinist":
-				resourceKeyToDeduct = "max_blood_ichor" // Key used in ResourceDefinitions
+				resourceKeyToDeduct = "max_blood_ichor"
 			case "The Vapor Blade":
-				resourceKeyToDeduct = "shadow_points" // Key used in ResourceDefinitions
+				resourceKeyToDeduct = "shadow_points"
+			case "The Lorewright", "The Ironwright":
+				// Components ARE the cost — no pool to deduct from
+				skipResourceDeduction = true
 			default:
-				// Default to spell_points for classes without specific resource keys or for generic spell casting
 				resourceKeyToDeduct = "spell_points"
 			}
 		}
-		finalCost = cost // Cost is already calculated above based on spell/components
+		finalCost = cost
 
-		// Handle Mutagen and Powder Mage as special cases that don't use generic resource deduction for casting cost
+		// Handle Mutagen and Powder Mage as special cases
 		if class.Name == "The Mutagen" {
-			character.MadnessCastCount++ // Mutagen: MadnessCastCount is a direct increment
+			character.MadnessCastCount++
 		} else if class.Name == "The Powder Mage" {
-			// Powder Mage: Flash-Point Casting logic. Resource is "timer".
-			// The "timer" resource definition is not a pool to be deducted from.
-			// Its logic is unique.
 			spellResult, err := h.componentInterpreter.Interpret(req.Components)
 			if err != nil {
 				respondError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to interpret components: %v", err))
@@ -850,17 +841,15 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 			tx.Commit()
 			respondJSON(w, http.StatusOK, spellResult)
 			return
-		} else if resourceKeyToDeduct != "" {
-			// Generic resource deduction for other classes
+		} else if !skipResourceDeduction && resourceKeyToDeduct != "" {
 			err = h.resourceService.DeductResource(character.ID, resourceKeyToDeduct, finalCost)
 			if err != nil {
-				// Ensure resourceKeyToDeduct is not nil for logging
-				logResourceKey := ""
-				if resourceKeyToDeduct != "" {
-					logResourceKey = resourceKeyToDeduct
+				log.Error().Err(err).Str("resource_key", resourceKeyToDeduct).Msg("Failed to deduct resource")
+				if strings.Contains(err.Error(), "insufficient") {
+					respondError(w, http.StatusBadRequest, err.Error())
+				} else {
+					respondError(w, http.StatusInternalServerError, "Failed to deduct resource")
 				}
-				log.Error().Err(err).Str("resource_key", logResourceKey).Msg("Failed to deduct resource")
-				respondError(w, http.StatusInternalServerError, "Failed to deduct resource")
 				return
 			}
 		}
@@ -880,12 +869,17 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 			return
 		}
 
-		respondJSON(w, http.StatusOK, map[string]interface{}{
+		// Read updated resource values from the CharacterResource table (not stale model fields)
+		response := map[string]interface{}{
 			"current_spell_points": character.CurrentSpellPoints,
 			"madness_cast_count":   character.MadnessCastCount,
-			"current_stability":    character.CurrentStability,
-			"current_blood_ichor":  character.CurrentBloodIchor,
-		})
+		}
+		if resourceKeyToDeduct != "" && !skipResourceDeduction {
+			response["current_resource_value"] = h.resourceService.GetResourceValue(character.ID, resourceKeyToDeduct)
+			response["resource_key"] = resourceKeyToDeduct
+		}
+
+		respondJSON(w, http.StatusOK, response)
 	}
 }
 
@@ -930,6 +924,85 @@ func (h *characterHandler) consumeComponent() http.HandlerFunc {
 		}
 
 		respondJSON(w, http.StatusOK, map[string]string{"message": "Component consumed"})
+	}
+}
+
+// extractComponents handles Sanguinist Sanguine Extraction — gains random class components
+func (h *characterHandler) extractComponents() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "characterID")
+		charID, err := uuid.Parse(idStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(charID)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
+			return
+		}
+
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		if authUserID != character.UserID.String() {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		if character.Class.Name != "The Sanguinist" {
+			respondError(w, http.StatusBadRequest, "Only Sanguinists can use Sanguine Extraction")
+			return
+		}
+
+		var req ExtractRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		// Load class with components
+		class, err := h.classRepo.FindByIDWithLevels(character.ClassID)
+		if err != nil || len(class.Components) == 0 {
+			respondError(w, http.StatusInternalServerError, "Failed to load class components")
+			return
+		}
+
+		// Calculate yield based on level
+		yield := 1
+		if character.Level >= 5 && character.Level <= 10 {
+			yield = 2
+		} else if character.Level >= 11 {
+			yield = 3
+		}
+
+		// Level 15+: Master Extractions — 5 from allies (siphon), 3 from enemies (bite)
+		if character.Level >= 15 && req.Source == "siphon" {
+			yield = 5
+		}
+
+		// Pick N random components from the class component pool
+		gained := make([]map[string]interface{}, 0, yield)
+		for i := 0; i < yield; i++ {
+			comp := class.Components[rand.Intn(len(class.Components))]
+			if err := h.characterRepo.UpdateComponentCount(charID, comp.ID, 1); err != nil {
+				log.Error().Err(err).Str("componentID", comp.ID.String()).Msg("Failed to add extracted component")
+				continue
+			}
+			gained = append(gained, map[string]interface{}{
+				"id":   comp.ID,
+				"name": comp.Name,
+			})
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"message":    fmt.Sprintf("Extracted %d components via %s", len(gained), req.Source),
+			"components": gained,
+			"yield":      yield,
+		})
 	}
 }
 
@@ -1039,5 +1112,167 @@ func (h *characterHandler) updateSanguineNotorietyPoints() http.HandlerFunc {
 			"sanguine_br":        updatedCharacter.SanguineBR,
 			"sanguine_notoriety": updatedCharacter.SanguineNotoriety,
 		})
+	}
+}
+
+// UpdateEquipmentRequest defines the structure for equipping/unequipping items.
+type UpdateEquipmentRequest struct {
+	ItemID   uuid.UUID `json:"item_id"`
+	IsWeapon bool      `json:"is_weapon"`
+	Equip    bool      `json:"equip"`
+	Slot     string    `json:"slot"` // "armor", "shield", "weapon"
+}
+
+// weaponHandCost returns how many hands a weapon requires (2 for Two-Handed, 1 otherwise).
+func weaponHandCost(properties []string) int {
+	for _, p := range properties {
+		if p == "Two-Handed" {
+			return 2
+		}
+	}
+	return 1
+}
+
+// countEquippedHands counts how many hand slots are in use by equipped weapons and shield.
+func (h *characterHandler) countEquippedHands(charID uuid.UUID, hasShield bool) (int, error) {
+	var equippedWeapons []models.CharacterWeapon
+	if err := h.characterRepo.GetDB().
+		Preload("Weapon").
+		Where("character_id = ? AND is_equipped = true", charID).
+		Find(&equippedWeapons).Error; err != nil {
+		return 0, err
+	}
+
+	hands := 0
+	for _, cw := range equippedWeapons {
+		hands += weaponHandCost(cw.Weapon.Properties)
+	}
+	if hasShield {
+		hands++
+	}
+	return hands, nil
+}
+
+// updateEquipment handles equipping and unequipping items and weapons.
+// Enforces: 1 armor at a time, 2-hand limit for weapons + shield.
+func (h *characterHandler) updateEquipment() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		charIDStr := chi.URLParam(r, "characterID")
+		charID, err := uuid.Parse(charIDStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(charID)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
+			return
+		}
+
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		if authUserID != character.UserID.String() {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		var req UpdateEquipmentRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		if req.IsWeapon {
+			if req.Equip {
+				// Look up the weapon to determine hand cost
+				weapon, err := h.weaponRepo.FindByID(req.ItemID)
+				if err != nil {
+					respondError(w, http.StatusNotFound, "Weapon not found")
+					return
+				}
+				cost := weaponHandCost(weapon.Properties)
+
+				usedHands, err := h.countEquippedHands(charID, character.EquippedShieldID != nil)
+				if err != nil {
+					log.Error().Err(err).Msg("Failed to count equipped hands")
+					respondError(w, http.StatusInternalServerError, "Failed to check equipment")
+					return
+				}
+
+				// Don't double-count this weapon if it's already equipped
+				var alreadyEquipped models.CharacterWeapon
+				if err := h.characterRepo.GetDB().
+					Preload("Weapon").
+					Where("character_id = ? AND weapon_id = ? AND is_equipped = true", charID, req.ItemID).
+					First(&alreadyEquipped).Error; err == nil {
+					usedHands -= weaponHandCost(alreadyEquipped.Weapon.Properties)
+				}
+
+				if usedHands+cost > 2 {
+					respondError(w, http.StatusBadRequest, fmt.Sprintf(
+						"Not enough free hands (need %d, have %d free)", cost, 2-usedHands))
+					return
+				}
+			}
+
+			err = h.characterRepo.GetDB().Model(&models.CharacterWeapon{}).
+				Where("character_id = ? AND weapon_id = ?", charID, req.ItemID).
+				Update("is_equipped", req.Equip).Error
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to update weapon equipment status")
+				respondError(w, http.StatusInternalServerError, "Failed to update weapon")
+				return
+			}
+		} else {
+			switch req.Slot {
+			case "armor":
+				if req.Equip {
+					character.EquippedArmorID = &req.ItemID
+				} else {
+					character.EquippedArmorID = nil
+				}
+
+			case "shield":
+				if req.Equip {
+					usedHands, err := h.countEquippedHands(charID, false)
+					if err != nil {
+						log.Error().Err(err).Msg("Failed to count equipped hands")
+						respondError(w, http.StatusInternalServerError, "Failed to check equipment")
+						return
+					}
+					if usedHands+1 > 2 {
+						respondError(w, http.StatusBadRequest, fmt.Sprintf(
+							"Not enough free hands to equip shield (have %d free)", 2-usedHands))
+						return
+					}
+					character.EquippedShieldID = &req.ItemID
+				} else {
+					character.EquippedShieldID = nil
+				}
+
+			default:
+				respondError(w, http.StatusBadRequest, "Invalid equipment slot")
+				return
+			}
+
+			if err := h.characterRepo.Update(character); err != nil {
+				log.Error().Err(err).Msg("Failed to update character equipment")
+				respondError(w, http.StatusInternalServerError, "Failed to update equipment")
+				return
+			}
+		}
+
+		// Return the updated character sheet
+		sheet, err := h.getCharacterSheetData(character.ID)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to get updated character sheet")
+			respondError(w, http.StatusInternalServerError, "Failed to retrieve updated character sheet")
+			return
+		}
+		respondJSON(w, http.StatusOK, sheet)
 	}
 }

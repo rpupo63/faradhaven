@@ -11,7 +11,7 @@ func Flamekin() FaradhavenRaceSeed {
 		BaseSpeed:      30,
 		Languages:      []string{"Common", "Primordial"},
 		Traits:         flamekinTraits(),
-		ComponentNames: []string{"Ignis", "Self", "Nova", "Imbue"},
+		ComponentNames: []string{"Ignis", "Self", "Nova", "Create"},
 	}
 }
 
@@ -32,7 +32,7 @@ func flamekinTraits() []TraitSeed {
 		},
 		{
 			Name:           "Reach to the Blaze",
-			Description:    "You know the Ignis + Self component combination (producing flames in your hand). Starting at 3rd level, you can cast Ignis + Nova (a cone of burning fire). Starting at 5th level, you can also cast Ignis + Imbue (a blade of pure flame), without requiring a material component. Once you cast Ignis + Nova or Ignis + Imbue with this trait, you can't cast that combination with it again until you finish a long rest. You can also cast either of those combinations using any spell slots you have of the appropriate level. Intelligence, Wisdom, or Charisma is your spellcasting ability for these spells when you cast them with this trait (choose when you select this race).",
+			Description:    "You know the Ignis + Self component combination (producing flames in your hand). Starting at 3rd level, you can cast Ignis + Nova (a cone of burning fire). Starting at 5th level, you can also cast Ignis + Create (a blade of pure flame), without requiring a material component. Once you cast Ignis + Nova or Ignis + Create with this trait, you can't cast that combination with it again until you finish a long rest. You can also cast either of those combinations using any spell slots you have of the appropriate level. Intelligence, Wisdom, or Charisma is your spellcasting ability for these spells when you cast them with this trait (choose when you select this race).",
 			LevelReq:       1,
 			ActionType:     "Passive",
 			UsesPerRest:    "1 per spell",
@@ -46,15 +46,15 @@ func flamekinSpellcastingOptions() []TraitOptionSeed {
 	return []TraitOptionSeed{
 		{
 			Name:        "Intelligence",
-			Description: "Intelligence is your spellcasting ability for Ignis + Self, Ignis + Nova, and Ignis + Imbue when you cast them with this trait.",
+			Description: "Intelligence is your spellcasting ability for Ignis + Self, Ignis + Nova, and Ignis + Create when you cast them with this trait.",
 		},
 		{
 			Name:        "Wisdom",
-			Description: "Wisdom is your spellcasting ability for Ignis + Self, Ignis + Nova, and Ignis + Imbue when you cast them with this trait.",
+			Description: "Wisdom is your spellcasting ability for Ignis + Self, Ignis + Nova, and Ignis + Create when you cast them with this trait.",
 		},
 		{
 			Name:        "Charisma",
-			Description: "Charisma is your spellcasting ability for Ignis + Self, Ignis + Nova, and Ignis + Imbue when you cast them with this trait.",
+			Description: "Charisma is your spellcasting ability for Ignis + Self, Ignis + Nova, and Ignis + Create when you cast them with this trait.",
 		},
 	}
 }

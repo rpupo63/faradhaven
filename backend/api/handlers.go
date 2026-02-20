@@ -1,12 +1,23 @@
 package api
 
 import (
+	"os" // Added os import for ConsoleWriter
+
 	"github.com/rpupo63/unified-personal-site-backend/database"
 	"github.com/rpupo63/unified-personal-site-backend/services"
+	"github.com/rs/zerolog"     // Added zerolog import
+	"github.com/rs/zerolog/log" // Added zerolog/log for global logger setup
 )
 
 // initializeHandlers creates and returns all handlers organized in a routeHandlers struct
 func initializeHandlers(db database.Database) *routeHandlers {
+	// Initialize a logger for handlers that require it
+	// In a real application, this would likely be passed down from main or a global config.
+	// For now, create a basic console logger.
+	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "15:04:05"}
+	logger := zerolog.New(consoleWriter).With().Timestamp().Logger()
+	log.Logger = logger // Set global logger (optional, but good for consistency)
+
 	// Initialize services
 	resourceService := services.NewResourceService(db.ClassRepo(), db.CharacterResourceRepo())
 	notorietyService := services.NewNotorietyService(db.CharacterRepo())
@@ -18,7 +29,6 @@ func initializeHandlers(db database.Database) *routeHandlers {
 		// However, the signature of initializeHandlers doesn't return error.
 		// Let's assume for now we log and pass nil if error, and handler handles nil service?
 		// Or better, just log and continue, handler will fail at runtime if used.
-		// Ideally we should return error from initializeHandlers.
 		// For simplicity/speed matching existing pattern:
 	}
 
@@ -62,8 +72,20 @@ func initializeHandlers(db database.Database) *routeHandlers {
 		db.ComponentRepo(),
 	)
 
+	lootService := services.NewLootService(db.ItemRepo(), db.WeaponRepo(), db.CharacterRepo())
+
 	corpseService := services.NewCorpseService(db.CorpseRepo())
 	linkService := services.NewLinkService(db.CharacterLinkRepo())
+
+	// NEW: Initialize MockLLMClient
+	mockLLMClient := services.NewMockLLMClient()
+
+	// NEW: Initialize MonsterGenerationService
+	monsterGenerationService := services.NewMonsterGenerationService(
+		db.MonsterRepo(),
+		s3Service,
+		mockLLMClient,
+	)
 
 	// UPDATED: newLevelHandler now takes characterResourceRepo, beastRepo, and consumptionHistoryRepo
 	levelHandlerInstance := newLevelHandler(levelUpService, db.ClassRepo(), db.CharacterResourceRepo(), db.BeastRepo(), db.ConsumptionHistoryRepo())
@@ -74,15 +96,18 @@ func initializeHandlers(db database.Database) *routeHandlers {
 	// NEW: Initialize MadnessHandler
 	madnessHandlerInstance := newMadnessHandler(madnessService)
 
-	// NEW: Initialize ComponentInterpreterService
+	// Initialize ComponentInterpreterService
 	effectRepo := database.NewEffectRepo(db.DB())
 	componentInterpreterService := services.NewComponentInterpreterService(db.ComponentRepo(), effectRepo)
+
+	// Initialize SpellSynthesisService
+	synthesisService := services.NewSpellSynthesisService(db.ComponentRepo())
 
 	return &routeHandlers{
 		authHandler:            newAuthHandler(db.UserRepo()),
 		userHandler:            newUserHandler(db.UserRepo()),
 		characterHandler:       newCharacterHandler(db.CharacterRepo(), db.RaceRepo(), db.ClassRepo(), db.CharacterResourceRepo(), db.ItemRepo(), db.WeaponRepo(), db.SpellRepo(), resourceService, notorietyService, s3Service, componentInterpreterService),
-		spellHandler:           newSpellHandler(db.SpellRepo()),
+		spellHandler:           newSpellHandler(db.SpellRepo(), synthesisService, componentInterpreterService),
 		beastHandler:           newBeastHandler(db.BeastRepo(), db.AttackRepo()),
 		levelHandler:           levelHandlerInstance, // Use the instance
 		weaponHandler:          newWeaponHandler(db.WeaponRepo()),
@@ -93,11 +118,15 @@ func initializeHandlers(db database.Database) *routeHandlers {
 		resourceHandler:        newResourceHandler(db.CharacterResourceRepo()),
 		minionHandler:          newMinionHandler(minionService),
 		noteHandler:            newNoteHandler(db.NoteRepo()),
-		mapHandler:             newMapHandler(db.MapRepo()),
+		gameMapHandler:         newGameMapHandler(db.GameMapRepo()),
+		mapTokenHandler:        newMapTokenHandler(db.MapTokenRepo(), db.GameMapRepo()),
+		mapElementHandler:      newMapElementHandler(db.MapElementRepo(), db.GameMapRepo()),
 		mechanicsHandler:       NewMechanicsHandler(db.DB()),
 		corpseHandler:          corpseHandlerInstance, // Use the instance
 		linkHandler:            newLinkHandler(linkService),
-		harvestHandler:         newHarvestHandler(harvestingService, db.CharacterRepo()), // NEW: Harvest Handler
-		madnessHandler:         madnessHandlerInstance,                                   // NEW: Madness Handler
+		harvestHandler:         newHarvestHandler(harvestingService, db.CharacterRepo()),      // NEW: Harvest Handler
+		madnessHandler:         madnessHandlerInstance,                                        // NEW: Madness Handler
+		lootHandler:            newLootHandler(lootService, logger),                           // Pass logger
+		monsterHandler:         newMonsterHandler(db.MonsterRepo(), monsterGenerationService), // NEW: Monster Handler
 	}
 }

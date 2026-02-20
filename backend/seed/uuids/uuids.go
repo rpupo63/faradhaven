@@ -28,11 +28,17 @@ var (
 	NamespaceEffect               = uuid.MustParse("89012345-8901-2345-8901-234589012345")
 	NamespaceClassResourceDef     = uuid.MustParse("9a0b1c2d-3e4f-5a6b-7c8d-9e0f1a2b3c4d")
 	NamespaceClassLevelResource   = uuid.MustParse("ab1c2d3e-4f5a-6b7c-8d9e-0f1a2b3c4d5e")
+	NamespaceSystemUser         = uuid.MustParse("bc2d3e4f-5a6b-7c8d-9e0f-1a2b3c4d5e6f")
 )
 
 // RaceUUID generates a deterministic UUID for a race by name.
 func RaceUUID(name string) uuid.UUID {
 	return uuid.NewSHA1(NamespaceRace, []byte(name))
+}
+
+// SystemUserUUID generates a deterministic UUID for a system user by name.
+func SystemUserUUID(name string) uuid.UUID {
+	return uuid.NewSHA1(NamespaceSystemUser, []byte(name))
 }
 
 // ClassUUID generates a deterministic UUID for a class by name.

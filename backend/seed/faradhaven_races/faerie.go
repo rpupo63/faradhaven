@@ -11,7 +11,7 @@ func Faerie() FaradhavenRaceSeed {
 		BaseSpeed:      30,
 		Languages:      []string{"Common", "Sylvan"},
 		Traits:         faerieTraits(),
-		ComponentNames: []string{"Vita", "Self", "Lux", "Zone", "Expand", "Shrink"},
+		ComponentNames: []string{"Vita", "Self", "Lux", "Zone", "Increase", "Decrease"},
 	}
 }
 
@@ -19,7 +19,7 @@ func faerieTraits() []TraitSeed {
 	return []TraitSeed{
 		{
 			Name:        "Fairy Magic",
-			Description: "You know the Vita + Self component combination (minor nature magic). Starting at 3rd level, you can cast Lux + Zone (revealing light that outlines creatures). Starting at 5th level, you can also cast Expand or Shrink (altering the size of a creature or object). Once you cast Lux + Zone or Expand/Shrink with this trait, you can't cast that combination with it again until you finish a long rest. You can also cast either of those combinations using any spell slots you have of the appropriate level. Intelligence, Wisdom, or Charisma is your spellcasting ability for these spells when you cast them with this trait (choose when you select this race).",
+			Description: "You know the Vita + Self component combination (minor nature magic). Starting at 3rd level, you can cast Lux + Zone (revealing light that outlines creatures). Starting at 5th level, you can also cast Increase or Decrease (altering the size of a creature or object). Once you cast Lux + Zone or Increase/Decrease with this trait, you can't cast that combination with it again until you finish a long rest. You can also cast either of those combinations using any spell slots you have of the appropriate level. Intelligence, Wisdom, or Charisma is your spellcasting ability for these spells when you cast them with this trait (choose when you select this race).",
 			LevelReq:    1,
 			ActionType:  "Passive",
 			Options:     faerieSpellcastingAbilityOptions(),

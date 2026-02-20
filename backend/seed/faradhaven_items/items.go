@@ -10,6 +10,12 @@ type ItemSeed struct {
 	Weight       string
 	Effects      string
 	IsConsumable bool
+
+	// Armor-specific (only for Category containing "Armor" or "Shield")
+	ArmorType           *string
+	BaseAC              *int
+	StrengthRequirement *int
+	StealthDisadvantage *bool
 }
 
 // Potions returns the potion seeds
@@ -90,6 +96,7 @@ func Potions() []ItemSeed {
 
 // Shields returns the shield seeds
 func Shields() []ItemSeed {
+	ac2 := 2
 	return []ItemSeed{
 		{
 			Name:         "Standard Shield",
@@ -100,6 +107,7 @@ func Shields() []ItemSeed {
 			Weight:       "6 lb.",
 			Effects:      "AC +2",
 			IsConsumable: false,
+			BaseAC:       &ac2,
 		},
 		{
 			Name:         "Clockwork Buckler",
@@ -110,6 +118,7 @@ func Shields() []ItemSeed {
 			Weight:       "4 lb.",
 			Effects:      "AC +2. As a reaction, expand to grant +4 AC against a single attack.",
 			IsConsumable: false,
+			BaseAC:       &ac2,
 		},
 	}
 }
@@ -284,5 +293,6 @@ func AllItems() []ItemSeed {
 	all = append(all, Shields()...)
 	all = append(all, Tools()...)
 	all = append(all, Gear()...)
+	all = append(all, Armor()...)
 	return all
 }

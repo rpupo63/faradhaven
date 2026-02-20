@@ -15,7 +15,7 @@ func Aasimar() FaradhavenRaceSeed {
 		},
 		Languages:      []string{"Common", "Celestial"},
 		Traits:         aasimarTraits(),
-		ComponentNames: []string{"Lux", "Self", "Nova", "Umbra", "Fear", "Mend"},
+		ComponentNames: []string{"Lux", "Self", "Nova", "Umbra", "Fear", "Increase"},
 	}
 }
 

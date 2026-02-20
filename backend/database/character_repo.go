@@ -13,12 +13,14 @@ type CharacterRepository interface {
 	FindByID(id uuid.UUID) (*models.Character, error)
 	FindByIDWithSkills(id uuid.UUID) (*models.Character, error)
 	FindByIDWithRelations(id uuid.UUID) (*models.Character, error)
+	FindByIDWithInventory(id uuid.UUID) (*models.Character, error)
 	FindByUserID(userID uuid.UUID) ([]*models.Character, error)
 	Add(character *models.Character) error
 	Update(character *models.Character) error
 	Delete(id uuid.UUID) error
 	ReplaceSkillProficiencies(characterID uuid.UUID, skillIDs []string) error
 	UpdateComponentCount(characterID uuid.UUID, componentID uuid.UUID, delta int) error
+	ClearComponentsForCharacter(characterID uuid.UUID) error
 	GetDB() *gorm.DB
 }
 
@@ -103,6 +105,16 @@ func (r *CharacterRepo) FindByUserID(userID uuid.UUID) ([]*models.Character, err
 	return characters, err
 }
 
+// FindByIDWithInventory returns a character by ID with Items and Weapons preloaded
+func (r *CharacterRepo) FindByIDWithInventory(id uuid.UUID) (*models.Character, error) {
+	var character models.Character
+	err := r.db.Preload("Race").Preload("Class").Preload("Archetype").Preload("Items").Preload("Weapons").First(&character, "id = ?", id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &character, nil
+}
+
 // Add inserts a new character
 func (r *CharacterRepo) Add(character *models.Character) error {
 	now := time.Now()
@@ -150,7 +162,7 @@ func (r *CharacterRepo) UpdateComponentCount(characterID uuid.UUID, componentID 
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		var charComp models.CharacterComponent
 		err := tx.Where("character_id = ? AND component_id = ?", characterID, componentID).First(&charComp).Error
-		
+
 		if err == gorm.ErrRecordNotFound {
 			if delta <= 0 {
 				return nil // Nothing to deduct
@@ -170,7 +182,12 @@ func (r *CharacterRepo) UpdateComponentCount(characterID uuid.UUID, componentID 
 		if charComp.Count < 0 {
 			charComp.Count = 0
 		}
-		
+
 		return tx.Save(&charComp).Error
 	})
+}
+
+// ClearComponentsForCharacter removes all component inventory for a character
+func (r *CharacterRepo) ClearComponentsForCharacter(characterID uuid.UUID) error {
+	return r.db.Where("character_id = ?", characterID).Delete(&models.CharacterComponent{}).Error
 }
