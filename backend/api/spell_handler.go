@@ -3,23 +3,67 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strconv" // NEW: Import strconv
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/rpupo63/unified-personal-site-backend/database"
+	"github.com/rpupo63/unified-personal-site-backend/errs" // NEW: Import errs
 	"github.com/rpupo63/unified-personal-site-backend/models"
 	"github.com/rpupo63/unified-personal-site-backend/services"
 	"github.com/rs/zerolog/log"
 )
 
+// parsePaginationParams parses page, limit, and slot_level parameters from the request.
+func parsePaginationParams(r *http.Request) (page, limit, slotLevelFilter int, err error) {
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+	slotLevelStr := r.URL.Query().Get("slot_level")
+
+	page = 1
+	if pageStr != "" {
+		page, err = strconv.Atoi(pageStr)
+		if err != nil || page < 1 {
+			return 0, 0, 0, errs.BadRequest("invalid page parameter")
+		}
+	}
+
+	limit = 10 // Default limit
+	if limitStr != "" {
+		limit, err = strconv.Atoi(limitStr)
+		if err != nil || limit < 1 {
+			return 0, 0, 0, errs.BadRequest("invalid limit parameter")
+		}
+	}
+
+	slotLevelFilter = 0 // 0 means no filter
+	if slotLevelStr != "" {
+		slotLevelFilter, err = strconv.Atoi(slotLevelStr)
+		if err != nil || slotLevelFilter < 1 {
+			return 0, 0, 0, errs.BadRequest("invalid slot_level parameter")
+		}
+	}
+	return page, limit, slotLevelFilter, nil
+}
+
 type spellHandler struct {
 	spellRepo          database.SpellRepository
+	characterRepo      database.CharacterRepository
+	classRepo          database.ClassRepository
+	raceRepo           database.RaceRepository
 	synthesisService   *services.SpellSynthesisService
 	interpreterService *services.ComponentInterpreterService
 }
 
-func newSpellHandler(spellRepo database.SpellRepository, synthesisService *services.SpellSynthesisService, interpreterService *services.ComponentInterpreterService) *spellHandler {
-	return &spellHandler{spellRepo: spellRepo, synthesisService: synthesisService, interpreterService: interpreterService}
+func newSpellHandler(spellRepo database.SpellRepository, characterRepo database.CharacterRepository, classRepo database.ClassRepository, raceRepo database.RaceRepository, synthesisService *services.SpellSynthesisService, interpreterService *services.ComponentInterpreterService) *spellHandler {
+	return &spellHandler{
+		spellRepo:          spellRepo,
+		characterRepo:      characterRepo,
+		classRepo:          classRepo,
+		raceRepo:           raceRepo,
+		synthesisService:   synthesisService,
+		interpreterService: interpreterService,
+	}
 }
 
 // SpellResponse is a custom response for a spell that includes character details
@@ -34,28 +78,156 @@ type SynthesizeRequest struct {
 	ComponentIDs []uuid.UUID `json:"component_ids"`
 }
 
-// getAllSpells returns all spells
-func (h *spellHandler) getAllSpells() http.HandlerFunc {
+// CharacterSpellbookResponse is the response for the character spellbook endpoint
+type CharacterSpellbookResponse struct {
+	MySpells        []*models.Spell `json:"my_spells"`
+	AvailableSpells []*models.Spell `json:"available_spells"`
+}
+
+// getCharacterSpellbook returns all spells available to a character
+func (h *spellHandler) getCharacterSpellbook() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		spells, err := h.spellRepo.FindAll()
+		characterIDStr := chi.URLParam(r, "characterID")
+		characterID, err := uuid.Parse(characterIDStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		character, err := h.characterRepo.FindByIDWithRelations(characterID)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
+			return
+		}
+
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		if authUserID != character.UserID.String() {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		// Get all spells
+		allSpells, _, err := h.spellRepo.FindAll(1, 10000, 0) // A large number to get all spells
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to get spells")
 			respondError(w, http.StatusInternalServerError, "Failed to get spells")
 			return
 		}
 
-		response := make([]SpellResponse, len(spells))
-		for i, spell := range spells {
-			response[i] = SpellResponse{
-				Spell: spell,
+		// Get unlimited components from class and race
+		class, err := h.classRepo.FindByID(character.ClassID)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to get class")
+			respondError(w, http.StatusInternalServerError, "Failed to get class")
+			return
+		}
+		race, err := h.raceRepo.FindByID(character.RaceID)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to get race")
+			respondError(w, http.StatusInternalServerError, "Failed to get race")
+			return
+		}
+
+		unlimitedComponentIDs := make(map[uuid.UUID]bool)
+		for _, comp := range class.Components {
+			unlimitedComponentIDs[comp.ID] = true
+		}
+		for _, comp := range race.Components {
+			unlimitedComponentIDs[comp.ID] = true
+		}
+
+		// Get character's components with counts
+		characterComponentCounts := make(map[uuid.UUID]int)
+		for _, charComp := range character.Components {
+			characterComponentCounts[charComp.ComponentID] = charComp.Count
+		}
+
+		mySpells := []*models.Spell{}
+		availableSpells := []*models.Spell{}
+
+		for i := range allSpells {
+			spell := allSpells[i]
+			// My Spells
+			if spell.UserID == character.UserID {
+				mySpells = append(mySpells, spell)
 			}
-			if spell.Character != nil {
-				response[i].CharacterName = &spell.Character.Name
-				response[i].CharacterClass = &spell.Character.Class.Name
+
+			// Available Spells
+			if len(spell.Components) == 0 {
+				availableSpells = append(availableSpells, spell)
+				continue
+			}
+
+			hasAllComponents := true
+			for _, spellComp := range spell.Components {
+				if _, isUnlimited := unlimitedComponentIDs[spellComp.ID]; isUnlimited {
+					continue
+				}
+				if count, hasResource := characterComponentCounts[spellComp.ID]; hasResource && count > 0 {
+					continue
+				}
+				hasAllComponents = false
+				break
+			}
+
+			if hasAllComponents {
+				availableSpells = append(availableSpells, spell)
 			}
 		}
 
+		response := CharacterSpellbookResponse{
+			MySpells:        mySpells,
+			AvailableSpells: availableSpells,
+		}
+
 		respondJSON(w, http.StatusOK, response)
+	}
+}
+
+// getAllSpells returns all spells
+func (h *spellHandler) getAllSpells() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		page, limit, slotLevelFilter, err := parsePaginationParams(r)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		spells, totalCount, err := h.spellRepo.FindAll(page, limit, slotLevelFilter)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to get spells")
+			respondError(w, http.StatusInternalServerError, "Failed to get spells")
+			return
+		}
+
+		type PaginatedSpellsResponse struct {
+			Spells     []SpellResponse `json:"spells"`
+			TotalCount int64           `json:"total_count"`
+			Page       int             `json:"page"`
+			Limit      int             `json:"limit"`
+		}
+
+		responseSpells := make([]SpellResponse, len(spells))
+		for i, spell := range spells {
+			responseSpells[i] = SpellResponse{
+				Spell: spell,
+			}
+			if spell.Character != nil {
+				responseSpells[i].CharacterName = &spell.Character.Name
+				responseSpells[i].CharacterClass = &spell.Character.Class.Name
+			}
+		}
+
+		respondJSON(w, http.StatusOK, PaginatedSpellsResponse{
+			Spells:     responseSpells,
+			TotalCount: totalCount,
+			Page:       page,
+			Limit:      limit,
+		})
 	}
 }
 
@@ -119,13 +291,43 @@ func (h *spellHandler) getSpellsByCharacter() http.HandlerFunc {
 			return
 		}
 
-		spells, err := h.spellRepo.FindByCharacterID(characterID)
+		page, limit, slotLevelFilter, err := parsePaginationParams(r)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		spells, totalCount, err := h.spellRepo.FindByCharacterID(characterID, page, limit, slotLevelFilter)
 		if err != nil {
 			log.Error().Err(err).Str("characterID", characterIDStr).Msg("Failed to get character spells")
 			respondError(w, http.StatusInternalServerError, "Failed to get character spells")
 			return
 		}
-		respondJSON(w, http.StatusOK, spells)
+
+		type PaginatedSpellsResponse struct {
+			Spells     []SpellResponse `json:"spells"`
+			TotalCount int64           `json:"total_count"`
+			Page       int             `json:"page"`
+			Limit      int             `json:"limit"`
+		}
+
+		responseSpells := make([]SpellResponse, len(spells))
+		for i, spell := range spells {
+			responseSpells[i] = SpellResponse{
+				Spell: spell,
+			}
+			if spell.Character != nil {
+				responseSpells[i].CharacterName = &spell.Character.Name
+				responseSpells[i].CharacterClass = &spell.Character.Class.Name
+			}
+		}
+
+		respondJSON(w, http.StatusOK, PaginatedSpellsResponse{
+			Spells:     responseSpells,
+			TotalCount: totalCount,
+			Page:       page,
+			Limit:      limit,
+		})
 	}
 }
 

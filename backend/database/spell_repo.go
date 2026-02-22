@@ -9,10 +9,10 @@ import (
 )
 
 type SpellRepository interface {
-	FindAll() ([]*models.Spell, error)
+	FindAll(page, limit, slotLevelFilter int) ([]*models.Spell, int64, error) // Updated signature
 	FindByID(id uuid.UUID) (*models.Spell, error)
 	FindByUserID(userID uuid.UUID) ([]*models.Spell, error)
-	FindByCharacterID(characterID uuid.UUID) ([]*models.Spell, error)
+	FindByCharacterID(characterID uuid.UUID, page, limit, slotLevelFilter int) ([]*models.Spell, int64, error) // Updated signature
 	Add(spell *models.Spell, componentIDs []uuid.UUID) error
 	Update(spell *models.Spell) error
 	ReplaceComponents(spellID uuid.UUID, componentIDs []uuid.UUID) error
@@ -27,11 +27,26 @@ func NewSpellRepo(db *gorm.DB) *SpellRepo {
 	return &SpellRepo{db}
 }
 
-// FindAll returns all spells with components preloaded
-func (r *SpellRepo) FindAll() ([]*models.Spell, error) {
+// FindAll returns all spells with components preloaded, with pagination and filtering
+func (r *SpellRepo) FindAll(page, limit, slotLevelFilter int) ([]*models.Spell, int64, error) {
 	var spells []*models.Spell
-	err := r.db.Preload("Components").Preload("Character").Find(&spells).Error
-	return spells, err
+	var totalCount int64
+
+	query := r.db.Model(&models.Spell{}).Preload("Components").Preload("Character")
+
+	if slotLevelFilter > 0 {
+		query = query.Where("slot_level = ?", slotLevelFilter)
+	}
+
+	// Get total count
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply pagination
+	offset := (page - 1) * limit
+	err := query.Order("slot_level ASC, name ASC").Offset(offset).Limit(limit).Find(&spells).Error
+	return spells, totalCount, err
 }
 
 // FindByID returns a spell by ID with components preloaded
@@ -51,11 +66,26 @@ func (r *SpellRepo) FindByUserID(userID uuid.UUID) ([]*models.Spell, error) {
 	return spells, err
 }
 
-// FindByCharacterID returns all spells prepared by a character with components preloaded
-func (r *SpellRepo) FindByCharacterID(characterID uuid.UUID) ([]*models.Spell, error) {
+// FindByCharacterID returns all spells prepared by a character with components preloaded, with pagination and filtering
+func (r *SpellRepo) FindByCharacterID(characterID uuid.UUID, page, limit, slotLevelFilter int) ([]*models.Spell, int64, error) {
 	var spells []*models.Spell
-	err := r.db.Preload("Components").Where("character_id = ?", characterID).Find(&spells).Error
-	return spells, err
+	var totalCount int64
+
+	query := r.db.Model(&models.Spell{}).Preload("Components").Where("character_id = ?", characterID)
+
+	if slotLevelFilter > 0 {
+		query = query.Where("slot_level = ?", slotLevelFilter)
+	}
+
+	// Get total count
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply pagination
+	offset := (page - 1) * limit
+	err := query.Order("slot_level ASC, name ASC").Offset(offset).Limit(limit).Find(&spells).Error
+	return spells, totalCount, err
 }
 
 // Add inserts a new spell and links it to the given components

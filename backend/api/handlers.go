@@ -103,11 +103,14 @@ func initializeHandlers(db database.Database) *routeHandlers {
 	// Initialize SpellSynthesisService
 	synthesisService := services.NewSpellSynthesisService(db.ComponentRepo())
 
+	// NEW: Initialize PartyHandler
+	partyHandlerInstance := newPartyHandler(db.PartyRepo(), db.CharacterRepo(), db.BeastRepo())
+
 	return &routeHandlers{
 		authHandler:            newAuthHandler(db.UserRepo()),
 		userHandler:            newUserHandler(db.UserRepo()),
-		characterHandler:       newCharacterHandler(db.CharacterRepo(), db.RaceRepo(), db.ClassRepo(), db.CharacterResourceRepo(), db.ItemRepo(), db.WeaponRepo(), db.SpellRepo(), resourceService, notorietyService, s3Service, componentInterpreterService),
-		spellHandler:           newSpellHandler(db.SpellRepo(), synthesisService, componentInterpreterService),
+		characterHandler:       newCharacterHandler(db.CharacterRepo(), db.RaceRepo(), db.ClassRepo(), db.CharacterResourceRepo(), db.ItemRepo(), db.WeaponRepo(), db.SpellRepo(), resourceService, notorietyService, s3Service, componentInterpreterService, db.PartyRepo()),
+		spellHandler:           newSpellHandler(db.SpellRepo(), db.CharacterRepo(), db.ClassRepo(), db.RaceRepo(), synthesisService, componentInterpreterService),
 		beastHandler:           newBeastHandler(db.BeastRepo(), db.AttackRepo()),
 		levelHandler:           levelHandlerInstance, // Use the instance
 		weaponHandler:          newWeaponHandler(db.WeaponRepo()),
@@ -128,5 +131,6 @@ func initializeHandlers(db database.Database) *routeHandlers {
 		madnessHandler:         madnessHandlerInstance,                                        // NEW: Madness Handler
 		lootHandler:            newLootHandler(lootService, logger),                           // Pass logger
 		monsterHandler:         newMonsterHandler(db.MonsterRepo(), monsterGenerationService), // NEW: Monster Handler
+		partyHandler:           partyHandlerInstance,                                          // NEW: Party Handler
 	}
 }

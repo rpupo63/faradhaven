@@ -78,8 +78,9 @@ func (r *CharacterRepo) FindByIDWithRelations(id uuid.UUID) (*models.Character, 
 	if err := r.db.
 		Preload("Race").
 		Preload("Class").
-		Preload("Class.ClassLevels"). // Crucial for Lorewright slot checks
+		Preload("Class.Levels"). // Crucial for Lorewright slot checks
 		Preload("Archetype").
+		Preload("Party"). // NEW: Preload Party
 		Preload("Race.Traits.Options").
 		Preload("Components.Component").
 		First(&character, "id = ?", id).Error; err != nil {

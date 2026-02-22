@@ -51,9 +51,32 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 }
 
 func (h *characterHandler) getCharacterSheetData(id uuid.UUID) (*CharacterSheetResponse, error) {
-	character, err := h.characterRepo.FindByIDWithSkills(id)
+	character, err := h.characterRepo.FindByIDWithRelations(id) // Changed to FindByIDWithRelations
 	if err != nil {
 		return nil, fmt.Errorf("failed to get character: %w", err)
+	}
+
+	// NEW: If character is part of a party, load party members and identified beasts
+	if character.PartyID != nil {
+		party, err := h.partyRepo.FindByID(*character.PartyID)
+		if err != nil {
+			log.Error().Err(err).Str("partyID", character.PartyID.String()).Msg("Failed to get party for character sheet")
+			// Continue without party members/beasts if party not found
+		} else {
+			members, err := h.partyRepo.GetMembers(*character.PartyID)
+			if err != nil {
+				log.Error().Err(err).Str("partyID", character.PartyID.String()).Msg("Failed to get party members for character sheet")
+			} else {
+				party.Members = members
+			}
+			identifiedBeasts, err := h.partyRepo.GetIdentifiedBeasts(*character.PartyID)
+			if err != nil {
+				log.Error().Err(err).Str("partyID", character.PartyID.String()).Msg("Failed to get identified beasts for character sheet")
+			} else {
+				party.IdentifiedBeasts = identifiedBeasts
+			}
+			character.Party = party
+		}
 	}
 
 	// Preload weapons with modifiers and items for the sheet

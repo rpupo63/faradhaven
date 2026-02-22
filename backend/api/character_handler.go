@@ -29,6 +29,7 @@ type characterHandler struct {
 	notorietyService      services.NotorietyService
 	s3Service             *services.S3Service
 	componentInterpreter  *services.ComponentInterpreterService
+	partyRepo             database.PartyRepository // NEW: Added PartyRepository
 }
 
 func newCharacterHandler(
@@ -43,7 +44,7 @@ func newCharacterHandler(
 	notorietyService services.NotorietyService,
 	s3Service *services.S3Service,
 	componentInterpreter *services.ComponentInterpreterService,
-) *characterHandler {
+	partyRepo database.PartyRepository) *characterHandler { // NEW: Added PartyRepository
 	return &characterHandler{
 		characterRepo:         characterRepo,
 		raceRepo:              raceRepo,
@@ -56,6 +57,7 @@ func newCharacterHandler(
 		notorietyService:      notorietyService,
 		s3Service:             s3Service,
 		componentInterpreter:  componentInterpreter,
+		partyRepo:             partyRepo, // NEW: Assign PartyRepository
 	}
 }
 

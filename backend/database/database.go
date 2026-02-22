@@ -32,12 +32,13 @@ type Database struct {
 	mapTokenRepo           *MapTokenRepo
 	mapElementRepo         *MapElementRepo
 	monsterRepo            *MonsterRepo
+	partyRepo              *PartyRepo // NEW: Party Repository
 
 	// New Map Element Properties Repos
-	trapPropertiesRepo          *TrapPropertiesRepo
+	trapPropertiesRepo             *TrapPropertiesRepo
 	difficultTerrainPropertiesRepo *DifficultTerrainPropertiesRepo
-	elevationPropertiesRepo     *ElevationPropertiesRepo
-	wallPropertiesRepo          *WallPropertiesRepo
+	elevationPropertiesRepo        *ElevationPropertiesRepo
+	wallPropertiesRepo             *WallPropertiesRepo
 }
 
 // New initializes a new Database struct with each repository using a shared GORM database instance
@@ -69,12 +70,13 @@ func New(db *gorm.DB) Database {
 		mapTokenRepo:           NewMapTokenRepo(db),
 		mapElementRepo:         NewMapElementRepo(db),
 		monsterRepo:            NewMonsterRepo(db),
+		partyRepo:              NewPartyRepo(db), // NEW: Party Repository Initialization
 
 		// New Map Element Properties Repos
-		trapPropertiesRepo:          NewTrapPropertiesRepo(db),
+		trapPropertiesRepo:             NewTrapPropertiesRepo(db),
 		difficultTerrainPropertiesRepo: NewDifficultTerrainPropertiesRepo(db),
-		elevationPropertiesRepo:     NewElevationPropertiesRepo(db),
-		wallPropertiesRepo:          NewWallPropertiesRepo(db),
+		elevationPropertiesRepo:        NewElevationPropertiesRepo(db),
+		wallPropertiesRepo:             NewWallPropertiesRepo(db),
 	}
 }
 
@@ -178,6 +180,10 @@ func (d Database) MapElementRepo() *MapElementRepo {
 
 func (d Database) MonsterRepo() *MonsterRepo {
 	return d.monsterRepo
+}
+
+func (d Database) PartyRepo() *PartyRepo {
+	return d.partyRepo
 }
 
 // Accessor methods for new Map Element Properties Repos

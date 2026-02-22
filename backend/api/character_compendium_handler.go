@@ -74,7 +74,7 @@ func (h *characterHandler) getClassByID() http.HandlerFunc {
 		}
 
 		resp := ClassWithLevelsResponse{
-			Class:  class,
+			Class:  *class, // Assign the dereferenced models.Class
 			Levels: class.Levels,
 		}
 

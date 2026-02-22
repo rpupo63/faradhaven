@@ -40,7 +40,7 @@ type Monster struct {
 	Languages           string    `json:"languages"`
 	Notes               string    `json:"notes"`      // User's original text description/LLM notes
 	ImageURL            *string   `json:"image_url"`  // S3 URL for the monster image
-	Attacks             []MonsterAttack  `json:"attacks" gorm:"many2many:monster_attacks;"`
+Attacks             []MonsterAttack  `json:"attacks" gorm:"foreignKey:MonsterID"`
 	Actions             []MonsterAction  `json:"actions" gorm:"many2many:monster_actions;"` // Custom actions not tied to attacks
 	SpecialTraits       pq.StringArray `json:"special_traits" gorm:"type:text[]"` // Passive abilities, e.g., "Magic Resistance"
 	LegendaryActions    pq.StringArray `json:"legendary_actions" gorm:"type:text[]"`
@@ -57,6 +57,7 @@ type Monster struct {
 // This is intentionally simplified from CharacterAttack for monster purposes.
 type MonsterAttack struct {
 	Base
+	MonsterID   uuid.UUID `json:"monster_id" gorm:"type:uuid;not null"` // Foreign key to Monster
 	Name        string  `json:"name"`
 	Description string  `json:"description"` // Full description, e.g., "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 1d6 + 3 piercing damage."
 	IsLegendary bool    `json:"is_legendary"`

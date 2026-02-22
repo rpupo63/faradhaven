@@ -27,6 +27,7 @@ type Character struct {
 	LineageID   *uuid.UUID `json:"lineage_id,omitempty" gorm:"type:uuid;index"`
 	ClassID     uuid.UUID  `json:"class_id" gorm:"type:uuid;not null;index"`
 	ArchetypeID *uuid.UUID `json:"archetype_id,omitempty" gorm:"type:uuid;index"` // nil until archetype is chosen
+	PartyID     *uuid.UUID `json:"party_id,omitempty" gorm:"type:uuid;index"` // NEW: Foreign key to Party
 	Level       int        `json:"level" gorm:"type:int;not null;default:1"`
 
 	// Stored spell IDs (persisted in DB as text array)
@@ -124,6 +125,7 @@ type Character struct {
 	Race               Race                 `json:"race" gorm:"foreignKey:RaceID;references:ID"`
 	Class              Class                `json:"class" gorm:"foreignKey:ClassID;references:ID"`
 	Archetype          *Archetype           `json:"archetype,omitempty" gorm:"foreignKey:ArchetypeID;references:ID"`
+	Party              *Party               `json:"party,omitempty" gorm:"foreignKey:PartyID;references:ID;constraint:OnDelete:SET NULL"` // NEW: Relationship to Party
 	SkillProficiencies []CharacterSkill     `json:"-" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
 	Components         []CharacterComponent `json:"components,omitempty" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
 	ActiveEffects      []CharacterEffect    `json:"active_effects,omitempty" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`

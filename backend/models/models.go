@@ -6,6 +6,7 @@ func AllModels() []interface{} {
 	return []interface{}{
 		// Core entities (no foreign keys to other app tables)
 		&User{},
+		&Party{}, // NEW: Party model
 		&Component{},
 
 		// Race hierarchy
@@ -50,6 +51,7 @@ func AllModels() []interface{} {
 		// Beast hierarchy
 		&Beast{},
 		&Attack{},
+		&PartyBeast{}, // NEW: PartyBeast join table
 
 		// Item hierarchy
 		&Weapon{},

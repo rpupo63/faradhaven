@@ -149,6 +149,7 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		// Spell endpoints (protected)
 		r.Get("/api/user/{userID}/spells", handlers.spellHandler.getSpellsByUser())
 		r.Get("/api/character/{characterID}/spells", handlers.spellHandler.getSpellsByCharacter())
+		r.Get("/api/character/{characterID}/spellbook", handlers.spellHandler.getCharacterSpellbook())
 		r.Post("/api/spell", handlers.spellHandler.createSpell())
 		r.Post("/api/spell/synthesize", handlers.spellHandler.synthesizeSpell())
 		r.Put("/api/spell/{spellID}", handlers.spellHandler.updateSpell())
@@ -210,5 +211,20 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 			r.Delete("/{monsterID}", handlers.monsterHandler.deleteMonster())
 		})
 		r.Get("/api/user/{userID}/monsters", handlers.monsterHandler.getMonstersByUser())
+
+		// Party endpoints (protected)
+		r.Route("/api/parties", func(r chi.Router) {
+			r.Post("/", handlers.partyHandler.createParty())
+			r.Get("/{partyID}", handlers.partyHandler.getParty())
+			r.Put("/{partyID}", handlers.partyHandler.updateParty())
+			r.Delete("/{partyID}", handlers.partyHandler.deleteParty())
+			r.Post("/{partyID}/members", handlers.partyHandler.addCharacterToParty())
+			r.Delete("/{partyID}/members/{characterID}", handlers.partyHandler.removeCharacterFromParty())
+			r.Post("/{partyID}/identified-beasts", handlers.partyHandler.addIdentifiedBeast())
+			r.Delete("/{partyID}/identified-beasts/{beastID}", handlers.partyHandler.removeIdentifiedBeast())
+		})
+		r.Get("/api/user/{userID}/parties", handlers.partyHandler.getPartiesByOwner())
+		// Route to set/update a character's party affiliation
+		r.Put("/api/characters/{characterID}/party", handlers.partyHandler.setCharacterParty())
 	})
 }

@@ -44,6 +44,7 @@ type Beast struct {
 	User    User         `json:"-" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 	Attacks []Attack     `json:"attacks,omitempty" gorm:"foreignKey:BeastID;references:ID;constraint:OnDelete:CASCADE"`
 	Skills  []BeastSkill `json:"skills,omitempty" gorm:"foreignKey:BeastID;references:ID;constraint:OnDelete:CASCADE"`
+	Parties []Party      `json:"-" gorm:"many2many:party_beasts;references:ID;joinReferences:PartyID"` // NEW: Many2Many with Party
 }
 
 // ParseChallengeRating converts the string ChallengeRating to a float64.

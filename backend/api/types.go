@@ -32,6 +32,7 @@ type routeHandlers struct {
 	madnessHandler         *madnessHandler
 	lootHandler            *LootHandler
 	monsterHandler         *monsterHandler
+	partyHandler           *partyHandler // NEW: Party Handler
 }
 
 // ErrorResponse represents an error response from the API
@@ -123,6 +124,27 @@ type GenerateLootRequest struct {
 	Tier        string    `json:"tier"`
 }
 
+// Party Types
+type CreatePartyRequest struct {
+	Name string `json:"name"`
+}
+
+type UpdatePartyRequest struct {
+	Name *string `json:"name,omitempty"`
+}
+
+type AddCharacterToPartyRequest struct {
+	CharacterID uuid.UUID `json:"character_id"`
+}
+
+type AddIdentifiedBeastRequest struct {
+	BeastID uuid.UUID `json:"beast_id"`
+}
+
+type SetCharacterPartyRequest struct {
+	PartyID *uuid.UUID `json:"party_id,omitempty"`
+}
+
 // Character Creation Types
 
 type CreationOptionsResponse struct {
@@ -156,7 +178,7 @@ type CreateCharacterRequest struct {
 // Class/Compendium Types
 
 type ClassWithLevelsResponse struct {
-	Class        *models.Class       `json:"class"`
+	models.Class       `json:",inline"` // Embed models.Class directly
 	Levels       []models.ClassLevel `json:"levels"`
 	MadnessTable map[int]string      `json:"madness_table,omitempty"`
 }
