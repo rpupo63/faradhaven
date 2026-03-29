@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -15,6 +16,7 @@ import (
 	"github.com/rpupo63/unified-personal-site-backend/models"
 	"github.com/rpupo63/unified-personal-site-backend/services"
 	"github.com/rs/zerolog/log"
+	"gorm.io/gorm"
 )
 
 type characterHandler struct {
@@ -29,7 +31,9 @@ type characterHandler struct {
 	notorietyService      services.NotorietyService
 	s3Service             *services.S3Service
 	componentInterpreter  *services.ComponentInterpreterService
-	partyRepo             database.PartyRepository // NEW: Added PartyRepository
+	partyRepo             database.PartyRepository
+	componentRepo         *database.ComponentRepo
+	storeOwnerRepo        database.StoreOwnerRepository
 }
 
 func newCharacterHandler(
@@ -44,7 +48,9 @@ func newCharacterHandler(
 	notorietyService services.NotorietyService,
 	s3Service *services.S3Service,
 	componentInterpreter *services.ComponentInterpreterService,
-	partyRepo database.PartyRepository) *characterHandler { // NEW: Added PartyRepository
+	partyRepo database.PartyRepository,
+	componentRepo *database.ComponentRepo,
+	storeOwnerRepo database.StoreOwnerRepository) *characterHandler {
 	return &characterHandler{
 		characterRepo:         characterRepo,
 		raceRepo:              raceRepo,
@@ -57,45 +63,15 @@ func newCharacterHandler(
 		notorietyService:      notorietyService,
 		s3Service:             s3Service,
 		componentInterpreter:  componentInterpreter,
-		partyRepo:             partyRepo, // NEW: Assign PartyRepository
+		partyRepo:             partyRepo,
+		componentRepo:         componentRepo,
+		storeOwnerRepo:        storeOwnerRepo,
 	}
 }
 
-// buildClassResources aggregates resource definitions, level values, and character state
-// into a response-ready slice of ClassResourceResponse.
-func (h *characterHandler) buildClassResources(classID uuid.UUID, level int, characterID uuid.UUID) []ClassResourceResponse {
-	defs, err := h.classRepo.FindResourceDefinitionsByClassID(classID)
-	if err != nil || len(defs) == 0 {
-		return nil
-	}
-
-	resourceMap, _ := h.classRepo.GetLevelResourceMap(classID, level)
-	charResources, _ := h.characterResourceRepo.FindByCharacterID(characterID)
-	charResMap := make(map[string]*models.CharacterResource, len(charResources))
-	for _, cr := range charResources {
-		charResMap[cr.ResourceKey] = cr
-	}
-
-	result := make([]ClassResourceResponse, 0, len(defs))
-	for _, def := range defs {
-		resp := ClassResourceResponse{
-			Key:          def.ResourceKey,
-			DisplayName:  def.DisplayName,
-			Category:     def.Category,
-			Description:  def.Description,
-			Value:        resourceMap[def.ResourceKey],
-			IsTrackable:  def.IsTrackable,
-			DisplayOrder: def.DisplayOrder,
-		}
-		if def.IsTrackable {
-			if cr, ok := charResMap[def.ResourceKey]; ok {
-				resp.CurrentValue = &cr.CurrentValue
-				resp.MaxValue = cr.MaxValue
-			}
-		}
-		result = append(result, resp)
-	}
-	return result
+// buildClassResources delegates to the shared package-level implementation.
+func (h *characterHandler) buildClassResources(classID uuid.UUID, level int, characterID uuid.UUID, character *models.Character) []ClassResourceResponse {
+	return buildClassResources(h.classRepo, h.characterResourceRepo, classID, level, characterID, character)
 }
 
 // uploadProfilePicture handles uploading a character image to S3
@@ -108,20 +84,23 @@ func (h *characterHandler) uploadProfilePicture() http.HandlerFunc {
 			return
 		}
 
-		character, err := h.characterRepo.FindByID(id)
-		if err != nil {
-			respondError(w, http.StatusNotFound, "Character not found")
-			return
-		}
-
 		// Verify user owns this character
-		authUserID, err := ctxGetUserID(r.Context())
+		authUserIDStr, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-		if authUserID != character.UserID.String() {
+		authUserID, _ := uuid.Parse(authUserIDStr)
+
+		belongs, err := h.characterRepo.CharacterBelongsToUser(id, authUserID)
+		if err != nil || !belongs {
 			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(id)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
 			return
 		}
 
@@ -189,16 +168,22 @@ func primaryAbilityMod(c *models.Character, primaryAbility string) int {
 	}
 }
 
-// getAllCharacters returns all characters
+// getAllCharacters returns all characters with pagination
 func (h *characterHandler) getAllCharacters() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		characters, err := h.characterRepo.FindAll()
+		page, limit, _, _ := parsePaginationParams(r)
+		characters, totalCount, err := h.characterRepo.FindAllPaginated(page, limit)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to get characters")
 			respondError(w, http.StatusInternalServerError, "Failed to get characters")
 			return
 		}
-		respondJSON(w, http.StatusOK, characters)
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"characters":  characters,
+			"total_count": totalCount,
+			"page":        page,
+			"limit":       limit,
+		})
 	}
 }
 
@@ -232,19 +217,22 @@ func (h *characterHandler) restSpellPoints() http.HandlerFunc {
 			return
 		}
 
-		character, err := h.characterRepo.FindByID(id)
-		if err != nil {
-			respondError(w, http.StatusNotFound, "Character not found")
-			return
-		}
-
-		authUserID, err := ctxGetUserID(r.Context())
+		authUserIDStr, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-		if authUserID != character.UserID.String() {
+		authUserID, _ := uuid.Parse(authUserIDStr)
+
+		belongs, err := h.characterRepo.CharacterBelongsToUser(id, authUserID)
+		if err != nil || !belongs {
 			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(id)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
 			return
 		}
 
@@ -261,6 +249,11 @@ func (h *characterHandler) restSpellPoints() http.HandlerFunc {
 			return
 		}
 
+		// Keep CharacterResource spell_points (Rift Weaver) aligned with the character column
+		if h.resourceService != nil {
+			_ = h.resourceService.RestoreResourceToMax(id, "spell_points")
+		}
+
 		respondJSON(w, http.StatusOK, map[string]interface{}{
 			"current_spell_points": character.CurrentSpellPoints,
 			"max_spell_points":     classLevel.MaxSpellPoints,
@@ -268,7 +261,7 @@ func (h *characterHandler) restSpellPoints() http.HandlerFunc {
 	}
 }
 
-// getCharactersByUser returns all characters for a user
+// getCharactersByUser returns all characters for a user with pagination
 func (h *characterHandler) getCharactersByUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userIDStr := chi.URLParam(r, "userID")
@@ -279,23 +272,29 @@ func (h *characterHandler) getCharactersByUser() http.HandlerFunc {
 		}
 
 		// Verify user is accessing their own data
-		authUserID, err := ctxGetUserID(r.Context())
+		authUserIDStr, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-		if authUserID != userIDStr {
+		if authUserIDStr != userIDStr {
 			respondError(w, http.StatusForbidden, "Forbidden")
 			return
 		}
 
-		characters, err := h.characterRepo.FindByUserID(userID)
+		page, limit, _, _ := parsePaginationParams(r)
+		characters, totalCount, err := h.characterRepo.FindByUserIDPaginated(userID, page, limit)
 		if err != nil {
 			log.Error().Err(err).Str("userID", userIDStr).Msg("Failed to get characters")
 			respondError(w, http.StatusInternalServerError, "Failed to get characters")
 			return
 		}
-		respondJSON(w, http.StatusOK, characters)
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"characters":  characters,
+			"total_count": totalCount,
+			"page":        page,
+			"limit":       limit,
+		})
 	}
 }
 
@@ -309,20 +308,23 @@ func (h *characterHandler) updateCharacter() http.HandlerFunc {
 			return
 		}
 
-		character, err := h.characterRepo.FindByID(id)
-		if err != nil {
-			respondError(w, http.StatusNotFound, "Character not found")
-			return
-		}
-
 		// Verify user owns this character
-		authUserID, err := ctxGetUserID(r.Context())
+		authUserIDStr, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-		if authUserID != character.UserID.String() {
+		authUserID, _ := uuid.Parse(authUserIDStr)
+
+		belongs, err := h.characterRepo.CharacterBelongsToUser(id, authUserID)
+		if err != nil || !belongs {
 			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(id)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
 			return
 		}
 
@@ -416,19 +418,16 @@ func (h *characterHandler) deleteCharacter() http.HandlerFunc {
 			return
 		}
 
-		character, err := h.characterRepo.FindByID(id)
-		if err != nil {
-			respondError(w, http.StatusNotFound, "Character not found")
-			return
-		}
-
 		// Verify user owns this character
-		authUserID, err := ctxGetUserID(r.Context())
+		authUserIDStr, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-		if authUserID != character.UserID.String() {
+		authUserID, _ := uuid.Parse(authUserIDStr)
+
+		belongs, err := h.characterRepo.CharacterBelongsToUser(id, authUserID)
+		if err != nil || !belongs {
 			respondError(w, http.StatusForbidden, "Forbidden")
 			return
 		}
@@ -453,20 +452,23 @@ func (h *characterHandler) updateBackstory() http.HandlerFunc {
 			return
 		}
 
-		character, err := h.characterRepo.FindByID(id)
-		if err != nil {
-			respondError(w, http.StatusNotFound, "Character not found")
-			return
-		}
-
 		// Verify user owns this character
-		authUserID, err := ctxGetUserID(r.Context())
+		authUserIDStr, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-		if authUserID != character.UserID.String() {
+		authUserID, _ := uuid.Parse(authUserIDStr)
+
+		belongs, err := h.characterRepo.CharacterBelongsToUser(id, authUserID)
+		if err != nil || !belongs {
 			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(id)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
 			return
 		}
 
@@ -581,19 +583,22 @@ func (h *characterHandler) purchaseItem() http.HandlerFunc {
 		}
 
 		// Verify user owns this character
-		character, err := h.characterRepo.FindByID(charID)
-		if err != nil {
-			respondError(w, http.StatusNotFound, "Character not found")
-			return
-		}
-
-		authUserID, err := ctxGetUserID(r.Context())
+		authUserIDStr, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-		if authUserID != character.UserID.String() {
+		authUserID, _ := uuid.Parse(authUserIDStr)
+
+		belongs, err := h.characterRepo.CharacterBelongsToUser(charID, authUserID)
+		if err != nil || !belongs {
 			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(charID)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
 			return
 		}
 
@@ -603,77 +608,86 @@ func (h *characterHandler) purchaseItem() http.HandlerFunc {
 			return
 		}
 
-		var cost int64
+		var baseCost int64
 		var itemName string
+		var category string
+		var rarity string
+		var isWeapon bool
+		var weapon *models.Weapon
+		var item *models.Item
 
 		if req.ItemType == "weapon" {
-			weapon, err := h.weaponRepo.FindByID(req.ItemID)
+			var err error
+			weapon, err = h.weaponRepo.FindByID(req.ItemID)
 			if err != nil {
 				respondError(w, http.StatusNotFound, "Weapon not found")
 				return
 			}
-			cost = parseCost(weapon.Cost)
+			baseCost = parseCost(weapon.Cost)
 			itemName = weapon.Name
-
-			// Add weapon to character
-			// We need to use database association handling.
-			// character.Weapons = append(character.Weapons, *weapon) -- this works if we save, but GORM needs care.
-			// Better to insert into join table directly or use association mode.
-			// Since we don't have handy association methods in repo, let's use the DB instance from repo if possible
-			// or assume Update works with associations if preloaded? No, Update usually updates fields.
-			// We should use the association API.
-
-			if character.Money < cost {
-				respondError(w, http.StatusBadRequest, "Insufficient funds")
-				return
-			}
-
-			// Deduct money
-			character.Money -= cost
-			if err := h.characterRepo.Update(character); err != nil {
-				log.Error().Err(err).Msg("Failed to update character money")
-				respondError(w, http.StatusInternalServerError, "Failed to update wallet")
-				return
-			}
-
-			// Add association
-			if err := h.characterRepo.GetDB().Model(character).Association("Weapons").Append(weapon); err != nil {
-				log.Error().Err(err).Msg("Failed to add weapon to character")
-				// Try to refund? For now, just error.
-				respondError(w, http.StatusInternalServerError, "Failed to add weapon")
-				return
-			}
-
+			category = weapon.Category
+			rarity = weapon.Rarity
+			isWeapon = true
 		} else if req.ItemType == "item" {
-			item, err := h.itemRepo.FindByID(req.ItemID)
+			var err error
+			item, err = h.itemRepo.FindByID(req.ItemID)
 			if err != nil {
 				respondError(w, http.StatusNotFound, "Item not found")
 				return
 			}
-			cost = parseCost(item.Cost)
+			baseCost = parseCost(item.Cost)
 			itemName = item.Name
+			category = item.Category
+			rarity = item.Rarity
+			isWeapon = false
+		} else {
+			respondError(w, http.StatusBadRequest, "Invalid item type")
+			return
+		}
 
-			if character.Money < cost {
-				respondError(w, http.StatusBadRequest, "Insufficient funds")
+		cost := baseCost
+		if req.StoreOwnerID != nil {
+			owner, err := h.storeOwnerRepo.FindByIDWithRules(*req.StoreOwnerID)
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					respondError(w, http.StatusNotFound, "Store owner not found")
+					return
+				}
+				log.Error().Err(err).Msg("Failed to load store owner")
+				respondError(w, http.StatusInternalServerError, "Failed to load store owner")
 				return
 			}
-
-			character.Money -= cost
-			if err := h.characterRepo.Update(character); err != nil {
-				log.Error().Err(err).Msg("Failed to update character money")
-				respondError(w, http.StatusInternalServerError, "Failed to update wallet")
+			if !services.StoreOwnerSellsItem(owner, req.ItemID, category, rarity, isWeapon) {
+				respondError(w, http.StatusBadRequest, "This vendor does not offer that item")
 				return
 			}
+			cost = int64(math.Round(float64(baseCost) * owner.ExchangeRate))
+		}
 
-			if err := h.characterRepo.GetDB().Model(character).Association("Items").Append(item); err != nil {
+		if character.Money < cost {
+			respondError(w, http.StatusBadRequest, "Insufficient funds")
+			return
+		}
+
+		character.Money -= cost
+		if err := h.characterRepo.UpdateMoney(character.ID, character.Money); err != nil {
+			log.Error().Err(err).Msg("Failed to update character money")
+			respondError(w, http.StatusInternalServerError, "Failed to update wallet")
+			return
+		}
+
+		if req.ItemType == "weapon" {
+			if err := h.characterRepo.AppendWeapon(character.ID, weapon.ID); err != nil {
+				log.Error().Err(err).Msg("Failed to add weapon to character")
+				respondError(w, http.StatusInternalServerError, "Failed to add weapon")
+				return
+			}
+		} else {
+			if err := h.characterRepo.AppendItem(character.ID, item.ID); err != nil {
 				log.Error().Err(err).Msg("Failed to add item to character")
 				respondError(w, http.StatusInternalServerError, "Failed to add item")
 				return
 			}
-
-		} else {
-			respondError(w, http.StatusBadRequest, "Invalid item type")
-			return
 		}
 
 		respondJSON(w, http.StatusOK, map[string]interface{}{
@@ -694,20 +708,23 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 			return
 		}
 
-		character, err := h.characterRepo.FindByID(id)
-		if err != nil {
-			respondError(w, http.StatusNotFound, "Character not found")
-			return
-		}
-
 		// Verify user owns this character
-		authUserID, err := ctxGetUserID(r.Context())
+		authUserIDStr, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-		if authUserID != character.UserID.String() {
+		authUserID, _ := uuid.Parse(authUserIDStr)
+
+		belongs, err := h.characterRepo.CharacterBelongsToUser(id, authUserID)
+		if err != nil || !belongs {
 			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(id)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
 			return
 		}
 
@@ -790,11 +807,27 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 			// Calculate Cost
 			if class.Name == "The Rift Weaver" {
 				// Rift Weaver: Cost is 2 SP per component
-				cost = len(spell.Components) * 2
+				cost = spell.Level * 2
+			} else if class.Name == "The Piston Brawler" {
+				// Piston Brawler: sum of component tiers (tier 1 +1 stability, tier 2 +2, etc.)
+				for _, comp := range spell.Components {
+					t := comp.Tier
+					if t < 1 {
+						t = 1
+					}
+					cost += t
+				}
+				if cost == 0 {
+					if req.SpellLevel > 0 {
+						cost = req.SpellLevel
+					} else {
+						cost = spell.Level
+					}
+				}
 			} else {
-				// Default: Cost is Spell Level
+				// Default: Cost is Spell Level (component count)
 				if req.SpellLevel == 0 {
-					cost = spell.SlotLevel
+					cost = spell.Level
 				} else {
 					cost = req.SpellLevel
 				}
@@ -825,6 +858,9 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 			case "The Lorewright", "The Ironwright":
 				// Components ARE the cost — no pool to deduct from
 				skipResourceDeduction = true
+			case "The Mutagen":
+				// Madness economy only; no spell point pool
+				skipResourceDeduction = true
 			default:
 				resourceKeyToDeduct = "spell_points"
 			}
@@ -853,6 +889,9 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 					respondError(w, http.StatusInternalServerError, "Failed to deduct resource")
 				}
 				return
+			}
+			if resourceKeyToDeduct == "spell_points" {
+				character.CurrentSpellPoints = h.resourceService.GetResourceValue(character.ID, "spell_points")
 			}
 		}
 
@@ -902,19 +941,16 @@ func (h *characterHandler) consumeComponent() http.HandlerFunc {
 			return
 		}
 
-		character, err := h.characterRepo.FindByID(charID)
-		if err != nil {
-			respondError(w, http.StatusNotFound, "Character not found")
-			return
-		}
-
 		// Verify user owns this character
-		authUserID, err := ctxGetUserID(r.Context())
+		authUserIDStr, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-		if authUserID != character.UserID.String() {
+		authUserID, _ := uuid.Parse(authUserIDStr)
+
+		belongs, err := h.characterRepo.CharacterBelongsToUser(charID, authUserID)
+		if err != nil || !belongs {
 			respondError(w, http.StatusForbidden, "Forbidden")
 			return
 		}
@@ -939,19 +975,23 @@ func (h *characterHandler) extractComponents() http.HandlerFunc {
 			return
 		}
 
-		character, err := h.characterRepo.FindByID(charID)
-		if err != nil {
-			respondError(w, http.StatusNotFound, "Character not found")
-			return
-		}
-
-		authUserID, err := ctxGetUserID(r.Context())
+		// Verify user owns this character
+		authUserIDStr, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-		if authUserID != character.UserID.String() {
+		authUserID, _ := uuid.Parse(authUserIDStr)
+
+		belongs, err := h.characterRepo.CharacterBelongsToUser(charID, authUserID)
+		if err != nil || !belongs {
 			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(charID)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
 			return
 		}
 
@@ -1008,6 +1048,129 @@ func (h *characterHandler) extractComponents() http.HandlerFunc {
 	}
 }
 
+// forageComponents handles the "forage" action for Sanguinist, Ironwright, and Lorewright.
+// It grants a level-appropriate number of random components NOT in the class's own component pool.
+func (h *characterHandler) forageComponents() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "characterID")
+		charID, err := uuid.Parse(idStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		// Verify user owns this character
+		authUserIDStr, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		authUserID, _ := uuid.Parse(authUserIDStr)
+
+		belongs, err := h.characterRepo.CharacterBelongsToUser(charID, authUserID)
+		if err != nil || !belongs {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(charID)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
+			return
+		}
+
+		className := character.Class.Name
+		if className != "The Sanguinist" && className != "The Ironwright" && className != "The Lorewright" {
+			respondError(w, http.StatusBadRequest, "Only Sanguinists, Ironwrights, and Lorewrights can forage components")
+			return
+		}
+
+		// Load class with its own component pool
+		class, err := h.classRepo.FindByIDWithLevels(character.ClassID)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to load class")
+			return
+		}
+
+		// Build excluded set from the class's own component pool
+		excluded := make(map[string]bool, len(class.Components))
+		for _, c := range class.Components {
+			excluded[c.ID.String()] = true
+		}
+
+		// Load all global components and filter to forageable pool
+		allComponents, err := h.componentRepo.GetAllComponents()
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to load components")
+			return
+		}
+		// Build set of components the character already owns (count > 0)
+		alreadyOwned := make(map[string]bool, len(character.Components))
+		for _, cc := range character.Components {
+			if cc.Count > 0 {
+				alreadyOwned[cc.ComponentID.String()] = true
+			}
+		}
+
+		forageable := make([]models.Component, 0, len(allComponents))
+		for _, c := range allComponents {
+			if !excluded[c.ID.String()] && !alreadyOwned[c.ID.String()] {
+				forageable = append(forageable, c)
+			}
+		}
+		if len(forageable) == 0 {
+			respondError(w, http.StatusBadRequest, "No new components available to forage — you may already own all available components")
+			return
+		}
+
+		// Calculate yield by class
+		level := character.Level
+		yield := 1
+		switch className {
+		case "The Sanguinist":
+			if level >= 5 && level <= 10 {
+				yield = 2
+			} else if level >= 11 {
+				yield = 3
+			}
+		case "The Ironwright":
+			dieSize := h.classRepo.GetLevelResourceValue(character.ClassID, level, "yield_die")
+			if dieSize <= 0 {
+				dieSize = 4
+			}
+			yield = rand.Intn(dieSize) + 1
+		case "The Lorewright":
+			if level >= 7 {
+				yield = 2
+			}
+		}
+
+		// Pick N distinct random components from the forageable pool
+		perm := rand.Perm(len(forageable))
+		if yield > len(forageable) {
+			yield = len(forageable)
+		}
+		gained := make([]map[string]interface{}, 0, yield)
+		for i := 0; i < yield; i++ {
+			comp := forageable[perm[i]]
+			if err := h.characterRepo.UpdateComponentCount(charID, comp.ID, 1); err != nil {
+				log.Error().Err(err).Str("componentID", comp.ID.String()).Msg("Failed to add foraged component")
+				continue
+			}
+			gained = append(gained, map[string]interface{}{
+				"id":   comp.ID,
+				"name": comp.Name,
+			})
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"message":    fmt.Sprintf("Foraged %d component(s)", len(gained)),
+			"components": gained,
+			"yield":      len(gained),
+		})
+	}
+}
+
 // updateNotoriety handles manual updates to notoriety by the DM/User
 func (h *characterHandler) updateNotoriety() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -1018,20 +1181,23 @@ func (h *characterHandler) updateNotoriety() http.HandlerFunc {
 			return
 		}
 
-		character, err := h.characterRepo.FindByID(id)
-		if err != nil {
-			respondError(w, http.StatusNotFound, "Character not found")
-			return
-		}
-
 		// Verify user owns this character
-		authUserID, err := ctxGetUserID(r.Context())
+		authUserIDStr, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-		if authUserID != character.UserID.String() {
+		authUserID, _ := uuid.Parse(authUserIDStr)
+
+		belongs, err := h.characterRepo.CharacterBelongsToUser(id, authUserID)
+		if err != nil || !belongs {
 			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(id)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
 			return
 		}
 
@@ -1071,19 +1237,16 @@ func (h *characterHandler) updateSanguineNotorietyPoints() http.HandlerFunc {
 			return
 		}
 
-		character, err := h.characterRepo.FindByID(id)
-		if err != nil {
-			respondError(w, http.StatusNotFound, "Character not found")
-			return
-		}
-
 		// Verify user owns this character
-		authUserID, err := ctxGetUserID(r.Context())
+		authUserIDStr, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-		if authUserID != character.UserID.String() {
+		authUserID, _ := uuid.Parse(authUserIDStr)
+
+		belongs, err := h.characterRepo.CharacterBelongsToUser(id, authUserID)
+		if err != nil || !belongs {
 			respondError(w, http.StatusForbidden, "Forbidden")
 			return
 		}
@@ -1165,22 +1328,21 @@ func (h *characterHandler) updateEquipment() http.HandlerFunc {
 			respondError(w, http.StatusBadRequest, "Invalid character ID")
 			return
 		}
+// Verify user owns this character
+authUserIDStr, err := ctxGetUserID(r.Context())
+if err != nil {
+	respondError(w, http.StatusUnauthorized, "Unauthorized")
+	return
+}
+authUserID, _ := uuid.Parse(authUserIDStr)
 
-		character, err := h.characterRepo.FindByID(charID)
-		if err != nil {
-			respondError(w, http.StatusNotFound, "Character not found")
-			return
-		}
+belongs, err := h.characterRepo.CharacterBelongsToUser(charID, authUserID)
+if err != nil || !belongs {
+	respondError(w, http.StatusForbidden, "Forbidden")
+	return
+}
 
-		authUserID, err := ctxGetUserID(r.Context())
-		if err != nil {
-			respondError(w, http.StatusUnauthorized, "Unauthorized")
-			return
-		}
-		if authUserID != character.UserID.String() {
-			respondError(w, http.StatusForbidden, "Forbidden")
-			return
-		}
+character, err := h.characterRepo.FindByID(charID)
 
 		var req UpdateEquipmentRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -1189,13 +1351,28 @@ func (h *characterHandler) updateEquipment() http.HandlerFunc {
 		}
 
 		if req.IsWeapon {
-			if req.Equip {
-				// Look up the weapon to determine hand cost
-				weapon, err := h.weaponRepo.FindByID(req.ItemID)
+			// First, try to find the specific character weapon instance by ID
+			var cw models.CharacterWeapon
+			err := h.characterRepo.GetDB().Preload("Weapon").
+				Where("character_id = ? AND id = ?", charID, req.ItemID).
+				First(&cw).Error
+
+			var weapon *models.Weapon
+			useInstanceID := false
+
+			if err == nil {
+				weapon = &cw.Weapon
+				useInstanceID = true
+			} else {
+				// Fallback: try to find by weapon_id (legacy support)
+				weapon, err = h.weaponRepo.FindByID(req.ItemID)
 				if err != nil {
 					respondError(w, http.StatusNotFound, "Weapon not found")
 					return
 				}
+			}
+
+			if req.Equip {
 				cost := weaponHandCost(weapon.Properties)
 
 				usedHands, err := h.countEquippedHands(charID, character.EquippedShieldID != nil)
@@ -1206,12 +1383,18 @@ func (h *characterHandler) updateEquipment() http.HandlerFunc {
 				}
 
 				// Don't double-count this weapon if it's already equipped
-				var alreadyEquipped models.CharacterWeapon
-				if err := h.characterRepo.GetDB().
-					Preload("Weapon").
-					Where("character_id = ? AND weapon_id = ? AND is_equipped = true", charID, req.ItemID).
-					First(&alreadyEquipped).Error; err == nil {
-					usedHands -= weaponHandCost(alreadyEquipped.Weapon.Properties)
+				if useInstanceID {
+					if cw.IsEquipped {
+						usedHands -= weaponHandCost(cw.Weapon.Properties)
+					}
+				} else {
+					var alreadyEquipped models.CharacterWeapon
+					if err := h.characterRepo.GetDB().
+						Preload("Weapon").
+						Where("character_id = ? AND weapon_id = ? AND is_equipped = true", charID, req.ItemID).
+						First(&alreadyEquipped).Error; err == nil {
+						usedHands -= weaponHandCost(alreadyEquipped.Weapon.Properties)
+					}
 				}
 
 				if usedHands+cost > 2 {
@@ -1221,9 +1404,16 @@ func (h *characterHandler) updateEquipment() http.HandlerFunc {
 				}
 			}
 
-			err = h.characterRepo.GetDB().Model(&models.CharacterWeapon{}).
-				Where("character_id = ? AND weapon_id = ?", charID, req.ItemID).
-				Update("is_equipped", req.Equip).Error
+			query := h.characterRepo.GetDB().Model(&models.CharacterWeapon{}).
+				Where("character_id = ?", charID)
+
+			if useInstanceID {
+				query = query.Where("id = ?", req.ItemID)
+			} else {
+				query = query.Where("weapon_id = ?", req.ItemID)
+			}
+
+			err = query.Update("is_equipped", req.Equip).Error
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to update weapon equipment status")
 				respondError(w, http.StatusInternalServerError, "Failed to update weapon")
