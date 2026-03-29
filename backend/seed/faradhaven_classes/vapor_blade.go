@@ -48,7 +48,9 @@ func VaporBlade() FaradhavenClassSeed {
 			"Decrease", "Weak",
 		},
 		ResourceDefinitions: []ResourceDefinitionSeed{
-			{Key: "shadow_points", DisplayName: "Shadow Points", Category: "pool", Description: "A pool of shadowy energy for fueling abilities, equal to Dexterity Modifier + Proficiency Bonus.", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 1},
+			{Key: "shadow_points", DisplayName: "Shadow Points", Category: "pool", Description: "Pool size equals Dexterity modifier + proficiency bonus (minimum 1). Spent on Venom, Shadow Step, Sneak Strike, etc.", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 1},
+			{Key: "sneak_strike_uses", DisplayName: "Sneak Strike Uses", Category: "pool", Description: "Uses per short rest (equal to Dex Mod, min 1)", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 2},
+			{Key: "death_mark_uses", DisplayName: "Death Mark", Category: "pool", Description: "1/Short Rest — mark a target for +2d6 Sneak Strike damage", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 3},
 		},
 	}
 }
@@ -56,22 +58,35 @@ func VaporBlade() FaradhavenClassSeed {
 func vaporBladeLevelProgression() map[int]ClassLevelSeed {
 	// Vapor Blade gets Extra Attack at 5 and Sneak Strike damage scales
 	// Sneak Strike: 2d6 at level 2, +2d6 with Death Mark at level 10, unlimited at 20
-	// Shadow Points are Dex Mod + Proficiency Bonus
+	// Shadow Points max = Dex mod + proficiency (computed at runtime in ResourceService)
 	levelProgression := make(map[int]ClassLevelSeed)
 	for i := 1; i <= 20; i++ {
-		pb := proficiencyByLevel(i)
-		// A simple baseline if we have to set a value here for max.
-		// For now, let's just make it scale with proficiency bonus, as the actual
-		// calculation of Dex Mod happens at runtime.
-		// The description states "Uses equal to Dex Mod (min 1)", so the actual current/max
-		// will be handled by the frontend dynamically or a service.
-		// We'll just define the resource definition, and then if needed, set a base value here.
-		// For now, let's default to a minimal pool that expands with PB.
-		shadowPoints := pb + 1 // Example scaling
+		// sneak_strike_uses: 0 at L1 (not unlocked), 3 at L2-4, scaling +1 per PB tier after that
+		// death_mark_uses: 0 until L10, then 1
+		var sneakStrikeUses int
+		var deathMarkUses int
+		switch {
+		case i < 2:
+			sneakStrikeUses = 0
+		case i < 5:
+			sneakStrikeUses = 3
+		case i < 9:
+			sneakStrikeUses = 4
+		case i < 13:
+			sneakStrikeUses = 5
+		case i < 17:
+			sneakStrikeUses = 6
+		default:
+			sneakStrikeUses = 7
+		}
+		if i >= 10 {
+			deathMarkUses = 1
+		}
 		entry := ClassLevelSeed{
 			SneakAttackDice: 0,
 			Resources: map[string]int{
-				"shadow_points": shadowPoints,
+				"sneak_strike_uses": sneakStrikeUses,
+				"death_mark_uses":   deathMarkUses,
 			},
 		}
 

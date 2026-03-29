@@ -91,6 +91,27 @@ func Potions() []ItemSeed {
 			Effects:      "The next Madness Save for a Mutagen mutation is made with Advantage.",
 			IsConsumable: true,
 		},
+		// Standard fantasy / PHB-style potions
+		{Name: "Superior Healing Potion", Description: "A ruby liquid that closes wounds with visible speed.", Category: "Potion", Rarity: "Rare", Cost: "500 gp", Weight: "0.5 lb.", Effects: "Restore 8d4+8 hit points.", IsConsumable: true},
+		{Name: "Supreme Healing Potion", Description: "A brilliant crimson elixir that thrums with restorative magic.", Category: "Potion", Rarity: "Very Rare", Cost: "2000 gp", Weight: "0.5 lb.", Effects: "Restore 10d4+20 hit points.", IsConsumable: true},
+		{Name: "Potion of Climbing", Description: "A sticky, almost tar-like potion that smells of wet stone.", Category: "Potion", Rarity: "Uncommon", Cost: "75 gp", Weight: "0.5 lb.", Effects: "Climbing speed equals walking speed for 1 hour.", IsConsumable: true},
+		{Name: "Potion of Animal Friendship", Description: "A murky green liquid with bits of leaf suspended in it.", Category: "Potion", Rarity: "Uncommon", Cost: "100 gp", Weight: "0.5 lb.", Effects: "For 1 hour, cast Animal Friendship at will (save DC 13).", IsConsumable: true},
+		{Name: "Potion of Growth", Description: "A cloudy potion that swirls with red and silver.", Category: "Potion", Rarity: "Uncommon", Cost: "90 gp", Weight: "0.5 lb.", Effects: "Become Large if Medium or smaller for 10 minutes; +1d4 weapon damage (if applicable).", IsConsumable: true},
+		{Name: "Potion of Water Breathing", Description: "A smooth oil that smells of the sea.", Category: "Potion", Rarity: "Uncommon", Cost: "100 gp", Weight: "0.5 lb.", Effects: "Breathe underwater for 1 hour.", IsConsumable: true},
+		{Name: "Potion of Resistance", Description: "A metallic-tasting liquid attuned to one damage type (acid, cold, fire, force, lightning, necrotic, poison, psychic, radiant, or thunder).", Category: "Potion", Rarity: "Uncommon", Cost: "300 gp", Weight: "0.5 lb.", Effects: "Resistance to that damage type for 1 hour.", IsConsumable: true},
+		{Name: "Potion of Heroism", Description: "A bright blue liquid that sparkles when swirled.", Category: "Potion", Rarity: "Rare", Cost: "500 gp", Weight: "0.5 lb.", Effects: "Gain 10 temporary hit points; Bless on yourself for 1 minute.", IsConsumable: true},
+		{Name: "Potion of Invisibility", Description: "Looks like nothing at all until you uncork it.", Category: "Potion", Rarity: "Very Rare", Cost: "5000 gp", Weight: "0.5 lb.", Effects: "Invisible for 1 hour or until you attack or cast a spell.", IsConsumable: true},
+		{Name: "Potion of Speed", Description: "A yellow fluid streaked with black.", Category: "Potion", Rarity: "Very Rare", Cost: "5000 gp", Weight: "0.5 lb.", Effects: "Haste effect on yourself for 1 minute (no lethargy).", IsConsumable: true},
+		{Name: "Potion of Vitality", Description: "A deep crimson potion that leaves you feeling invincible.", Category: "Potion", Rarity: "Very Rare", Cost: "5000 gp", Weight: "0.5 lb.", Effects: "Remove exhaustion, end disease/poison, max HP for 24 hours.", IsConsumable: true},
+		{Name: "Potion of Mind Reading", Description: "An opalescent liquid that tastes faintly of copper.", Category: "Potion", Rarity: "Rare", Cost: "500 gp", Weight: "0.5 lb.", Effects: "Detect Thoughts (save DC 13) at will for 10 minutes.", IsConsumable: true},
+		{Name: "Elixir of Health", Description: "A clear liquid with a single golden bubble floating in the center.", Category: "Potion", Rarity: "Rare", Cost: "120 gp", Weight: "0.5 lb.", Effects: "Cures any disease, neutralizes poison in your system.", IsConsumable: true},
+		{Name: "Philter of Love", Description: "A rose-hued elixir that smells of summer flowers.", Category: "Potion", Rarity: "Uncommon", Cost: "90 gp", Weight: "0.5 lb.", Effects: "Charmed by the first creature you see for 1 hour (DC 13 Wis save).", IsConsumable: true},
+		{Name: "Potion of Poison", Description: "Looks identical to a Potion of Healing.", Category: "Potion", Rarity: "Uncommon", Cost: "100 gp", Weight: "0.5 lb.", Effects: "DC 13 Con save or take 3d6 poison damage.", IsConsumable: true},
+		{Name: "Oil of Sharpness", Description: "A clear, viscous oil that clings to metal.", Category: "Potion", Rarity: "Very Rare", Cost: "5000 gp", Weight: "0.5 lb.", Effects: "Coat one slashing weapon: +3 to attack and damage for 1 hour.", IsConsumable: true},
+		{Name: "Potion of Fire Giant Strength", Description: "A deep red potion that feels warm to the touch.", Category: "Potion", Rarity: "Rare", Cost: "500 gp", Weight: "0.5 lb.", Effects: "Strength becomes 25 for 1 hour.", IsConsumable: true},
+		{Name: "Potion of Gaseous Form", Description: "A cloudy gray fluid that never settles.", Category: "Potion", Rarity: "Rare", Cost: "500 gp", Weight: "0.5 lb.", Effects: "Gaseous Form for 1 hour.", IsConsumable: true},
+		{Name: "Potion of Diminution", Description: "A red liquid that shrinks as you drink.", Category: "Potion", Rarity: "Rare", Cost: "500 gp", Weight: "0.5 lb.", Effects: "Reduce (Enlarge/Reduce) for 1 hour with no concentration.", IsConsumable: true},
+		{Name: "Potion of Longevity", Description: "A clear liquid with a single hair-thin streak of silver.", Category: "Potion", Rarity: "Very Rare", Cost: "9000 gp", Weight: "0.5 lb.", Effects: "Reduce apparent age by 1d6+6 years (max 13 years younger).", IsConsumable: true},
 	}
 }
 
@@ -293,6 +314,8 @@ func AllItems() []ItemSeed {
 	all = append(all, Shields()...)
 	all = append(all, Tools()...)
 	all = append(all, Gear()...)
+	all = append(all, StandardAdventuringGear()...)
 	all = append(all, Armor()...)
+	all = append(all, VendorThematicItems()...)
 	return all
 }

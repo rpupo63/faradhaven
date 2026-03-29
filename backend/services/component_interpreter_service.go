@@ -37,12 +37,12 @@ type SpellResult struct {
 
 // SpellExecution is the top-level output of the full interpretation engine.
 type SpellExecution struct {
-	Geometry      GeometryInfo     `json:"geometry"`
-	Damage        []DamageLayer    `json:"damage"`
+	Geometry      GeometryInfo       `json:"geometry"`
+	Damage        []DamageLayer      `json:"damage"`
 	StatusEffects []StatusEffectInfo `json:"status_effects"`
-	Mechanics     MechanicsInfo    `json:"mechanics"`
-	Modifiers     ModifiersInfo    `json:"modifiers"`
-	Description   string           `json:"description"`
+	Mechanics     MechanicsInfo      `json:"mechanics"`
+	Modifiers     ModifiersInfo      `json:"modifiers"`
+	Description   string             `json:"description"`
 }
 
 // GeometryInfo describes the shape, size, and origin of a spell.
@@ -77,9 +77,9 @@ type MechanicsInfo struct {
 
 // ModifiersInfo describes power scaling and cost adjustments.
 type ModifiersInfo struct {
-	PowerScale    string `json:"power_scale"`
-	PropertyShift string `json:"property_shift"`
-	CostMultiplier int   `json:"cost_multiplier"`
+	PowerScale     string `json:"power_scale"`
+	PropertyShift  string `json:"property_shift"`
+	CostMultiplier int    `json:"cost_multiplier"`
 }
 
 // =============================================================================
@@ -212,12 +212,9 @@ func (s *ComponentInterpreterService) InterpretModels(components []models.Compon
 	var essentiaNames []string
 	var actioNames []string
 	var magnitudes []string
-	var baseTier int
+	var scopusNames []string
 
 	for _, comp := range components {
-		if comp.Tier > baseTier {
-			baseTier = comp.Tier
-		}
 		switch comp.Category {
 
 		// -----------------------------------------------------------------
@@ -281,6 +278,7 @@ func (s *ComponentInterpreterService) InterpretModels(components []models.Compon
 		// Scopus → modifies origin
 		// -----------------------------------------------------------------
 		case models.CategoryScopus:
+			scopusNames = append(scopusNames, comp.Name)
 			switch comp.Name {
 			case "Target":
 				exec.Geometry.Origin = "target"
@@ -368,7 +366,12 @@ func (s *ComponentInterpreterService) InterpretModels(components []models.Compon
 		if len(formaNames) > 0 {
 			formaName = formaNames[0]
 		}
-		pool := CalculateSpellEffect(baseTier, isAoEForma(formaName), magnitudes)
+		scopusName := ""
+		if len(scopusNames) > 0 {
+			scopusName = scopusNames[0]
+		}
+		primaryType := models.DamageType(exec.Damage[0].DamageType)
+		pool := CalculateSpellEffect(len(components), primaryType, formaName, scopusName, magnitudes)
 
 		// Split dice evenly among damage layers
 		perLayer := pool.Count / len(exec.Damage)

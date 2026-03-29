@@ -15,9 +15,9 @@ type WallProperties struct {
 	// Frontend suggests: setMapElementProperties({ x_coords: 0 }); // Placeholder for wall specific properties, e.g. direction
 	// If walls are represented as segments, this needs more thought. For now, a single "Direction" might suffice
 	// or more complex geometry data. Let's start simple with a text field for "details" if no specific fields are known.
-	Details      string    `json:"details" gorm:"type:text"` // e.g., "North-South segment", "Blocking line"
-	CreatedAt    time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
-	UpdatedAt    time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
+	Details   string    `json:"details" gorm:"type:text"` // e.g., "North-South segment", "Blocking line"
+	CreatedAt time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	MapElement MapElement `json:"-" gorm:"foreignKey:MapElementID;constraint:OnDelete:CASCADE"`
 }

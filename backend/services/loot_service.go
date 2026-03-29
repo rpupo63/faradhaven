@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"strings" // Added for strings.Join
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/rpupo63/unified-personal-site-backend/database"
@@ -17,12 +17,22 @@ type LootService struct {
 	characterRepo database.CharacterRepository
 }
 
+// LootDrop records one resolved drop for API/UI display.
+type LootDrop struct {
+	Kind   string `json:"kind"` // "item" or "weapon"
+	Name   string `json:"name"`
+	Rarity string `json:"rarity"`
+}
+
 type LootResult struct {
-	Items      []models.Item   `json:"items"`
-	Weapons    []models.Weapon `json:"weapons"`
-	GoldEarned int64           `json:"gold_earned"`
-	TotalMoney int64           `json:"total_money"` // Added: Character's total money after loot
-	Message    string          `json:"message"`     // Added: A user-friendly message
+	Items         []models.Item   `json:"items"`
+	Weapons       []models.Weapon `json:"weapons"`
+	GoldEarned    int64           `json:"gold_earned"`
+	TotalMoney    int64           `json:"total_money"`
+	Message       string          `json:"message"`
+	ItemsRolled   int             `json:"items_rolled"`
+	WeaponsRolled int             `json:"weapons_rolled"`
+	Drops         []LootDrop      `json:"drops"`
 }
 
 func NewLootService(itemRepo database.ItemRepository, weaponRepo database.WeaponRepository, characterRepo database.CharacterRepository) *LootService {
@@ -36,7 +46,7 @@ type lootParams struct {
 	GoldMin, GoldMax     int64
 }
 
-// rarityWeights maps each rarity to its weight for a given tier.
+// rarityWeights maps each rarity to its weight for a given tier (Legendary is never used for loot).
 type rarityWeights struct {
 	Common    int
 	Uncommon  int
@@ -47,30 +57,33 @@ type rarityWeights struct {
 
 var lootTable = map[string]map[string]lootParams{
 	"common_enemy": {
-		"low":    {0, 1, 0, 0, 50, 200},
-		"medium": {1, 1, 0, 1, 200, 500},
-		"high":   {1, 2, 0, 1, 500, 1000},
+		"low":    {0, 2, 0, 1, 50, 200},
+		"medium": {1, 3, 0, 2, 200, 500},
+		"high":   {2, 4, 1, 2, 500, 1000},
 	},
 	"boss_enemy": {
-		"low":    {1, 1, 0, 1, 500, 1000},
-		"medium": {1, 2, 1, 1, 1000, 3000},
-		"high":   {2, 3, 1, 2, 3000, 8000},
+		"low":    {1, 3, 0, 2, 500, 1000},
+		"medium": {2, 4, 1, 2, 1000, 3000},
+		"high":   {3, 5, 1, 3, 3000, 8000},
 	},
 	"room": {
-		"low":    {0, 1, 0, 0, 100, 300},
-		"medium": {1, 1, 0, 0, 300, 800},
-		"high":   {1, 2, 0, 1, 800, 2000},
+		"low":    {0, 2, 0, 1, 100, 300},
+		"medium": {1, 3, 0, 1, 300, 800},
+		"high":   {2, 4, 1, 2, 800, 2000},
 	},
 }
 
+// Legendary weight is always zero; former Legendary weight is folded into Very Rare.
 var tierWeights = map[string]rarityWeights{
 	"low":    {70, 25, 4, 1, 0},
-	"medium": {45, 35, 15, 4, 1},
-	"high":   {20, 30, 30, 14, 6},
+	"medium": {45, 35, 15, 5, 0},
+	"high":   {20, 30, 30, 20, 0},
 }
 
-// applyLevelShift shifts weight from Common to higher rarities every 5 levels above 1.
+// applyLevelShift shifts weight from Common to Uncommon, Rare, and Very Rare every 5 levels above 1.
+// Legendary never receives shifted weight (loot never drops Legendary items).
 func applyLevelShift(w rarityWeights, level int) rarityWeights {
+	w.Legendary = 0
 	shifts := (level - 1) / 5
 	if shifts <= 0 {
 		return w
@@ -80,18 +93,17 @@ func applyLevelShift(w rarityWeights, level int) rarityWeights {
 		totalShift = w.Common
 	}
 	w.Common -= totalShift
-	// Distribute evenly to Uncommon, Rare, VeryRare, Legendary
-	perBucket := totalShift / 4
-	remainder := totalShift % 4
+	perBucket := totalShift / 3
+	remainder := totalShift % 3
 	w.Uncommon += perBucket
 	w.Rare += perBucket
-	w.VeryRare += perBucket
-	w.Legendary += perBucket + remainder
+	w.VeryRare += perBucket + remainder
 	return w
 }
 
 func rollRarity(w rarityWeights) string {
-	total := w.Common + w.Uncommon + w.Rare + w.VeryRare + w.Legendary
+	w.Legendary = 0
+	total := w.Common + w.Uncommon + w.Rare + w.VeryRare
 	if total <= 0 {
 		return "Common"
 	}
@@ -108,10 +120,7 @@ func rollRarity(w rarityWeights) string {
 		return "Rare"
 	}
 	roll -= w.Rare
-	if roll < w.VeryRare {
-		return "Very Rare"
-	}
-	return "Legendary"
+	return "Very Rare"
 }
 
 func randRange(min, max int) int {
@@ -128,9 +137,72 @@ func randRange64(min, max int64) int64 {
 	return min + rand.Int63n(max-min+1)
 }
 
-// GenerateLoot modified to update character inventory and return new fields
+func isLegendaryRarity(r string) bool {
+	return strings.EqualFold(strings.TrimSpace(r), "Legendary")
+}
+
+// pickRarityCategoryMap returns the category→pool map for rarity, falling back to Common if empty.
+func pickRarityCategoryMap[T any](byRarity map[string]map[string][]T, rarity string) map[string][]T {
+	if cm, ok := byRarity[rarity]; ok && categoryMapHasItems(cm) {
+		return cm
+	}
+	if cm, ok := byRarity["Common"]; ok && categoryMapHasItems(cm) {
+		return cm
+	}
+	return nil
+}
+
+func categoryMapHasItems[T any](cm map[string][]T) bool {
+	for _, items := range cm {
+		if len(items) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// pickStratified chooses a category uniformly among categories that have items, then an item in that category.
+func pickStratifiedItem(byRarity map[string]map[string][]*models.Item, rarity string) *models.Item {
+	catMap := pickRarityCategoryMap(byRarity, rarity)
+	if catMap == nil {
+		return nil
+	}
+	categories := make([]string, 0)
+	for cat, pool := range catMap {
+		if len(pool) > 0 {
+			categories = append(categories, cat)
+		}
+	}
+	if len(categories) == 0 {
+		return nil
+	}
+	cat := categories[rand.Intn(len(categories))]
+	pool := catMap[cat]
+	return pool[rand.Intn(len(pool))]
+}
+
+func pickStratifiedWeapon(byRarity map[string]map[string][]models.Weapon, rarity string) *models.Weapon {
+	catMap := pickRarityCategoryMap(byRarity, rarity)
+	if catMap == nil {
+		return nil
+	}
+	categories := make([]string, 0)
+	for cat, pool := range catMap {
+		if len(pool) > 0 {
+			categories = append(categories, cat)
+		}
+	}
+	if len(categories) == 0 {
+		return nil
+	}
+	cat := categories[rand.Intn(len(categories))]
+	pool := catMap[cat]
+	chosen := pool[rand.Intn(len(pool))]
+	return &chosen
+}
+
+// GenerateLoot updates character inventory and returns loot details.
 func (s *LootService) GenerateLoot(characterID uuid.UUID, source, tier string) (*LootResult, error) {
-	// Fetch character to get level and update inventory
 	character, err := s.characterRepo.FindByIDWithInventory(characterID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find character %s: %w", characterID, err)
@@ -162,58 +234,58 @@ func (s *LootService) GenerateLoot(characterID uuid.UUID, source, tier string) (
 		return nil, fmt.Errorf("failed to fetch weapons: %w", err)
 	}
 
-	systemItems := make([]*models.Item, 0)
+	itemsByRarityCategory := make(map[string]map[string][]*models.Item)
 	for _, item := range allItems {
-		if item.UserID == nil {
-			systemItems = append(systemItems, item)
+		if item.UserID != nil || isLegendaryRarity(item.Rarity) {
+			continue
 		}
-	}
-	systemWeapons := make([]models.Weapon, 0)
-	for _, w := range allWeapons {
-		if w.UserID == nil {
-			systemWeapons = append(systemWeapons, w)
+		r := item.Rarity
+		if itemsByRarityCategory[r] == nil {
+			itemsByRarityCategory[r] = make(map[string][]*models.Item)
 		}
+		itemsByRarityCategory[r][item.Category] = append(itemsByRarityCategory[r][item.Category], item)
 	}
 
-	itemsByRarity := make(map[string][]*models.Item)
-	for _, item := range systemItems {
-		itemsByRarity[item.Rarity] = append(itemsByRarity[item.Rarity], item)
-	}
-	weaponsByRarity := make(map[string][]models.Weapon)
-	for _, w := range systemWeapons {
-		weaponsByRarity[w.Rarity] = append(weaponsByRarity[w.Rarity], w)
+	weaponsByRarityCategory := make(map[string]map[string][]models.Weapon)
+	for i := range allWeapons {
+		w := allWeapons[i]
+		if w.UserID != nil || isLegendaryRarity(w.Rarity) {
+			continue
+		}
+		r := w.Rarity
+		if weaponsByRarityCategory[r] == nil {
+			weaponsByRarityCategory[r] = make(map[string][]models.Weapon)
+		}
+		weaponsByRarityCategory[r][w.Category] = append(weaponsByRarityCategory[r][w.Category], w)
 	}
 
 	itemCount := randRange(params.ItemMin, params.ItemMax)
+	weaponCount := randRange(params.WeaponMin, params.WeaponMax)
+
 	resultItems := make([]models.Item, 0, itemCount)
+	resultWeapons := make([]models.Weapon, 0, weaponCount)
+	drops := make([]LootDrop, 0, itemCount+weaponCount)
+
 	for i := 0; i < itemCount; i++ {
 		rarity := rollRarity(weights)
-		pool := itemsByRarity[rarity]
-		if len(pool) == 0 {
-			pool = itemsByRarity["Common"]
-		}
-		if len(pool) == 0 {
+		selected := pickStratifiedItem(itemsByRarityCategory, rarity)
+		if selected == nil {
 			continue
 		}
-		selectedItem := *pool[rand.Intn(len(pool))]
-		resultItems = append(resultItems, selectedItem)
-		character.Items = append(character.Items, selectedItem)
+		resultItems = append(resultItems, *selected)
+		character.Items = append(character.Items, *selected)
+		drops = append(drops, LootDrop{Kind: "item", Name: selected.Name, Rarity: selected.Rarity})
 	}
 
-	weaponCount := randRange(params.WeaponMin, params.WeaponMax)
-	resultWeapons := make([]models.Weapon, 0, weaponCount)
 	for i := 0; i < weaponCount; i++ {
 		rarity := rollRarity(weights)
-		pool := weaponsByRarity[rarity]
-		if len(pool) == 0 {
-			pool = weaponsByRarity["Common"]
-		}
-		if len(pool) == 0 {
+		selected := pickStratifiedWeapon(weaponsByRarityCategory, rarity)
+		if selected == nil {
 			continue
 		}
-		selectedWeapon := pool[rand.Intn(len(pool))]
-		resultWeapons = append(resultWeapons, selectedWeapon)
-		character.Weapons = append(character.Weapons, selectedWeapon)
+		resultWeapons = append(resultWeapons, *selected)
+		character.Weapons = append(character.Weapons, *selected)
+		drops = append(drops, LootDrop{Kind: "weapon", Name: selected.Name, Rarity: selected.Rarity})
 	}
 
 	baseGold := randRange64(params.GoldMin, params.GoldMax)
@@ -226,7 +298,6 @@ func (s *LootService) GenerateLoot(characterID uuid.UUID, source, tier string) (
 		return nil, fmt.Errorf("failed to update character with new loot: %w", err)
 	}
 
-	// Construct user-friendly message
 	var lootMessages []string
 	if goldEarned > 0 {
 		lootMessages = append(lootMessages, fmt.Sprintf("%d copper pieces", goldEarned))
@@ -238,7 +309,8 @@ func (s *LootService) GenerateLoot(characterID uuid.UUID, source, tier string) (
 		lootMessages = append(lootMessages, weapon.Name)
 	}
 
-	message := "You found: "
+	countPrefix := fmt.Sprintf("You rolled %d item drop(s) and %d weapon drop(s). ", itemCount, weaponCount)
+	message := countPrefix + "You found: "
 	if len(lootMessages) > 0 {
 		message += strings.Join(lootMessages, ", ") + "."
 	} else {
@@ -246,12 +318,13 @@ func (s *LootService) GenerateLoot(characterID uuid.UUID, source, tier string) (
 	}
 
 	return &LootResult{
-		Items:      resultItems,
-		Weapons:    resultWeapons,
-		GoldEarned: goldEarned,
-		TotalMoney: character.Money, // Return the updated total money
-		Message:    message,         // Return the generated message
+		Items:         resultItems,
+		Weapons:       resultWeapons,
+		GoldEarned:    goldEarned,
+		TotalMoney:    character.Money,
+		Message:       message,
+		ItemsRolled:   itemCount,
+		WeaponsRolled: weaponCount,
+		Drops:         drops,
 	}, nil
 }
-
-

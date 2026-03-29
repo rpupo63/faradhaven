@@ -6,6 +6,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// InitiativeEntry pairs a token ID with its desired initiative order.
+type InitiativeEntry struct {
+	TokenID uuid.UUID
+	Order   int
+}
+
 type MapTokenRepo struct {
 	db *gorm.DB
 }
@@ -44,4 +50,30 @@ func (r *MapTokenRepo) GetByInitiativeOrder(mapID uuid.UUID) ([]models.MapToken,
 func (r *MapTokenRepo) SetInitiativeOrder(tokenID uuid.UUID, order *int) error {
 	return r.db.Model(&models.MapToken{}).Where("id = ?", tokenID).
 		Update("initiative_order", order).Error
+}
+
+// BulkSetInitiativeOrder updates initiative_order for multiple tokens in a single query.
+func (r *MapTokenRepo) BulkSetInitiativeOrder(entries []InitiativeEntry) error {
+	if len(entries) == 0 {
+		return nil
+	}
+
+	ids := make([]string, len(entries))
+	orders := make([]int, len(entries))
+	for i, e := range entries {
+		ids[i] = e.TokenID.String()
+		orders[i] = e.Order
+	}
+
+	return r.db.Exec(`
+		UPDATE map_tokens SET initiative_order = v.ord
+		FROM (SELECT unnest(?::uuid[]) AS id, unnest(?::int[]) AS ord) v
+		WHERE map_tokens.id = v.id
+	`, ids, orders).Error
+}
+
+// ClearInitiativeByMapID sets initiative_order to NULL for all tokens on a map in one query.
+func (r *MapTokenRepo) ClearInitiativeByMapID(mapID uuid.UUID) error {
+	return r.db.Model(&models.MapToken{}).Where("map_id = ?", mapID).
+		Update("initiative_order", nil).Error
 }

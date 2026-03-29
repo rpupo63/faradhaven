@@ -18,10 +18,21 @@ type EquipmentChoiceSeed struct {
 	Options     []EquipmentOptionSeed
 }
 
+// ResourceCostSeed defines a resource cost for an active ability
+type ResourceCostSeed struct {
+	Key    string
+	Amount int
+}
+
 // FeatureSeed defines a single feature with a name and description for seeding
 type FeatureSeed struct {
-	Name        string
-	Description string
+	Name           string
+	Description    string
+	ActionType     string             // "Action", "Bonus Action", "Reaction", ""
+	UsesPerRest    string             // "1", "Proficiency Bonus", ""
+	ResetCondition string             // "Long Rest", "Short Rest", ""
+	ResourceCosts  []ResourceCostSeed // e.g. [{Key: "max_blood_ichor", Amount: 2}]
+	ResourceGains  []ResourceCostSeed // e.g. [{Key: "max_blood_ichor", Amount: 1}]
 }
 
 // ArchetypeSeed defines archetype/subclass data for seeding

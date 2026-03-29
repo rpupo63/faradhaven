@@ -77,14 +77,19 @@ func initializeHandlers(db database.Database) *routeHandlers {
 	corpseService := services.NewCorpseService(db.CorpseRepo())
 	linkService := services.NewLinkService(db.CharacterLinkRepo())
 
-	// NEW: Initialize MockLLMClient
-	mockLLMClient := services.NewMockLLMClient()
+	// Use real Gemini client when GOOGLE_API_KEY is set, otherwise fall back to mock.
+	var llmClient services.LLMClient
+	if apiKey := os.Getenv("GOOGLE_API_KEY"); apiKey != "" {
+		llmClient = services.NewGeminiLLMClient(apiKey)
+	} else {
+		llmClient = services.NewMockLLMClient()
+	}
 
 	// NEW: Initialize MonsterGenerationService
 	monsterGenerationService := services.NewMonsterGenerationService(
 		db.MonsterRepo(),
 		s3Service,
-		mockLLMClient,
+		llmClient,
 	)
 
 	// UPDATED: newLevelHandler now takes characterResourceRepo, beastRepo, and consumptionHistoryRepo
@@ -103,14 +108,17 @@ func initializeHandlers(db database.Database) *routeHandlers {
 	// Initialize SpellSynthesisService
 	synthesisService := services.NewSpellSynthesisService(db.ComponentRepo())
 
+	// NEW: Initialize SpellAIService
+	spellAIService := services.NewSpellAIService(llmClient)
+
 	// NEW: Initialize PartyHandler
 	partyHandlerInstance := newPartyHandler(db.PartyRepo(), db.CharacterRepo(), db.BeastRepo())
 
 	return &routeHandlers{
 		authHandler:            newAuthHandler(db.UserRepo()),
 		userHandler:            newUserHandler(db.UserRepo()),
-		characterHandler:       newCharacterHandler(db.CharacterRepo(), db.RaceRepo(), db.ClassRepo(), db.CharacterResourceRepo(), db.ItemRepo(), db.WeaponRepo(), db.SpellRepo(), resourceService, notorietyService, s3Service, componentInterpreterService, db.PartyRepo()),
-		spellHandler:           newSpellHandler(db.SpellRepo(), db.CharacterRepo(), db.ClassRepo(), db.RaceRepo(), synthesisService, componentInterpreterService),
+		characterHandler:       newCharacterHandler(db.CharacterRepo(), db.RaceRepo(), db.ClassRepo(), db.CharacterResourceRepo(), db.ItemRepo(), db.WeaponRepo(), db.SpellRepo(), resourceService, notorietyService, s3Service, componentInterpreterService, db.PartyRepo(), db.ComponentRepo(), db.StoreOwnerRepo()),
+		spellHandler:           newSpellHandler(db.SpellRepo(), db.CharacterRepo(), db.ClassRepo(), db.RaceRepo(), db.UserRepo(), synthesisService, componentInterpreterService, spellAIService),
 		beastHandler:           newBeastHandler(db.BeastRepo(), db.AttackRepo()),
 		levelHandler:           levelHandlerInstance, // Use the instance
 		weaponHandler:          newWeaponHandler(db.WeaponRepo()),
@@ -120,7 +128,7 @@ func initializeHandlers(db database.Database) *routeHandlers {
 		characterEffectHandler: newCharacterEffectHandler(effectService),
 		resourceHandler:        newResourceHandler(db.CharacterResourceRepo()),
 		minionHandler:          newMinionHandler(minionService),
-		noteHandler:            newNoteHandler(db.NoteRepo()),
+		noteHandler:            newNoteHandler(db.NoteRepo(), s3Service),
 		gameMapHandler:         newGameMapHandler(db.GameMapRepo()),
 		mapTokenHandler:        newMapTokenHandler(db.MapTokenRepo(), db.GameMapRepo()),
 		mapElementHandler:      newMapElementHandler(db.MapElementRepo(), db.GameMapRepo()),
@@ -132,5 +140,7 @@ func initializeHandlers(db database.Database) *routeHandlers {
 		lootHandler:            newLootHandler(lootService, logger),                           // Pass logger
 		monsterHandler:         newMonsterHandler(db.MonsterRepo(), monsterGenerationService), // NEW: Monster Handler
 		partyHandler:           partyHandlerInstance,                                          // NEW: Party Handler
+		abilityHandler:         newAbilityHandler(db.CharacterRepo(), db.CharacterResourceRepo()),
+		storeOwnerHandler:      newStoreOwnerHandler(db.StoreOwnerRepo()),
 	}
 }

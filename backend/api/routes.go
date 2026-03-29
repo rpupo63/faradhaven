@@ -24,6 +24,7 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		// Item compendium (reference data, no auth required)
 		r.Get("/api/items", handlers.itemHandler.getAllItems())
 		r.Get("/api/items/{itemID}", handlers.itemHandler.getItemByID())
+		r.Get("/api/store-owners", handlers.storeOwnerHandler.getStoreOwners())
 		// Component compendium (reference data for periodic table, no auth required)
 		r.Get("/api/components", handlers.componentHandler.getAllComponents())
 		r.Get("/api/components/{componentID}", handlers.componentHandler.getComponentByID())
@@ -78,6 +79,7 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Delete("/api/character/{characterID}", handlers.characterHandler.deleteCharacter())
 		r.Post("/api/character/{characterID}/purchase", handlers.characterHandler.purchaseItem())
 		r.Post("/api/character/{characterID}/extract", handlers.characterHandler.extractComponents())
+		r.Post("/api/character/{characterID}/forage-components", handlers.characterHandler.forageComponents())
 		r.Post("/api/character/{characterID}/loot", handlers.lootHandler.GenerateLoot)
 		r.Post("/api/character/{characterID}/image", handlers.characterHandler.uploadProfilePicture())
 		r.Post("/api/characters/{characterID}/madness/roll", handlers.madnessHandler.rollMadness())
@@ -152,8 +154,13 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Get("/api/character/{characterID}/spellbook", handlers.spellHandler.getCharacterSpellbook())
 		r.Post("/api/spell", handlers.spellHandler.createSpell())
 		r.Post("/api/spell/synthesize", handlers.spellHandler.synthesizeSpell())
+		r.Get("/api/spell/{spellID}/opinion", handlers.spellHandler.getSpellOpinion())
+		r.Post("/api/spell/{spellID}/ai/retry", handlers.spellHandler.retryAIField())
 		r.Put("/api/spell/{spellID}", handlers.spellHandler.updateSpell())
 		r.Delete("/api/spell/{spellID}", handlers.spellHandler.deleteSpell())
+
+		// GM-only endpoints
+		r.Get("/api/gm/spells/unchecked", handlers.spellHandler.getUncheckedSpells())
 
 		// Beast endpoints (protected)
 		r.Get("/api/user/{userID}/beasts", handlers.beastHandler.getBeastsByUser())
@@ -226,5 +233,9 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Get("/api/user/{userID}/parties", handlers.partyHandler.getPartiesByOwner())
 		// Route to set/update a character's party affiliation
 		r.Put("/api/characters/{characterID}/party", handlers.partyHandler.setCharacterParty())
+
+		// Active ability use endpoints
+		r.Post("/api/characters/{characterID}/traits/{traitID}/use", handlers.abilityHandler.useTraitAbility())
+		r.Post("/api/characters/{characterID}/features/{featureID}/use", handlers.abilityHandler.useFeatureAbility())
 	})
 }

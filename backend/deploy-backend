@@ -4,22 +4,28 @@ set -e
 HEALTH_URL="https://api.faradhaven.xyz/healthcheck"
 MAX_RETRIES=10
 RETRY_DELAY=2
+# Define variables to keep things consistent
+REMOTE_USER="svc-faradhaven" 
+SERVICE_NAME="faradhaven"
 
 echo "Building production binary..."
-go build -ldflags="-s -w" -o server .
+# Note: Since you're on Arch (likely x86_64) and RackNerd is likely Linux/AMD64, 
+# this is usually fine, but adding GOOS/GOARCH ensures compatibility.
+GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o server .
 
 echo "Uploading to racknerd-backend..."
 scp server racknerd-backend:~
 
 echo "Installing binary and restarting service..."
-ssh racknerd-backend '
-    sudo systemctl stop faradhaven
+ssh racknerd-backend "
+    sudo systemctl stop $SERVICE_NAME
     sudo mv ~/server /opt/faradhaven/server
-    sudo chown faradhaven:faradhaven /opt/faradhaven/server
+    # Use the correct user from your service file
+    sudo chown $REMOTE_USER:$REMOTE_USER /opt/faradhaven/server
     sudo chmod +x /opt/faradhaven/server
     sudo systemctl daemon-reload
-    sudo systemctl restart faradhaven
-'
+    sudo systemctl restart $SERVICE_NAME
+"
 
 echo "Checking deployment health at $HEALTH_URL..."
 for i in $(seq 1 $MAX_RETRIES); do

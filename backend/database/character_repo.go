@@ -10,17 +10,25 @@ import (
 
 type CharacterRepository interface {
 	FindAll() ([]*models.Character, error)
+	FindAllPaginated(page, limit int) ([]*models.Character, int64, error)
 	FindByID(id uuid.UUID) (*models.Character, error)
 	FindByIDWithSkills(id uuid.UUID) (*models.Character, error)
 	FindByIDWithRelations(id uuid.UUID) (*models.Character, error)
+	FindByIDForSheet(id uuid.UUID) (*models.Character, error)
 	FindByIDWithInventory(id uuid.UUID) (*models.Character, error)
 	FindByUserID(userID uuid.UUID) ([]*models.Character, error)
+	FindByUserIDPaginated(userID uuid.UUID, page, limit int) ([]*models.Character, int64, error)
 	Add(character *models.Character) error
 	Update(character *models.Character) error
 	Delete(id uuid.UUID) error
+	CharacterBelongsToUser(characterID, userID uuid.UUID) (bool, error)
 	ReplaceSkillProficiencies(characterID uuid.UUID, skillIDs []string) error
 	UpdateComponentCount(characterID uuid.UUID, componentID uuid.UUID, delta int) error
 	ClearComponentsForCharacter(characterID uuid.UUID) error
+	AppendWeapon(characterID uuid.UUID, weaponID uuid.UUID) error
+	AppendItem(characterID uuid.UUID, itemID uuid.UUID) error
+	UpdateMoney(id uuid.UUID, money int64) error
+	UpdateHP(id uuid.UUID, hp int) error
 	GetDB() *gorm.DB
 }
 
@@ -39,8 +47,25 @@ func (r *CharacterRepo) GetDB() *gorm.DB {
 // FindAll returns all characters
 func (r *CharacterRepo) FindAll() ([]*models.Character, error) {
 	var characters []*models.Character
-	err := r.db.Preload("Race").Preload("Class").Preload("Archetype").Preload("Components.Component").Find(&characters).Error
+	err := r.db.Preload("Race").Preload("Class").Preload("Archetype").
+		Order("name ASC").Find(&characters).Error
 	return characters, err
+}
+
+// FindAllPaginated returns all characters with pagination
+func (r *CharacterRepo) FindAllPaginated(page, limit int) ([]*models.Character, int64, error) {
+	var characters []*models.Character
+	var totalCount int64
+
+	query := r.db.Model(&models.Character{})
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * limit
+	err := query.Preload("Race").Preload("Class").Preload("Archetype").
+		Order("name ASC").Offset(offset).Limit(limit).Find(&characters).Error
+	return characters, totalCount, err
 }
 
 // FindByID returns a character by ID
@@ -54,17 +79,16 @@ func (r *CharacterRepo) FindByID(id uuid.UUID) (*models.Character, error) {
 }
 
 // FindByIDWithSkills returns a character by ID with SkillProficiencies preloaded,
-// SkillProficiencyIDs populated, and Race.Traits.Options preloaded (for character sheet racial traits)
+// SkillProficiencyIDs populated, and Race.Traits.Options preloaded
 func (r *CharacterRepo) FindByIDWithSkills(id uuid.UUID) (*models.Character, error) {
 	var character models.Character
-	if err := r.db.Preload("Race").Preload("Class").Preload("Archetype").Preload("Race.Traits.Options").Preload("Components.Component").First(&character, "id = ?", id).Error; err != nil {
+	if err := r.db.Preload("Race").Preload("Class").Preload("Archetype").
+		Preload("Race.Traits.Options").Preload("Components.Component").
+		Preload("SkillProficiencies").
+		First(&character, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
-	var skills []models.CharacterSkill
-	if err := r.db.Where("character_id = ?", id).Find(&skills).Error; err != nil {
-		return nil, err
-	}
-	for _, s := range skills {
+	for _, s := range character.SkillProficiencies {
 		if s.Proficient {
 			character.SkillProficiencyIDs = append(character.SkillProficiencyIDs, s.SkillID)
 		}
@@ -72,26 +96,61 @@ func (r *CharacterRepo) FindByIDWithSkills(id uuid.UUID) (*models.Character, err
 	return &character, nil
 }
 
-// FindByIDWithRelations returns a character by ID with all necessary relations for Lorewright features
+// FindByIDWithRelations returns a character by ID with relations needed for gameplay logic
 func (r *CharacterRepo) FindByIDWithRelations(id uuid.UUID) (*models.Character, error) {
 	var character models.Character
 	if err := r.db.
 		Preload("Race").
-		Preload("Class").
-		Preload("Class.Levels"). // Crucial for Lorewright slot checks
-		Preload("Archetype").
-		Preload("Party"). // NEW: Preload Party
 		Preload("Race.Traits.Options").
+		Preload("Race.Components").
+		Preload("Class").
+		Preload("Class.Components").
+		Preload("Class.Levels", func(db *gorm.DB) *gorm.DB {
+			return db.Order("level ASC")
+		}).
+		Preload("Archetype").
+		Preload("Party").
 		Preload("Components.Component").
+		Preload("SkillProficiencies").
 		First(&character, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
-	// Manually populate SkillProficiencyIDs as it's a computed field
-	var skills []models.CharacterSkill
-	if err := r.db.Where("character_id = ?", id).Find(&skills).Error; err != nil {
+	for _, s := range character.SkillProficiencies {
+		if s.Proficient {
+			character.SkillProficiencyIDs = append(character.SkillProficiencyIDs, s.SkillID)
+		}
+	}
+	return &character, nil
+}
+
+// FindByIDForSheet returns a character fully loaded for the character sheet
+func (r *CharacterRepo) FindByIDForSheet(id uuid.UUID) (*models.Character, error) {
+	var character models.Character
+	if err := r.db.
+		Preload("Race").
+		Preload("Race.Traits.Options").
+		Preload("Race.Components").
+		Preload("Class").
+		Preload("Class.Components").
+		Preload("Class.Levels", func(db *gorm.DB) *gorm.DB {
+			return db.Order("level ASC")
+		}).
+		Preload("Class.Levels.LevelFeatures", func(db *gorm.DB) *gorm.DB {
+			return db.Order("sort_order ASC")
+		}).
+		Preload("Archetype").
+		Preload("Party").
+		Preload("Components.Component").
+		Preload("CharacterWeapons.Weapon.Damages").
+		Preload("CharacterWeapons.Modifiers").
+		Preload("Items").
+		Preload("EquippedArmor").
+		Preload("EquippedShield").
+		Preload("SkillProficiencies").
+		First(&character, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
-	for _, s := range skills {
+	for _, s := range character.SkillProficiencies {
 		if s.Proficient {
 			character.SkillProficiencyIDs = append(character.SkillProficiencyIDs, s.SkillID)
 		}
@@ -104,6 +163,29 @@ func (r *CharacterRepo) FindByUserID(userID uuid.UUID) ([]*models.Character, err
 	var characters []*models.Character
 	err := r.db.Preload("Race").Preload("Class").Preload("Archetype").Preload("Components.Component").Where("user_id = ?", userID).Find(&characters).Error
 	return characters, err
+}
+
+// FindByUserIDPaginated returns all characters for a user with pagination
+func (r *CharacterRepo) FindByUserIDPaginated(userID uuid.UUID, page, limit int) ([]*models.Character, int64, error) {
+	var characters []*models.Character
+	var totalCount int64
+
+	query := r.db.Model(&models.Character{}).Where("user_id = ?", userID)
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * limit
+	err := query.Preload("Race").Preload("Class").Preload("Archetype").
+		Order("updated_at DESC").Offset(offset).Limit(limit).Find(&characters).Error
+	return characters, totalCount, err
+}
+
+// CharacterBelongsToUser returns true if the character belongs to the given user
+func (r *CharacterRepo) CharacterBelongsToUser(characterID, userID uuid.UUID) (bool, error) {
+	var count int64
+	err := r.db.Model(&models.Character{}).Where("id = ? AND user_id = ?", characterID, userID).Count(&count).Error
+	return count > 0, err
 }
 
 // FindByIDWithInventory returns a character by ID with Items and Weapons preloaded
@@ -143,14 +225,17 @@ func (r *CharacterRepo) ReplaceSkillProficiencies(characterID uuid.UUID, skillID
 			return err
 		}
 
-		// Insert new proficiencies
-		for _, skillID := range skillIDs {
-			cs := models.CharacterSkill{
+		// Insert new proficiencies in a single batch
+		skills := make([]models.CharacterSkill, len(skillIDs))
+		for i, skillID := range skillIDs {
+			skills[i] = models.CharacterSkill{
 				CharacterID: characterID,
 				SkillID:     skillID,
 				Proficient:  true,
 			}
-			if err := tx.Create(&cs).Error; err != nil {
+		}
+		if len(skills) > 0 {
+			if err := tx.Create(&skills).Error; err != nil {
 				return err
 			}
 		}
@@ -191,4 +276,30 @@ func (r *CharacterRepo) UpdateComponentCount(characterID uuid.UUID, componentID 
 // ClearComponentsForCharacter removes all component inventory for a character
 func (r *CharacterRepo) ClearComponentsForCharacter(characterID uuid.UUID) error {
 	return r.db.Where("character_id = ?", characterID).Delete(&models.CharacterComponent{}).Error
+}
+
+// AppendWeapon adds a weapon association to a character
+func (r *CharacterRepo) AppendWeapon(characterID uuid.UUID, weaponID uuid.UUID) error {
+	// For weapons, we usually create a CharacterWeapon entry because it has is_equipped etc.
+	cw := models.CharacterWeapon{
+		CharacterID: characterID,
+		WeaponID:    weaponID,
+		IsEquipped:  false,
+	}
+	return r.db.Create(&cw).Error
+}
+
+// AppendItem adds an item association to a character
+func (r *CharacterRepo) AppendItem(characterID uuid.UUID, itemID uuid.UUID) error {
+	return r.db.Exec("INSERT INTO character_items (character_id, item_id) VALUES (?, ?)", characterID, itemID).Error
+}
+
+// UpdateMoney updates only the money field for a character
+func (r *CharacterRepo) UpdateMoney(id uuid.UUID, money int64) error {
+	return r.db.Model(&models.Character{}).Where("id = ?", id).Update("money", money).Error
+}
+
+// UpdateHP updates only the current_hp field for a character
+func (r *CharacterRepo) UpdateHP(id uuid.UUID, hp int) error {
+	return r.db.Model(&models.Character{}).Where("id = ?", id).Update("current_hp", hp).Error
 }

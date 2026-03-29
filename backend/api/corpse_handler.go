@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/rpupo63/unified-personal-site-backend/database"
+	"github.com/rpupo63/unified-personal-site-backend/models"
 	"github.com/rpupo63/unified-personal-site-backend/services"
 	"github.com/rs/zerolog/log"
 )
@@ -84,11 +86,26 @@ func (h *corpseHandler) CreateCorpse() http.HandlerFunc {
 			return
 		}
 
+		ct, ok := models.ParseCreatureType(strings.TrimSpace(req.CreatureType))
+		if !ok || strings.TrimSpace(req.CreatureType) == "" {
+			respondError(w, http.StatusBadRequest, "invalid creature_type")
+			return
+		}
+		sz := models.SizeMedium
+		if strings.TrimSpace(req.CreatureSize) != "" {
+			var okSz bool
+			sz, okSz = models.ParseCreatureSize(strings.TrimSpace(req.CreatureSize))
+			if !okSz {
+				respondError(w, http.StatusBadRequest, "invalid creature_size")
+				return
+			}
+		}
+
 		serviceReq := services.CreateCorpseRequest{
 			MapID:               req.MapID,
 			Name:                req.Name,
-			CreatureType:        req.CreatureType,
-			CreatureSize:        req.CreatureSize,
+			CreatureType:        ct,
+			CreatureSize:        sz,
 			ChallengeRating:     req.ChallengeRating,
 			GridX:               req.GridX,
 			GridY:               req.GridY,
@@ -131,22 +148,33 @@ func (h *corpseHandler) HarvestCorpse() http.HandlerFunc {
 			return
 		}
 
-		// Add harvested components to character's inventory
-		componentNames := make([]string, 0)
+		// Parse component IDs
+		compIDs := make([]uuid.UUID, 0, len(result.ComponentIDs))
 		for _, compIDStr := range result.ComponentIDs {
 			compID, err := uuid.Parse(compIDStr)
 			if err != nil {
 				continue
 			}
+			compIDs = append(compIDs, compID)
+		}
+
+		// Batch-fetch all component names in one query
+		fetchedComps, _ := h.componentRepo.GetComponentsByIDs(compIDs)
+		compNameByID := make(map[uuid.UUID]string, len(fetchedComps))
+		for _, c := range fetchedComps {
+			compNameByID[c.ID] = c.Name
+		}
+
+		// Update inventory counts and collect names
+		componentNames := make([]string, 0, len(compIDs))
+		for _, compID := range compIDs {
 			for i := 0; i < result.ComponentsYielded; i++ {
 				if err := h.characterRepo.UpdateComponentCount(req.CharacterID, compID, 1); err != nil {
-					log.Error().Err(err).Str("componentID", compIDStr).Msg("Failed to add component to inventory")
+					log.Error().Err(err).Str("componentID", compID.String()).Msg("Failed to add component to inventory")
 				}
 			}
-			// Look up component name for response
-			comp, err := h.componentRepo.GetComponentByID(compID)
-			if err == nil {
-				componentNames = append(componentNames, comp.Name)
+			if name, ok := compNameByID[compID]; ok {
+				componentNames = append(componentNames, name)
 			}
 		}
 
@@ -282,21 +310,33 @@ func (h *corpseHandler) ScavengeComponents() http.HandlerFunc {
 			yield = remaining
 		}
 
-		// Add components to character inventory
-		componentNames := make([]string, 0)
+		// Parse available component IDs
+		scavCompIDs := make([]uuid.UUID, 0, len(corpse.AvailableComponents))
 		for _, compIDStr := range corpse.AvailableComponents {
 			compID, err := uuid.Parse(compIDStr)
 			if err != nil {
 				continue
 			}
+			scavCompIDs = append(scavCompIDs, compID)
+		}
+
+		// Batch-fetch component names in one query
+		scavComps, _ := h.componentRepo.GetComponentsByIDs(scavCompIDs)
+		scavNameByID := make(map[uuid.UUID]string, len(scavComps))
+		for _, c := range scavComps {
+			scavNameByID[c.ID] = c.Name
+		}
+
+		// Add components to character inventory
+		componentNames := make([]string, 0, len(scavCompIDs))
+		for _, compID := range scavCompIDs {
 			for i := 0; i < yield; i++ {
 				if err := h.characterRepo.UpdateComponentCount(req.CharacterID, compID, 1); err != nil {
-					log.Error().Err(err).Str("componentID", compIDStr).Msg("Failed to add scavenged component")
+					log.Error().Err(err).Str("componentID", compID.String()).Msg("Failed to add scavenged component")
 				}
 			}
-			comp, err := h.componentRepo.GetComponentByID(compID)
-			if err == nil {
-				componentNames = append(componentNames, comp.Name)
+			if name, ok := scavNameByID[compID]; ok {
+				componentNames = append(componentNames, name)
 			}
 		}
 

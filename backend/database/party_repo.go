@@ -15,6 +15,7 @@ type PartyRepository interface {
 	FindByID(id uuid.UUID) (*models.Party, error)
 	FindByIDWithMembers(id uuid.UUID) (*models.Party, error)
 	FindByIDWithIdentifiedBeasts(id uuid.UUID) (*models.Party, error)
+	FindByIDWithMembersAndBeasts(id uuid.UUID) (*models.Party, error)
 	FindByOwnerID(ownerID uuid.UUID) ([]*models.Party, error)
 	Update(party *models.Party) error
 	Delete(id uuid.UUID) error
@@ -73,6 +74,19 @@ func (r *PartyRepo) FindByIDWithIdentifiedBeasts(id uuid.UUID) (*models.Party, e
 	return &party, nil
 }
 
+// FindByIDWithMembersAndBeasts retrieves a Party by its ID, preloading members and identified beasts.
+func (r *PartyRepo) FindByIDWithMembersAndBeasts(id uuid.UUID) (*models.Party, error) {
+	var party models.Party
+	err := r.db.Preload("Owner").
+		Preload("Members").
+		Preload("IdentifiedBeasts").
+		First(&party, "id = ?", id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &party, nil
+}
+
 // FindByOwnerID retrieves all Parties owned by a specific user.
 func (r *PartyRepo) FindByOwnerID(ownerID uuid.UUID) ([]*models.Party, error) {
 	var parties []*models.Party
@@ -107,28 +121,12 @@ func (r *PartyRepo) RemoveMember(partyID, characterID uuid.UUID) error {
 
 // AddIdentifiedBeast adds a beast to a party's identified beasts.
 func (r *PartyRepo) AddIdentifiedBeast(partyID, beastID uuid.UUID) error {
-	var party models.Party
-	if err := r.db.First(&party, "id = ?", partyID).Error; err != nil {
-		return err
-	}
-	var beast models.Beast
-	if err := r.db.First(&beast, "id = ?", beastID).Error; err != nil {
-		return err
-	}
-	return r.db.Model(&party).Association("IdentifiedBeasts").Append(&beast)
+	return r.db.Exec("INSERT INTO party_beasts (party_id, beast_id) VALUES (?, ?) ON CONFLICT DO NOTHING", partyID, beastID).Error
 }
 
 // RemoveIdentifiedBeast removes a beast from a party's identified beasts.
 func (r *PartyRepo) RemoveIdentifiedBeast(partyID, beastID uuid.UUID) error {
-	var party models.Party
-	if err := r.db.First(&party, "id = ?", partyID).Error; err != nil {
-		return err
-	}
-	var beast models.Beast
-	if err := r.db.First(&beast, "id = ?", beastID).Error; err != nil {
-		return err
-	}
-	return r.db.Model(&party).Association("IdentifiedBeasts").Delete(&beast)
+	return r.db.Exec("DELETE FROM party_beasts WHERE party_id = ? AND beast_id = ?", partyID, beastID).Error
 }
 
 // GetMembers retrieves all characters belonging to a party.

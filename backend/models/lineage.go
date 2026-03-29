@@ -9,11 +9,11 @@ import (
 
 // Lineage handles sub-races or specific choices like Draconic Ancestry
 type Lineage struct {
-	ID          uuid.UUID      `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid();not null"`
-	RaceID      uuid.UUID      `json:"race_id" gorm:"type:uuid;not null;index"`
-	Name        string         `json:"name" gorm:"type:text;not null"` // e.g., "Gold Dragon" or "Wood Elf"
-	Description string         `json:"description" gorm:"type:text"`
-	DamageType  string         `json:"damage_type" gorm:"type:text"` // e.g., Fire, Acid (for Dragonborn/Drow)
+	ID          uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid();not null"`
+	RaceID      uuid.UUID `json:"race_id" gorm:"type:uuid;not null;index"`
+	Name        string    `json:"name" gorm:"type:text;not null"` // e.g., "Gold Dragon" or "Wood Elf"
+	Description string    `json:"description" gorm:"type:text"`
+	DamageType  string    `json:"damage_type" gorm:"type:text"` // e.g., Fire, Acid (for Dragonborn/Drow)
 
 	// Ability Score Bonuses (e.g., {"dexterity": 1})
 	AbilityScoreBonuses datatypes.JSON `json:"ability_score_bonuses" gorm:"type:jsonb"`

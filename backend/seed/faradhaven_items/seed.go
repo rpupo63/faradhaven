@@ -3,6 +3,7 @@ package faradhaven_items
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/lib/pq"
 	"github.com/rpupo63/unified-personal-site-backend/models"
@@ -41,13 +42,21 @@ func SeedFaradhavenItems(tx *gorm.DB) error {
 
 		// Collect damages for this weapon
 		for _, ds := range ws.Damages {
-			damageID := uuids.WeaponDamageUUID(weaponID, ds.DamageDice, ds.DamageType, ds.DamageCategory)
+			dt, ok := models.ParseDamageType(ds.DamageType)
+			if !ok {
+				return fmt.Errorf("weapon %q: invalid damage type %q", ws.Name, ds.DamageType)
+			}
+			dc, ok := models.ParseWeaponDamageCategory(ds.DamageCategory)
+			if !ok {
+				return fmt.Errorf("weapon %q: invalid damage category %q", ws.Name, ds.DamageCategory)
+			}
+			damageID := uuids.WeaponDamageUUID(weaponID, ds.DamageDice, strings.TrimSpace(ds.DamageType), strings.TrimSpace(ds.DamageCategory))
 			allDamages = append(allDamages, models.WeaponDamage{
 				ID:             damageID,
 				WeaponID:       weaponID,
 				DamageDice:     ds.DamageDice,
-				DamageType:     ds.DamageType,
-				DamageCategory: ds.DamageCategory,
+				DamageType:     dt,
+				DamageCategory: dc,
 			})
 		}
 	}

@@ -76,6 +76,8 @@ func (s *MonsterGenerationService) GenerateMonsterFromPrompt(ctx context.Context
 		return nil, fmt.Errorf("failed to unmarshal LLM output into Monster struct: %w", err)
 	}
 
+	monster.NormalizeCreatureFields()
+
 	// Overwrite some fields from the request/system
 	monster.UserID = req.UserID
 	monster.Notes = req.Description // Store original prompt in Notes

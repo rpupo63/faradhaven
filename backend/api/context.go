@@ -9,6 +9,7 @@ type keyType string
 
 const (
 	userIDKey         keyType = "userID"
+	isAdminKey        keyType = "isAdmin"
 	organizationIDKey keyType = "organizationID"
 	userKey           keyType = "user"
 )
@@ -16,6 +17,11 @@ const (
 // ctxWithUserID adds a user ID to the context
 func ctxWithUserID(ctx context.Context, userID string) context.Context {
 	return context.WithValue(ctx, userIDKey, userID)
+}
+
+// ctxWithIsAdmin adds admin status to the context
+func ctxWithIsAdmin(ctx context.Context, isAdmin bool) context.Context {
+	return context.WithValue(ctx, isAdminKey, isAdmin)
 }
 
 // ctxWithOrganizationID adds an organization ID to the context
@@ -28,9 +34,15 @@ func ctxGetUserID(ctx context.Context) (string, error) {
 	return ctxGetStringValue(ctx, userIDKey)
 }
 
-// ctxGetOrganizationID retrieves an organization ID from the context
-func ctxGetOrganizationID(ctx context.Context) (string, error) {
-	return ctxGetStringValue(ctx, organizationIDKey)
+// ctxGetIsAdmin retrieves admin status from the context
+func ctxGetIsAdmin(ctx context.Context) (bool, error) {
+	if ctxValue := ctx.Value(isAdminKey); ctxValue == nil {
+		return false, errors.New("isAdmin not found in context")
+	} else if valueAsBool, ok := ctxValue.(bool); !ok {
+		return false, errors.New("isAdmin is not of type `bool`")
+	} else {
+		return valueAsBool, nil
+	}
 }
 
 // ctxGetStringValue is a helper function to retrieve string values from the context by key

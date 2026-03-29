@@ -27,7 +27,7 @@ type Character struct {
 	LineageID   *uuid.UUID `json:"lineage_id,omitempty" gorm:"type:uuid;index"`
 	ClassID     uuid.UUID  `json:"class_id" gorm:"type:uuid;not null;index"`
 	ArchetypeID *uuid.UUID `json:"archetype_id,omitempty" gorm:"type:uuid;index"` // nil until archetype is chosen
-	PartyID     *uuid.UUID `json:"party_id,omitempty" gorm:"type:uuid;index"` // NEW: Foreign key to Party
+	PartyID     *uuid.UUID `json:"party_id,omitempty" gorm:"type:uuid;index"`     // NEW: Foreign key to Party
 	Level       int        `json:"level" gorm:"type:int;not null;default:1"`
 
 	// Stored spell IDs (persisted in DB as text array)
@@ -45,18 +45,18 @@ type Character struct {
 	CurrentSpellPoints int `json:"current_spell_points" gorm:"type:int;default:0"`
 
 	// Class-specific resource tracking (current values; max comes from ClassLevel)
-	CurrentStability   int              `json:"current_stability" gorm:"type:int;default:0"`   // Piston Brawler
-	CurrentBloodIchor  int              `json:"current_blood_ichor" gorm:"type:int;default:0"` // Sanguinist
-	SanguineNotoriety  int              `json:"sanguine_notoriety" gorm:"type:int;default:0"`
-	SanguineMP         int              `json:"sanguine_mp" gorm:"type:int;default:0"`         // Medical Prodigy points
-	SanguineBR         int              `json:"sanguine_br" gorm:"type:int;default:0"`         // Blood Rage points
-	EchoSlotsUsed      int              `json:"echo_slots_used" gorm:"type:int;default:0"`     // Lorewright (legacy)
-	HarvestSkillsUsed  int              `json:"harvest_skills_used" gorm:"type:int;default:0"`  // Lorewright: skill slots used
-	HarvestAttacksUsed int              `json:"harvest_attacks_used" gorm:"type:int;default:0"` // Lorewright: attack slots used
-	HarvestRecipesUsed int              `json:"harvest_recipes_used" gorm:"type:int;default:0"` // Lorewright: recipe slots used
-	HarvestedAbilities datatypes.JSON   `json:"harvested_abilities" gorm:"type:jsonb"`          // Lorewright: stored abilities
-	Trauma             int              `json:"trauma" gorm:"type:int;default:0"`               // Lorewright: psychological damage from harvesting
-	LastComponentUsed  *string          `json:"last_component_used,omitempty" gorm:"type:text"` // Powder Mage: for Echoing Components
+	CurrentStability   int            `json:"current_stability" gorm:"type:int;default:0"`   // Piston Brawler
+	CurrentBloodIchor  int            `json:"current_blood_ichor" gorm:"type:int;default:0"` // Sanguinist
+	SanguineNotoriety  int            `json:"sanguine_notoriety" gorm:"type:int;default:0"`
+	SanguineMP         int            `json:"sanguine_mp" gorm:"type:int;default:0"`          // Medical Prodigy points
+	SanguineBR         int            `json:"sanguine_br" gorm:"type:int;default:0"`          // Blood Rage points
+	EchoSlotsUsed      int            `json:"echo_slots_used" gorm:"type:int;default:0"`      // Lorewright (legacy)
+	HarvestSkillsUsed  int            `json:"harvest_skills_used" gorm:"type:int;default:0"`  // Lorewright: skill slots used
+	HarvestAttacksUsed int            `json:"harvest_attacks_used" gorm:"type:int;default:0"` // Lorewright: attack slots used
+	HarvestRecipesUsed int            `json:"harvest_recipes_used" gorm:"type:int;default:0"` // Lorewright: recipe slots used
+	HarvestedAbilities datatypes.JSON `json:"harvested_abilities" gorm:"type:jsonb"`          // Lorewright: stored abilities
+	Trauma             int            `json:"trauma" gorm:"type:int;default:0"`               // Lorewright: psychological damage from harvesting
+	LastComponentUsed  *string        `json:"last_component_used,omitempty" gorm:"type:text"` // Powder Mage: for Echoing Components
 
 	// Mutagen Class Mechanics:
 	// The following fields track the state for the Mutagen's Madness mechanic.
@@ -193,8 +193,8 @@ func (c *Character) GetUnarmoredDefenseACBonus() (int, map[string]bool, bool) {
 }
 
 type unarmoredDefenseResult struct {
-	baseAC        int
-	abilityMods   map[string]bool
+	baseAC         int
+	abilityMods    map[string]bool
 	shieldsAllowed bool
 }
 

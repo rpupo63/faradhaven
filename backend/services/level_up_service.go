@@ -234,11 +234,13 @@ func (s *LevelUpService) LevelUp(userID uuid.UUID, req LevelUpRequest) (*LevelUp
 		// Reset spell points to new max
 		character.CurrentSpellPoints = newClassLevel.MaxSpellPoints
 
-		// Update generic CharacterResource max values for new level
-		if err := s.resourceService.UpdateCharacterResourcesForLevel(character.ID, character.ClassID, newLevel); err != nil {
+		// Update generic CharacterResource max values for new level (uses post-ASI ability scores)
+		if err := s.resourceService.UpdateCharacterResourcesForLevel(character); err != nil {
 			// Log but don't fail the level-up for this
 			_ = err
 		}
+		// Full refill of spell_points pool matches CurrentSpellPoints = newClassLevel.MaxSpellPoints
+		_ = s.resourceService.RestoreResourceToMax(character.ID, "spell_points")
 
 		// Apply archetype selection if made at this level
 		if archetypeSelected != nil {

@@ -19,6 +19,7 @@ type ClassRepository interface {
 	FindLevelResourcesByClassAndLevel(classID uuid.UUID, level int) ([]models.ClassLevelResource, error)
 	GetLevelResourceMap(classID uuid.UUID, level int) (map[string]int, error)
 	GetLevelResourceValue(classID uuid.UUID, level int, key string) int
+	FindResourceInfo(classID uuid.UUID, level int) ([]models.ClassResourceDefinition, map[string]int, error)
 	Add(class *models.Class) error
 	AddLevel(level *models.ClassLevel) error
 }
@@ -88,6 +89,30 @@ func (r *ClassRepo) FindEquipmentOptionsByIDs(ids []uuid.UUID) ([]models.ClassSt
 	}
 	err := r.db.Where("id IN ?", ids).Find(&options).Error
 	return options, err
+}
+
+// FindResourceInfo returns resource definitions and a map of resource values for a class at a given level.
+// This consolidates multiple lookups into a single call.
+func (r *ClassRepo) FindResourceInfo(classID uuid.UUID, level int) ([]models.ClassResourceDefinition, map[string]int, error) {
+	var class models.Class
+	err := r.db.Preload("ResourceDefinitions", func(db *gorm.DB) *gorm.DB {
+		return db.Order("display_order ASC")
+	}).Preload("Levels", "level = ?", level).
+		Preload("Levels.ResourceValues").
+		First(&class, "id = ?", classID).Error
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resourceMap := make(map[string]int)
+	if len(class.Levels) > 0 {
+		for _, rv := range class.Levels[0].ResourceValues {
+			resourceMap[rv.ResourceKey] = rv.Value
+		}
+	}
+
+	return class.ResourceDefinitions, resourceMap, nil
 }
 
 func (r *ClassRepo) Add(class *models.Class) error {

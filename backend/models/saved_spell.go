@@ -23,9 +23,9 @@ type SavedSpell struct {
 	MaxUses       *int `json:"max_uses,omitempty" gorm:"type:int"`
 
 	// Computed spell properties (cached for quick display)
-	TotalCost   int     `json:"total_cost" gorm:"type:int;default:0"`      // Total resource cost
-	DamageType  *string `json:"damage_type,omitempty" gorm:"type:text"`    // Primary damage type
-	Description *string `json:"description,omitempty" gorm:"type:text"`    // User notes
+	TotalCost   int     `json:"total_cost" gorm:"type:int;default:0"`   // Total resource cost
+	DamageType  *string `json:"damage_type,omitempty" gorm:"type:text"` // Primary damage type
+	Description *string `json:"description,omitempty" gorm:"type:text"` // User notes
 
 	CreatedAt time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`

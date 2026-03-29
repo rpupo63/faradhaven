@@ -48,37 +48,41 @@ func RiftWeaver() FaradhavenClassSeed {
 			"Increase", "Decrease", "Strong", "Weak", "Extreme",
 		},
 		ResourceDefinitions: []ResourceDefinitionSeed{
-			{Key: "spell_points", DisplayName: "Spell Points", Category: "pool", Description: "A pool of magical energy for casting spells.", IsTrackable: true, RestoreOnLongRest: true, DisplayOrder: 1},
+			{Key: "spell_points", DisplayName: "Spell Points", Category: "pool", Description: "A pool of magical energy for casting spells.", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 1},
 		},
 	}
 }
 
 func riftWeaverLevelProgression() map[int]ClassLevelSeed {
-	// Rift Weaver is a full caster - cantrips and spells known scale with level
+	// Rift Weaver is a full caster - cantrips and spells known scale with level.
+	// spell_points must match ClassLevel.MaxSpellPoints (maxSpellPointsByLevel) for CharacterResource rows.
 	cantrips2, cantrips3, cantrips4, cantrips5 := 2, 3, 4, 5
 	spells2, spells3, spells4, spells5, spells6, spells7, spells8 := 2, 3, 4, 5, 6, 7, 8
 	spells9, spells10, spells11, spells12, spells13, spells14, spells15 := 9, 10, 11, 12, 13, 14, 15
+	sp := func(level int) map[string]int {
+		return map[string]int{"spell_points": maxSpellPointsByLevel(level)}
+	}
 	return map[int]ClassLevelSeed{
-		1:  {CantripsKnown: &cantrips2, SpellsKnown: &spells2},
-		2:  {CantripsKnown: &cantrips2, SpellsKnown: &spells3},
-		3:  {CantripsKnown: &cantrips2, SpellsKnown: &spells4},
-		4:  {CantripsKnown: &cantrips3, SpellsKnown: &spells5},
-		5:  {CantripsKnown: &cantrips3, SpellsKnown: &spells6},
-		6:  {CantripsKnown: &cantrips3, SpellsKnown: &spells7},
-		7:  {CantripsKnown: &cantrips3, SpellsKnown: &spells8},
-		8:  {CantripsKnown: &cantrips3, SpellsKnown: &spells9},
-		9:  {CantripsKnown: &cantrips3, SpellsKnown: &spells10},
-		10: {CantripsKnown: &cantrips4, SpellsKnown: &spells11},
-		11: {CantripsKnown: &cantrips4, SpellsKnown: &spells12},
-		12: {CantripsKnown: &cantrips4, SpellsKnown: &spells12},
-		13: {CantripsKnown: &cantrips4, SpellsKnown: &spells13},
-		14: {CantripsKnown: &cantrips4, SpellsKnown: &spells13},
-		15: {CantripsKnown: &cantrips4, SpellsKnown: &spells14},
-		16: {CantripsKnown: &cantrips4, SpellsKnown: &spells14},
-		17: {CantripsKnown: &cantrips5, SpellsKnown: &spells15},
-		18: {CantripsKnown: &cantrips5, SpellsKnown: &spells15},
-		19: {CantripsKnown: &cantrips5, SpellsKnown: &spells15},
-		20: {CantripsKnown: &cantrips5, SpellsKnown: &spells15},
+		1:  {CantripsKnown: &cantrips2, SpellsKnown: &spells2, Resources: sp(1)},
+		2:  {CantripsKnown: &cantrips2, SpellsKnown: &spells3, Resources: sp(2)},
+		3:  {CantripsKnown: &cantrips2, SpellsKnown: &spells4, Resources: sp(3)},
+		4:  {CantripsKnown: &cantrips3, SpellsKnown: &spells5, Resources: sp(4)},
+		5:  {CantripsKnown: &cantrips3, SpellsKnown: &spells6, Resources: sp(5)},
+		6:  {CantripsKnown: &cantrips3, SpellsKnown: &spells7, Resources: sp(6)},
+		7:  {CantripsKnown: &cantrips3, SpellsKnown: &spells8, Resources: sp(7)},
+		8:  {CantripsKnown: &cantrips3, SpellsKnown: &spells9, Resources: sp(8)},
+		9:  {CantripsKnown: &cantrips3, SpellsKnown: &spells10, Resources: sp(9)},
+		10: {CantripsKnown: &cantrips4, SpellsKnown: &spells11, Resources: sp(10)},
+		11: {CantripsKnown: &cantrips4, SpellsKnown: &spells12, Resources: sp(11)},
+		12: {CantripsKnown: &cantrips4, SpellsKnown: &spells12, Resources: sp(12)},
+		13: {CantripsKnown: &cantrips4, SpellsKnown: &spells13, Resources: sp(13)},
+		14: {CantripsKnown: &cantrips4, SpellsKnown: &spells13, Resources: sp(14)},
+		15: {CantripsKnown: &cantrips4, SpellsKnown: &spells14, Resources: sp(15)},
+		16: {CantripsKnown: &cantrips4, SpellsKnown: &spells14, Resources: sp(16)},
+		17: {CantripsKnown: &cantrips5, SpellsKnown: &spells15, Resources: sp(17)},
+		18: {CantripsKnown: &cantrips5, SpellsKnown: &spells15, Resources: sp(18)},
+		19: {CantripsKnown: &cantrips5, SpellsKnown: &spells15, Resources: sp(19)},
+		20: {CantripsKnown: &cantrips5, SpellsKnown: &spells15, Resources: sp(20)},
 	}
 }
 

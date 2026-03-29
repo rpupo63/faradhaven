@@ -24,8 +24,8 @@ func NewCorpseService(corpseRepo *database.CorpseRepo) *CorpseService {
 type CreateCorpseRequest struct {
 	MapID               *uuid.UUID `json:"map_id,omitempty"`
 	Name                string     `json:"name"`
-	CreatureType        string     `json:"creature_type"`
-	CreatureSize        string     `json:"creature_size,omitempty"`
+	CreatureType        models.CreatureType `json:"creature_type"`
+	CreatureSize        models.CreatureSize `json:"creature_size,omitempty"`
 	ChallengeRating     float64    `json:"challenge_rating,omitempty"`
 	GridX               *int       `json:"grid_x,omitempty"`
 	GridY               *int       `json:"grid_y,omitempty"`
@@ -38,8 +38,8 @@ type CreateCorpseRequest struct {
 // CreateCorpse creates a new corpse
 func (s *CorpseService) CreateCorpse(req CreateCorpseRequest) (*models.Corpse, error) {
 	size := req.CreatureSize
-	if size == "" {
-		size = "Medium"
+	if size == "" || !size.IsValid() {
+		size = models.SizeMedium
 	}
 
 	yield := req.ComponentYield
@@ -144,7 +144,7 @@ func (s *CorpseService) ConsumeCorpse(corpseID uuid.UUID, characterLevel int) (*
 	}
 
 	return &PsychometryResult{
-		CreatureType:    corpse.CreatureType,
+		CreatureType:    string(corpse.CreatureType),
 		ChallengeRating: corpse.ChallengeRating,
 		TraumaDC:        traumaDC,
 		Message:         "Psychometry ritual complete - make a Wisdom save against the Trauma DC",

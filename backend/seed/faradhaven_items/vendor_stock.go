@@ -1,0 +1,88 @@
+package faradhaven_items
+
+// VendorThematicItems are Faradhaven-specific goods used by seeded store owners.
+// Keep names stable: they map to store_owner_catalog_rules via ItemUUID(name).
+func VendorThematicItems() []ItemSeed {
+	return []ItemSeed{
+		{
+			Name:         "Homunculus Copper Slug (1 lb)",
+			Description:  "A stamped ingot of high-conductivity copper traded below the Faradollar economy in the Copper Veins.",
+			Category:     "Gear",
+			Rarity:       "Common",
+			Cost:         "5 gp",
+			Weight:       "1 lb.",
+			Effects:      "Liquid asset in Homunculi barter; counts as 5 gp toward trades in No-Go exchanges only (narrative).",
+			IsConsumable: false,
+		},
+		{
+			Name:         "ETC Day-Pass Chit",
+			Description:  "A wax-sealed cardboard chit stamped with the Elevated Transit Company spiral—good for one ascent to the Aerostat tiers.",
+			Category:     "Gear",
+			Rarity:       "Uncommon",
+			Cost:         "2 sp",
+			Weight:       "0 lb.",
+			Effects:      "Flavor: grants passage on ETC lifts for one day within Faradhaven.",
+			IsConsumable: true,
+		},
+		{
+			Name:         "ACC Armorer's Grease Tin",
+			Description:  "Government-issue lubricant for issue blades; smells faintly of regulations.",
+			Category:     "Gear",
+			Rarity:       "Common",
+			Cost:         "5 gp",
+			Weight:       "1 lb.",
+			Effects:      "Maintenance checks on martial weapons: advantage on one Intelligence (Tinker's tools) check to prevent jam or rust.",
+			IsConsumable: true,
+		},
+		{
+			Name:         "Dockyard Tar & Oakum Kit",
+			Description:  "A bucket of pitch, oakum, and a wooden spatula for caulking hulls and leaks.",
+			Category:     "Gear",
+			Rarity:       "Common",
+			Cost:         "8 gp",
+			Weight:       "12 lb.",
+			Effects:      "Patch a 5-ft hull breach in 10 minutes; holds against mundane water for 24 hours.",
+			IsConsumable: true,
+		},
+		{
+			Name:         "Sounding Lead & Line",
+			Description:  "A hollow brass weight and marked line for depth sounding and river-bottom sampling.",
+			Category:     "Gear",
+			Rarity:       "Common",
+			Cost:         "15 gp",
+			Weight:       "8 lb.",
+			Effects:      "Advantage on Wisdom (Survival) checks to navigate shoals or estimate depth.",
+			IsConsumable: false,
+		},
+		{
+			Name:         "ECC Serum Sample Jar (sealed)",
+			Description:  "Sterile glass with a rubber diaphragm—labels warn of 'baseline drift' if opened.",
+			Category:     "Gear",
+			Rarity:       "Common",
+			Cost:         "5 gp",
+			Weight:       "0.5 lb.",
+			Effects:      "Stores one dose of serum-class liquids without contamination for 72 hours.",
+			IsConsumable: false,
+		},
+		{
+			Name:         "Aerostat Silk Gloves",
+			Description:  "Paper-thin gloves for handling antiquities without leaving oils; utterly impractical in the Foundry.",
+			Category:     "Gear",
+			Rarity:       "Uncommon",
+			Cost:         "25 gp",
+			Weight:       "0 lb.",
+			Effects:      "Advantage on Dexterity (Sleight of Hand) when handling delicate objects; disadvantage on Strength checks using hands until removed.",
+			IsConsumable: false,
+		},
+		{
+			Name:         "No-Go Alley Chalk Set",
+			Description:  "Six sticks of water-resistant chalk in colors only smugglers bother to learn.",
+			Category:     "Gear",
+			Rarity:       "Common",
+			Cost:         "1 gp",
+			Weight:       "0 lb.",
+			Effects:      "Leave covert marks visible under Viridian-tinted fog; fades in 24 hours or with rain.",
+			IsConsumable: true,
+		},
+	}
+}

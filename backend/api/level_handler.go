@@ -37,41 +37,9 @@ func newLevelHandler(
 	}
 }
 
-// buildClassResources aggregates resource definitions, level values, and character state
-// into a response-ready slice of ClassResourceResponse.
-func (h *levelHandler) buildClassResources(classID uuid.UUID, level int, characterID uuid.UUID) []ClassResourceResponse {
-	defs, err := h.classRepo.FindResourceDefinitionsByClassID(classID)
-	if err != nil || len(defs) == 0 {
-		return nil
-	}
-
-	resourceMap, _ := h.classRepo.GetLevelResourceMap(classID, level)
-	charResources, _ := h.characterResourceRepo.FindByCharacterID(characterID)
-	charResMap := make(map[string]*models.CharacterResource, len(charResources))
-	for _, cr := range charResources {
-		charResMap[cr.ResourceKey] = cr
-	}
-
-	result := make([]ClassResourceResponse, 0, len(defs))
-	for _, def := range defs {
-		resp := ClassResourceResponse{
-			Key:          def.ResourceKey,
-			DisplayName:  def.DisplayName,
-			Category:     def.Category,
-			Description:  def.Description,
-			Value:        resourceMap[def.ResourceKey],
-			IsTrackable:  def.IsTrackable,
-			DisplayOrder: def.DisplayOrder,
-		}
-		if def.IsTrackable {
-			if cr, ok := charResMap[def.ResourceKey]; ok {
-				resp.CurrentValue = &cr.CurrentValue
-				resp.MaxValue = cr.MaxValue
-			}
-		}
-		result = append(result, resp)
-	}
-	return result
+// buildClassResources delegates to the shared package-level implementation.
+func (h *levelHandler) buildClassResources(classID uuid.UUID, level int, characterID uuid.UUID, character *models.Character) []ClassResourceResponse {
+	return buildClassResources(h.classRepo, h.characterResourceRepo, classID, level, characterID, character)
 }
 
 // levelUp handles POST /api/character/{characterID}/level-up
@@ -460,7 +428,7 @@ func (h *levelHandler) shortRest() http.HandlerFunc {
 			MaxSpellPoints:     maxSP,
 			HitDiceRemaining:   character.Level - character.HitDiceUsed,
 			HitDiceTotal:       character.Level,
-			ClassResources:     h.buildClassResources(character.ClassID, character.Level, character.ID),
+			ClassResources:     h.buildClassResources(character.ClassID, character.Level, character.ID, character),
 		}
 		respondJSON(w, http.StatusOK, resp)
 	}
@@ -513,7 +481,7 @@ func (h *levelHandler) longRest() http.HandlerFunc {
 			MaxSpellPoints:     maxSP,
 			HitDiceRemaining:   character.Level - character.HitDiceUsed,
 			HitDiceTotal:       character.Level,
-			ClassResources:     h.buildClassResources(character.ClassID, character.Level, character.ID),
+			ClassResources:     h.buildClassResources(character.ClassID, character.Level, character.ID, character),
 		}
 		respondJSON(w, http.StatusOK, resp)
 	}

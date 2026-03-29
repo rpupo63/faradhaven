@@ -38,13 +38,13 @@ func (h *mapElementHandler) createMapElement() http.HandlerFunc {
 			return
 		}
 
-		gameMap, err := h.gameMapRepo.GetByID(mapID)
+		ownerID, err := h.gameMapRepo.GetOwnerID(mapID)
 		if err != nil {
 			respondError(w, http.StatusNotFound, "Map not found")
 			return
 		}
 
-		if gameMap.OwnerID != userID {
+		if ownerID != userID {
 			respondError(w, http.StatusForbidden, "Only the DM can add map elements")
 			return
 		}
@@ -111,13 +111,13 @@ func (h *mapElementHandler) createMultipleMapElements() http.HandlerFunc {
 			return
 		}
 
-		gameMap, err := h.gameMapRepo.GetByID(mapID)
+		ownerID, err := h.gameMapRepo.GetOwnerID(mapID)
 		if err != nil {
 			respondError(w, http.StatusNotFound, "Map not found")
 			return
 		}
 
-		if gameMap.OwnerID != userID {
+		if ownerID != userID {
 			respondError(w, http.StatusForbidden, "Only the DM can add map elements")
 			return
 		}
@@ -128,15 +128,14 @@ func (h *mapElementHandler) createMultipleMapElements() http.HandlerFunc {
 			return
 		}
 
-		var createdElements []models.MapElement
+		elements := make([]*models.MapElement, 0, len(reqs.Elements))
 		for _, req := range reqs.Elements {
-			element := models.MapElement{
+			element := &models.MapElement{
 				MapID: mapID,
 				Type:  req.Type,
 				GridX: req.GridX,
 				GridY: req.GridY,
 			}
-
 			switch req.Type {
 			case models.MapElementTypeTrap:
 				element.TrapProperties = &models.TrapProperties{
@@ -157,16 +156,18 @@ func (h *mapElementHandler) createMultipleMapElements() http.HandlerFunc {
 					Details: derefString(req.WallDetails),
 				}
 			}
-
-			if err := h.elementRepo.CreateWithProperties(&element); err != nil {
-				// Log the error and continue, or respond with a 400 if partial success is not allowed.
-				// For now, let's just skip the element if creation fails.
-				// A more robust solution might collect errors and return them.
-				continue
-			}
-			createdElements = append(createdElements, element)
+			elements = append(elements, element)
 		}
 
+		if err := h.elementRepo.CreateMultipleWithProperties(elements); err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to create map elements")
+			return
+		}
+
+		createdElements := make([]models.MapElement, len(elements))
+		for i, e := range elements {
+			createdElements[i] = *e
+		}
 		respondJSON(w, http.StatusCreated, createdElements)
 	}
 }
@@ -196,13 +197,13 @@ func (h *mapElementHandler) updateMapElement() http.HandlerFunc {
 			return
 		}
 
-		gameMap, err := h.gameMapRepo.GetByID(mapID)
+		ownerID, err := h.gameMapRepo.GetOwnerID(mapID)
 		if err != nil {
 			respondError(w, http.StatusNotFound, "Map not found")
 			return
 		}
 
-		if gameMap.OwnerID != userID {
+		if ownerID != userID {
 			respondError(w, http.StatusForbidden, "Only the DM can update map elements")
 			return
 		}
@@ -263,13 +264,13 @@ func (h *mapElementHandler) deleteMapElement() http.HandlerFunc {
 			return
 		}
 
-		gameMap, err := h.gameMapRepo.GetByID(mapID)
+		ownerID, err := h.gameMapRepo.GetOwnerID(mapID)
 		if err != nil {
 			respondError(w, http.StatusNotFound, "Map not found")
 			return
 		}
 
-		if gameMap.OwnerID != userID {
+		if ownerID != userID {
 			respondError(w, http.StatusForbidden, "Only the DM can delete map elements")
 			return
 		}

@@ -11,6 +11,7 @@ type SharedNote struct {
 	ID          uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	Title       string    `json:"title" gorm:"not null"`
 	Description string    `json:"description" gorm:"type:text;not null"`
+	PdfURL      *string   `json:"pdfUrl,omitempty" gorm:"type:text"`
 	UserID      uuid.UUID `json:"userId" gorm:"type:uuid;not null"`
 	User        User      `json:"-" gorm:"foreignKey:UserID"`
 	Username    string    `json:"username" gorm:"not null"`

@@ -19,10 +19,10 @@ type LevelUpHistory struct {
 	Level int `json:"level" gorm:"type:int;not null"`
 
 	// Choices made during this level-up
-	SkillSelections   pq.StringArray `json:"skill_selections" gorm:"type:text[]"`  // new skills gained
-	ASIAllocation     datatypes.JSON `json:"asi_allocation" gorm:"type:jsonb"`     // {"strength": 1, "dexterity": 1}
-	SpellsLearned     pq.StringArray `json:"spells_learned" gorm:"type:text[]"`    // spell IDs added
-	FeaturesGained    pq.StringArray `json:"features_gained" gorm:"type:text[]"`   // feature IDs/names
+	SkillSelections   pq.StringArray `json:"skill_selections" gorm:"type:text[]"`           // new skills gained
+	ASIAllocation     datatypes.JSON `json:"asi_allocation" gorm:"type:jsonb"`              // {"strength": 1, "dexterity": 1}
+	SpellsLearned     pq.StringArray `json:"spells_learned" gorm:"type:text[]"`             // spell IDs added
+	FeaturesGained    pq.StringArray `json:"features_gained" gorm:"type:text[]"`            // feature IDs/names
 	ArchetypeSelected *uuid.UUID     `json:"archetype_selected,omitempty" gorm:"type:uuid"` // archetype chosen at this level (if any)
 
 	// SNAPSHOT: Complete character state BEFORE this level-up (for reversion)

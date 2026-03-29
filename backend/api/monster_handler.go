@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -137,9 +138,9 @@ func (h *monsterHandler) getMonstersByUser() http.HandlerFunc {
 // UpdateMonsterRequest represents the request body for updating a monster.
 // All fields are pointers to allow partial updates.
 type UpdateMonsterRequest struct {
-	Name                *string    `json:"name"`
-	Size                *string    `json:"size"`
-	Type                *string    `json:"type"`
+	Name                *string               `json:"name"`
+	Size                *models.CreatureSize  `json:"size"`
+	Type                *models.CreatureType  `json:"type"`
 	Alignment           *string    `json:"alignment"`
 	ChallengeRating     *string    `json:"challenge_rating"`
 	ProficiencyBonus    *int       `json:"proficiency_bonus"`
@@ -210,8 +211,22 @@ func (h *monsterHandler) updateMonster() http.HandlerFunc {
 
 		// Apply updates
 		if req.Name != nil { monster.Name = *req.Name }
-		if req.Size != nil { monster.Size = *req.Size }
-		if req.Type != nil { monster.Type = *req.Type }
+		if req.Size != nil {
+			sz, ok := models.ParseCreatureSize(strings.TrimSpace(string(*req.Size)))
+			if !ok {
+				respondError(w, http.StatusBadRequest, "invalid size")
+				return
+			}
+			monster.Size = sz
+		}
+		if req.Type != nil {
+			ty, ok := models.ParseCreatureType(strings.TrimSpace(string(*req.Type)))
+			if !ok {
+				respondError(w, http.StatusBadRequest, "invalid type")
+				return
+			}
+			monster.Type = ty
+		}
 		if req.Alignment != nil { monster.Alignment = *req.Alignment }
 		if req.ChallengeRating != nil { monster.ChallengeRating = *req.ChallengeRating }
 		if req.ProficiencyBonus != nil { monster.ProficiencyBonus = *req.ProficiencyBonus }

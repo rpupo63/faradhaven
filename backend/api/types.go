@@ -33,6 +33,8 @@ type routeHandlers struct {
 	lootHandler            *LootHandler
 	monsterHandler         *monsterHandler
 	partyHandler           *partyHandler // NEW: Party Handler
+	abilityHandler         *abilityHandler
+	storeOwnerHandler      *storeOwnerHandler
 }
 
 // ErrorResponse represents an error response from the API
@@ -64,17 +66,17 @@ type UpdateMapRequest struct {
 }
 
 type CreateTokenRequest struct {
-	CharacterID    *uuid.UUID `json:"character_id,omitempty"`
-	MonsterID      *uuid.UUID `json:"monster_id,omitempty"`
-	AssignedUserID *uuid.UUID `json:"assigned_user_id,omitempty"`
-	Name           string     `json:"name"`
-	ImageURL       string     `json:"image_url"`
-	TokenType      string     `json:"token_type"` // "pc" or "npc"
-	GridX          int        `json:"grid_x"`
-	GridY          int        `json:"grid_y"`
-	Size           int        `json:"size"`
-	Color          string     `json:"color"`
-	Visible        bool       `json:"visible"`
+	CharacterID    *uuid.UUID          `json:"character_id,omitempty"`
+	MonsterID      *uuid.UUID          `json:"monster_id,omitempty"`
+	AssignedUserID *uuid.UUID          `json:"assigned_user_id,omitempty"`
+	Name           string              `json:"name"`
+	ImageURL       string              `json:"image_url"`
+	TokenType      models.MapTokenType `json:"token_type"` // "pc" or "npc"; empty defaults to npc
+	GridX          int                 `json:"grid_x"`
+	GridY          int                 `json:"grid_y"`
+	Size           int                 `json:"size"`
+	Color          string              `json:"color"`
+	Visible        bool                `json:"visible"`
 }
 
 type UpdateTokenRequest struct {
@@ -88,7 +90,7 @@ type UpdateTokenRequest struct {
 	MonsterID      *uuid.UUID `json:"monster_id,omitempty"`       // DM re-link to monster
 	Name           *string    `json:"name,omitempty"`
 	ImageURL       *string    `json:"image_url,omitempty"`
-	TokenType      *string    `json:"token_type,omitempty"`
+	TokenType      *models.MapTokenType `json:"token_type,omitempty"`
 }
 
 type CreateMapElementRequest struct {
@@ -360,8 +362,9 @@ type UpdateBackstoryRequest struct {
 
 // PurchaseItemRequest is the request body for purchasing an item or weapon
 type PurchaseItemRequest struct {
-	ItemType string    `json:"item_type"` // "weapon" or "item"
-	ItemID   uuid.UUID `json:"item_id"`
+	ItemType      string     `json:"item_type"` // "weapon" or "item"
+	ItemID        uuid.UUID  `json:"item_id"`
+	StoreOwnerID  *uuid.UUID `json:"store_owner_id,omitempty"` // optional vendor; applies exchange_rate when valid
 }
 
 // CastSpellRequest is the request body for casting a spell
@@ -440,6 +443,7 @@ type CharacterSheetResponse struct {
 	HarvestedAbilities       models.HarvestedAbilities   `json:"harvested_abilities"`
 	ClassResources           []ClassResourceResponse     `json:"class_resources"`
 	MadnessTable             map[int]string              `json:"madness_table,omitempty"`
+	TraitUseStates           map[string]int              `json:"trait_use_states,omitempty"` // traitID → current uses
 }
 
 // ConsumeCorpseRequest is the request body for consuming a corpse (Lorewright Visceral Psychometry)
@@ -451,7 +455,7 @@ type ConsumeCorpseRequest struct {
 type CreateCorpseRequest struct {
 	MapID               *uuid.UUID `json:"map_id,omitempty"`
 	Name                string     `json:"name"`
-	CreatureType        string     `json:"creature_type"`
+	CreatureType        string     `json:"creature_type"` // parsed via [models.ParseCreatureType]
 	CreatureSize        string     `json:"creature_size,omitempty"`
 	ChallengeRating     float64    `json:"challenge_rating,omitempty"`
 	GridX               *int       `json:"grid_x,omitempty"`
@@ -590,36 +594,44 @@ type ResourceDeltaRequest struct {
 
 // Spell Types
 
+// RetryAIFieldRequest requests a fresh AI recommendation for one specific spell field.
+// Set ApplyRecommendation to true to also overwrite the original spell field with the new recommendation.
+type RetryAIFieldRequest struct {
+	Field               string `json:"field"`                // one of: name, description, type, range, duration, damage_dice, damage_type, save_attr
+	ApplyRecommendation bool   `json:"apply_recommendation"` // true = overwrite original field with recommendation
+}
+
 type CreateSpellRequest struct {
-	UserID        uuid.UUID          `json:"user_id"`
-	CharacterID   *uuid.UUID         `json:"character_id,omitempty"`
-	Name          string             `json:"name"`
-	Description   string             `json:"description"`
-	SlotLevel     int                `json:"slot_level"`
-	Type          string             `json:"type"`
-	Range         *string            `json:"range,omitempty"`
-	Duration      *string            `json:"duration,omitempty"`
-	Concentration bool               `json:"concentration"`
-	SaveAttr      *string            `json:"save_attr,omitempty"`
-	DamageDice    *string            `json:"damage_dice,omitempty"`
-	DamageType    *models.DamageType `json:"damage_type,omitempty"`
-	AddModifier   bool               `json:"add_modifier"`
-	ComponentIDs  []uuid.UUID        `json:"component_ids"`
+	UserID             uuid.UUID             `json:"user_id"`
+	CharacterID        *uuid.UUID            `json:"character_id,omitempty"`
+	Name               string                `json:"name"`
+	Description        string                `json:"description"`
+	Type               models.SpellType      `json:"type"`
+	Range              *int                  `json:"range,omitempty"`
+	Duration           *string               `json:"duration,omitempty"`
+	Concentration      bool                  `json:"concentration"`
+	SaveAttr           *models.SaveAttribute `json:"save_attr,omitempty"`
+	DamageDiceCount    *int                  `json:"damage_dice_count,omitempty"`
+	DamageDieSize      *int                  `json:"damage_die_size,omitempty"`
+	DamageType         *models.DamageType    `json:"damage_type,omitempty"`
+	AddModifier        bool                  `json:"add_modifier"`
+	ComponentIDs       []uuid.UUID           `json:"component_ids"`
 }
 
 type UpdateSpellRequest struct {
-	Name          *string            `json:"name,omitempty"`
-	Description   *string            `json:"description,omitempty"`
-	SlotLevel     *int               `json:"slot_level,omitempty"`
-	Type          *string            `json:"type,omitempty"`
-	Range         *string            `json:"range,omitempty"`
-	Duration      *string            `json:"duration,omitempty"`
-	Concentration *bool              `json:"concentration,omitempty"`
-	SaveAttr      *string            `json:"save_attr,omitempty"`
-	DamageDice    *string            `json:"damage_dice,omitempty"`
-	DamageType    *models.DamageType `json:"damage_type,omitempty"`
-	AddModifier   *bool              `json:"add_modifier,omitempty"`
-	ComponentIDs  []uuid.UUID        `json:"component_ids,omitempty"`
+	Name              *string               `json:"name,omitempty"`
+	Description       *string               `json:"description,omitempty"`
+	Type              *models.SpellType     `json:"type,omitempty"`
+	Range             *int                  `json:"range,omitempty"`
+	Duration          *string               `json:"duration,omitempty"`
+	Concentration     *bool                 `json:"concentration,omitempty"`
+	SaveAttr          *models.SaveAttribute `json:"save_attr,omitempty"`
+	DamageDiceCount   *int                  `json:"damage_dice_count,omitempty"`
+	DamageDieSize     *int                  `json:"damage_die_size,omitempty"`
+	DamageType        *models.DamageType    `json:"damage_type,omitempty"`
+	AddModifier       *bool                 `json:"add_modifier,omitempty"`
+	Checked           *bool                 `json:"checked,omitempty"`
+	ComponentIDs      []uuid.UUID           `json:"component_ids,omitempty"`
 }
 
 // User Types

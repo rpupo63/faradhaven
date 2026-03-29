@@ -42,6 +42,7 @@ func Mutagen() FaradhavenClassSeed {
 		ResourceDefinitions: []ResourceDefinitionSeed{
 			{Key: "madness_base_dc", DisplayName: "Madness Base DC", Category: "state", Description: "Starting DC for Madness saving throws (resets on rest)", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 1},
 			{Key: "feral_bonus", DisplayName: "Feral Bonus", Category: "modifier", Description: "Extra melee damage while in Feral Mode", DisplayOrder: 2},
+			{Key: "madness_resistance_uses", DisplayName: "Madness Resistance", Category: "pool", Description: "Uses per day to auto-succeed a failed Madness save", IsTrackable: true, RestoreOnLongRest: true, DisplayOrder: 3},
 		},
 		ComponentPool: []string{
 			// Forma (Shape)
@@ -143,25 +144,25 @@ func mutagenLevelProgression() map[int]ClassLevelSeed {
 	// Mutagen gets Extra Attack at level 5
 	// MadnessBaseDC is always 10, FeralBonus scales with level
 	return map[int]ClassLevelSeed{
-		1:  {Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 2}},
-		2:  {Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 2}},
-		3:  {Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 2}},
-		4:  {Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 2}},
-		5:  {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 3}},
-		6:  {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 3}},
-		7:  {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 3}},
-		8:  {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 3}},
-		9:  {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 4}},
-		10: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 4}},
-		11: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 4}},
-		12: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 4}},
-		13: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 5}},
-		14: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 5}},
-		15: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 5}},
-		16: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 5}},
-		17: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 6}},
-		18: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 6}},
-		19: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 6}},
-		20: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 7}},
+		1:  {Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 2, "madness_resistance_uses": 1}},
+		2:  {Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 2, "madness_resistance_uses": 1}},
+		3:  {Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 2, "madness_resistance_uses": 1}},
+		4:  {Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 2, "madness_resistance_uses": 1}},
+		5:  {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 3, "madness_resistance_uses": 2}},
+		6:  {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 3, "madness_resistance_uses": 2}},
+		7:  {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 3, "madness_resistance_uses": 2}},
+		8:  {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 3, "madness_resistance_uses": 2}},
+		9:  {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 4, "madness_resistance_uses": 2}},
+		10: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 4, "madness_resistance_uses": 2}},
+		11: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 4, "madness_resistance_uses": 2}},
+		12: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 4, "madness_resistance_uses": 2}},
+		13: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 5, "madness_resistance_uses": 2}},
+		14: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 5, "madness_resistance_uses": 2}},
+		15: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 5, "madness_resistance_uses": 2}},
+		16: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 5, "madness_resistance_uses": 2}},
+		17: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 6, "madness_resistance_uses": 2}},
+		18: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 6, "madness_resistance_uses": 2}},
+		19: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 6, "madness_resistance_uses": 2}},
+		20: {ExtraAttackCount: 1, Resources: map[string]int{"madness_base_dc": 10, "feral_bonus": 7, "madness_resistance_uses": 2}},
 	}
 }

@@ -101,13 +101,32 @@ func (h *gameMapHandler) getUserMaps() http.HandlerFunc {
 			return
 		}
 
-		maps, err := h.gameMapRepo.GetByOwner(userID)
+		owned, err := h.gameMapRepo.GetByOwner(userID)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, "Failed to retrieve maps")
 			return
 		}
 
-		respondJSON(w, http.StatusOK, maps)
+		joined, err := h.gameMapRepo.GetByAssignedUser(userID)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to retrieve joined maps")
+			return
+		}
+
+		// Merge, deduplicating by ID (owned takes precedence)
+		seen := make(map[uuid.UUID]struct{}, len(owned))
+		result := make([]models.GameMap, 0, len(owned)+len(joined))
+		for _, m := range owned {
+			seen[m.ID] = struct{}{}
+			result = append(result, m)
+		}
+		for _, m := range joined {
+			if _, ok := seen[m.ID]; !ok {
+				result = append(result, m)
+			}
+		}
+
+		respondJSON(w, http.StatusOK, result)
 	}
 }
 

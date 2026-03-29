@@ -1,6 +1,7 @@
 package faradhaven_classes
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/rpupo63/unified-personal-site-backend/models"
 	"github.com/rpupo63/unified-personal-site-backend/seed/batch"
 	"github.com/rpupo63/unified-personal-site-backend/seed/uuids"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -56,12 +58,12 @@ func proficiencyByLevel(level int) int {
 	}
 }
 
-// maxSpellPointsByLevel scales 50-100 for component-mixing
+// maxSpellPointsByLevel scales ~50–90 for component-mixing (tuned vs D&D full-caster slot budgets).
 func maxSpellPointsByLevel(level int) int {
 	if level < 1 {
 		level = 1
 	}
-	return 50 + (level * 2)
+	return 48 + (level * 2)
 }
 
 // abilityScoreImprovementByLevel returns ASI points at D&D standard levels (4, 8, 12, 16, 19)
@@ -251,14 +253,44 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 							continue
 						}
 						featureID := uuids.LevelFeatureUUID(classLevelID, f.Name, sortOrder)
-						allLevelFeatures = append(allLevelFeatures, models.LevelFeature{
-							ID:           featureID,
-							ClassLevelID: classLevelID,
-							ArchetypeID:  nil, // shared by all archetypes
-							Name:         f.Name,
-							Description:  f.Description,
-							SortOrder:    sortOrder,
-						})
+						lf := models.LevelFeature{
+							ID:             featureID,
+							ClassLevelID:   classLevelID,
+							ArchetypeID:    nil,
+							Name:           f.Name,
+							Description:    f.Description,
+							SortOrder:      sortOrder,
+							ActionType:     f.ActionType,
+							UsesPerRest:    f.UsesPerRest,
+							ResetCondition: f.ResetCondition,
+						}
+						if len(f.ResourceCosts) > 0 {
+							type rcJSON struct {
+								Key    string `json:"key"`
+								Amount int    `json:"amount"`
+							}
+							costs := make([]rcJSON, len(f.ResourceCosts))
+							for i, rc := range f.ResourceCosts {
+								costs[i] = rcJSON{Key: rc.Key, Amount: rc.Amount}
+							}
+							if b, err := json.Marshal(costs); err == nil {
+								lf.ResourceCosts = datatypes.JSON(b)
+							}
+						}
+						if len(f.ResourceGains) > 0 {
+							type rgJSON struct {
+								Key    string `json:"key"`
+								Amount int    `json:"amount"`
+							}
+							gains := make([]rgJSON, len(f.ResourceGains))
+							for i, rg := range f.ResourceGains {
+								gains[i] = rgJSON{Key: rg.Key, Amount: rg.Amount}
+							}
+							if b, err := json.Marshal(gains); err == nil {
+								lf.ResourceGains = datatypes.JSON(b)
+							}
+						}
+						allLevelFeatures = append(allLevelFeatures, lf)
 						sortOrder++
 					}
 				}
@@ -273,14 +305,44 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 						}
 						archetypeID := archetypeMap[cs.Name+":"+as.Name]
 						featureID := uuids.LevelFeatureUUID(classLevelID, f.Name, sortOrder)
-						allLevelFeatures = append(allLevelFeatures, models.LevelFeature{
-							ID:           featureID,
-							ClassLevelID: classLevelID,
-							ArchetypeID:  &archetypeID,
-							Name:         f.Name,
-							Description:  f.Description,
-							SortOrder:    sortOrder,
-						})
+						lf := models.LevelFeature{
+							ID:             featureID,
+							ClassLevelID:   classLevelID,
+							ArchetypeID:    &archetypeID,
+							Name:           f.Name,
+							Description:    f.Description,
+							SortOrder:      sortOrder,
+							ActionType:     f.ActionType,
+							UsesPerRest:    f.UsesPerRest,
+							ResetCondition: f.ResetCondition,
+						}
+						if len(f.ResourceCosts) > 0 {
+							type rcJSON struct {
+								Key    string `json:"key"`
+								Amount int    `json:"amount"`
+							}
+							costs := make([]rcJSON, len(f.ResourceCosts))
+							for i, rc := range f.ResourceCosts {
+								costs[i] = rcJSON{Key: rc.Key, Amount: rc.Amount}
+							}
+							if b, err := json.Marshal(costs); err == nil {
+								lf.ResourceCosts = datatypes.JSON(b)
+							}
+						}
+						if len(f.ResourceGains) > 0 {
+							type rgJSON struct {
+								Key    string `json:"key"`
+								Amount int    `json:"amount"`
+							}
+							gains := make([]rgJSON, len(f.ResourceGains))
+							for i, rg := range f.ResourceGains {
+								gains[i] = rgJSON{Key: rg.Key, Amount: rg.Amount}
+							}
+							if b, err := json.Marshal(gains); err == nil {
+								lf.ResourceGains = datatypes.JSON(b)
+							}
+						}
+						allLevelFeatures = append(allLevelFeatures, lf)
 						sortOrder++
 					}
 				}
@@ -298,13 +360,17 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 
 		// Collect class resource definitions
 		for _, rd := range cs.ResourceDefinitions {
+			cat, ok := models.ParseClassResourceCategory(rd.Category)
+			if !ok {
+				return fmt.Errorf("class %q resource %q: invalid category %q", cs.Name, rd.Key, rd.Category)
+			}
 			defID := uuids.ClassResourceDefUUID(cs.Name, rd.Key)
 			allResourceDefs = append(allResourceDefs, models.ClassResourceDefinition{
 				ID:                 defID,
 				ClassID:            classID,
 				ResourceKey:        rd.Key,
 				DisplayName:        rd.DisplayName,
-				Category:           rd.Category,
+				Category:           cat,
 				Description:        rd.Description,
 				DisplayOrder:       rd.DisplayOrder,
 				IsTrackable:        rd.IsTrackable,

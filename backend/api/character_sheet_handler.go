@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// getCharacterSheet returns the fully calculated character sheet (Class + ClassLevel joined)
+// getCharacterSheet returns the fully calculated character sheet
 func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "characterID")
@@ -23,26 +23,25 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 			return
 		}
 
-		character, err := h.characterRepo.FindByID(id)
-		if err != nil {
-			respondError(w, http.StatusNotFound, "Character not found")
-			return
-		}
-
 		authUserID, err := ctxGetUserID(r.Context())
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-		if authUserID != character.UserID.String() {
-			respondError(w, http.StatusForbidden, "Forbidden")
-			return
-		}
 
 		sheet, err := h.getCharacterSheetData(id)
 		if err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				respondError(w, http.StatusNotFound, "Character not found")
+				return
+			}
 			log.Error().Err(err).Msg("Failed to get character sheet data")
 			respondError(w, http.StatusInternalServerError, "Failed to get character sheet")
+			return
+		}
+
+		if authUserID != sheet.Character.UserID.String() {
+			respondError(w, http.StatusForbidden, "Forbidden")
 			return
 		}
 
@@ -51,65 +50,36 @@ func (h *characterHandler) getCharacterSheet() http.HandlerFunc {
 }
 
 func (h *characterHandler) getCharacterSheetData(id uuid.UUID) (*CharacterSheetResponse, error) {
-	character, err := h.characterRepo.FindByIDWithRelations(id) // Changed to FindByIDWithRelations
+	// Single query: loads all relations needed for the sheet including equipment,
+	// class levels with features, race traits, and components.
+	character, err := h.characterRepo.FindByIDForSheet(id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get character: %w", err)
 	}
 
-	// NEW: If character is part of a party, load party members and identified beasts
+	// If character is part of a party, load party members and identified beasts in ONE call
 	if character.PartyID != nil {
-		party, err := h.partyRepo.FindByID(*character.PartyID)
+		party, err := h.partyRepo.FindByIDWithMembersAndBeasts(*character.PartyID)
 		if err != nil {
 			log.Error().Err(err).Str("partyID", character.PartyID.String()).Msg("Failed to get party for character sheet")
-			// Continue without party members/beasts if party not found
 		} else {
-			members, err := h.partyRepo.GetMembers(*character.PartyID)
-			if err != nil {
-				log.Error().Err(err).Str("partyID", character.PartyID.String()).Msg("Failed to get party members for character sheet")
-			} else {
-				party.Members = members
-			}
-			identifiedBeasts, err := h.partyRepo.GetIdentifiedBeasts(*character.PartyID)
-			if err != nil {
-				log.Error().Err(err).Str("partyID", character.PartyID.String()).Msg("Failed to get identified beasts for character sheet")
-			} else {
-				party.IdentifiedBeasts = identifiedBeasts
-			}
 			character.Party = party
 		}
 	}
 
-	// Preload weapons with modifiers and items for the sheet
-	if err := h.characterRepo.GetDB().
-		Preload("CharacterWeapons.Weapon.Damages").
-		Preload("CharacterWeapons.Modifiers").
-		Preload("Items").
-		Preload("EquippedArmor").
-		Preload("EquippedShield").
-		First(character, "id = ?", id).Error; err != nil {
-		return nil, fmt.Errorf("failed to preload equipment: %w", err)
+	// Derive classLevel from the preloaded class levels — no extra DB call needed
+	class := &character.Class
+	var classLevel *models.ClassLevel
+	for i := range class.Levels {
+		if class.Levels[i].Level == character.Level {
+			classLevel = &class.Levels[i]
+			break
+		}
+	}
+	if classLevel == nil {
+		return nil, fmt.Errorf("level data not found for class at level %d", character.Level)
 	}
 
-	// Fetch class with components for spell crafting
-	class, err := h.classRepo.FindByIDWithLevels(character.ClassID)
-	if err != nil {
-		return nil, fmt.Errorf("class not found for character: %w", err)
-	}
-
-	// Fetch race with components for spell crafting
-	race, err := h.raceRepo.FindByID(character.RaceID)
-	if err != nil {
-		return nil, fmt.Errorf("race not found for character: %w", err)
-	}
-
-	classLevel, err := h.classRepo.FindLevelByClassAndLevel(character.ClassID, character.Level)
-	if err != nil {
-		return nil, fmt.Errorf("level data not found for class: %w", err)
-	}
-
-	// Assign fully-loaded class (with Levels + LevelFeatures) so ComputeStats
-	// can resolve Unarmored Defense and other level-gated features.
-	character.Class = *class
 	character.CurrentClassLevel = classLevel
 	character.ComputeStats()
 	stats := character.ComputedStats
@@ -131,7 +101,7 @@ func (h *characterHandler) getCharacterSheetData(id uuid.UUID) (*CharacterSheetR
 	for _, comp := range class.Components {
 		componentMap[comp.ID] = comp
 	}
-	for _, comp := range race.Components {
+	for _, comp := range character.Race.Components {
 		componentMap[comp.ID] = comp
 	}
 	availableComponents := make([]models.Component, 0, len(componentMap))
@@ -139,12 +109,8 @@ func (h *characterHandler) getCharacterSheetData(id uuid.UUID) (*CharacterSheetR
 		availableComponents = append(availableComponents, comp)
 	}
 
-	// Race Traits
-	raceTraits, err := h.raceRepo.FindByIDWithTraits(character.RaceID)
-	var traits []models.Trait
-	if err == nil {
-		traits = raceTraits.Traits
-	}
+	// Race traits are already preloaded via FindByIDForSheet (Race.Traits.Options)
+	traits := character.Race.Traits
 
 	// Lineage Traits
 	var lineage *models.Lineage
@@ -232,7 +198,7 @@ func (h *characterHandler) getCharacterSheetData(id uuid.UUID) (*CharacterSheetR
 		InventoryItems:           character.Items,
 		Components:               componentsList,
 		HarvestedAbilities:       harvestedAbilities,
-		ClassResources:           h.buildClassResources(character.ClassID, character.Level, character.ID),
+		ClassResources:           h.buildClassResources(character.ClassID, character.Level, character.ID, character),
 	}
 
 	if class.Name == "The Lorewright" {
@@ -241,6 +207,21 @@ func (h *characterHandler) getCharacterSheetData(id uuid.UUID) (*CharacterSheetR
 
 	if class.Name == "The Mutagen" {
 		sheet.MadnessTable = faradhaven_classes.MutagenFeralTable()
+	}
+
+	// Build trait use states for limited-use race/lineage traits
+	traitUseStates := make(map[string]int)
+	for _, t := range traits {
+		if t.UsesPerRest == "" {
+			continue
+		}
+		key := "trait_" + t.ID.String()
+		if cr, lookupErr := h.characterResourceRepo.FindByCharacterAndKey(id, key); lookupErr == nil {
+			traitUseStates[t.ID.String()] = cr.CurrentValue
+		}
+	}
+	if len(traitUseStates) > 0 {
+		sheet.TraitUseStates = traitUseStates
 	}
 
 	return sheet, nil

@@ -11,11 +11,12 @@ import (
 // such as Ironwright components, extracted essences, or custom pools.
 type CharacterResource struct {
 	ID          uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid();not null"`
-	CharacterID uuid.UUID `json:"character_id" gorm:"type:uuid;not null;index"`
+	CharacterID uuid.UUID `json:"character_id" gorm:"type:uuid;not null;uniqueIndex:idx_char_resource_lookup,priority:1"`
 
 	// Resource identification
-	ResourceKey  string `json:"resource_key" gorm:"type:text;not null;index"`  // e.g., "components", "primal_fire", "stockpile"
-	ResourceName string `json:"resource_name" gorm:"type:text;not null"`       // Display name
+	// The unique composite index on (character_id, resource_key) covers FindByCharacterAndKey queries.
+	ResourceKey  string `json:"resource_key" gorm:"type:text;not null;uniqueIndex:idx_char_resource_lookup,priority:2"`
+	ResourceName string `json:"resource_name" gorm:"type:text;not null"` // Display name
 
 	// Current and max values
 	CurrentValue int  `json:"current_value" gorm:"type:int;default:0"`

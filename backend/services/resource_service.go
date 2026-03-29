@@ -19,15 +19,58 @@ func NewResourceService(classRepo *database.ClassRepo, resourceRepo *database.Ch
 	}
 }
 
+func abilityModifier(score int) int {
+	return (score - 10) / 2
+}
+
+func proficiencyBonusForLevel(level int) int {
+	if level < 1 {
+		level = 1
+	}
+	switch {
+	case level <= 4:
+		return 2
+	case level <= 8:
+		return 3
+	case level <= 12:
+		return 4
+	case level <= 16:
+		return 5
+	default:
+		return 6
+	}
+}
+
+// VaporBladeShadowPointsMax is Dexterity modifier + proficiency bonus (minimum 1), per class rules.
+func VaporBladeShadowPointsMax(dexterity int, level int) int {
+	n := abilityModifier(dexterity) + proficiencyBonusForLevel(level)
+	if n < 1 {
+		return 1
+	}
+	return n
+}
+
 // InitializeCharacterResources creates CharacterResource rows for all trackable resources
 // defined by the character's class. Called during character creation.
-func (s *ResourceService) InitializeCharacterResources(characterID, classID uuid.UUID, level int) error {
+func (s *ResourceService) InitializeCharacterResources(character *models.Character) error {
+	if character == nil {
+		return nil
+	}
+	characterID := character.ID
+	classID := character.ClassID
+	level := character.Level
+
 	defs, err := s.classRepo.FindResourceDefinitionsByClassID(classID)
 	if err != nil {
 		return err
 	}
 	if len(defs) == 0 {
 		return nil
+	}
+
+	class, err := s.classRepo.FindByID(classID)
+	if err != nil {
+		return err
 	}
 
 	// Get level resource values for initial max
@@ -46,6 +89,9 @@ func (s *ResourceService) InitializeCharacterResources(characterID, classID uuid
 		}
 
 		maxVal := levelResourceMap[def.ResourceKey]
+		if class.Name == "The Vapor Blade" && def.ResourceKey == "shadow_points" {
+			maxVal = VaporBladeShadowPointsMax(character.Dexterity, level)
+		}
 		maxValPtr := &maxVal
 
 		res := &models.CharacterResource{
@@ -66,7 +112,19 @@ func (s *ResourceService) InitializeCharacterResources(characterID, classID uuid
 
 // UpdateCharacterResourcesForLevel updates CharacterResource MaxValue from the new level's
 // ClassLevelResource values. Called during level-up.
-func (s *ResourceService) UpdateCharacterResourcesForLevel(characterID, classID uuid.UUID, level int) error {
+func (s *ResourceService) UpdateCharacterResourcesForLevel(character *models.Character) error {
+	if character == nil {
+		return nil
+	}
+	characterID := character.ID
+	classID := character.ClassID
+	level := character.Level
+
+	class, err := s.classRepo.FindByID(classID)
+	if err != nil {
+		return err
+	}
+
 	levelResources, err := s.classRepo.FindLevelResourcesByClassAndLevel(classID, level)
 	if err != nil {
 		return err
@@ -82,16 +140,22 @@ func (s *ResourceService) UpdateCharacterResourcesForLevel(characterID, classID 
 	}
 
 	for _, res := range existingResources {
-		if newMax, ok := levelResourceMap[res.ResourceKey]; ok {
-			maxVal := newMax
-			res.MaxValue = &maxVal
-			// If current exceeds new max, cap it
-			if res.CurrentValue > newMax {
-				res.CurrentValue = newMax
-			}
-			if err := s.resourceRepo.Update(res); err != nil {
-				return err
-			}
+		newMax, ok := levelResourceMap[res.ResourceKey]
+		if !ok && class.Name == "The Vapor Blade" && res.ResourceKey == "shadow_points" {
+			newMax = VaporBladeShadowPointsMax(character.Dexterity, level)
+			ok = true
+		}
+		if !ok {
+			continue
+		}
+		maxVal := newMax
+		res.MaxValue = &maxVal
+		// If current exceeds new max, cap it
+		if res.CurrentValue > newMax {
+			res.CurrentValue = newMax
+		}
+		if err := s.resourceRepo.Update(res); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -126,6 +190,11 @@ func (s *ResourceService) GetAllCharacterResources(characterID uuid.UUID) ([]*mo
 // DeductResource deducts the specified amount from a character's resource.
 func (s *ResourceService) DeductResource(characterID uuid.UUID, resourceKey string, amount int) error {
 	return s.resourceRepo.UpdateCurrentValue(characterID, resourceKey, -amount)
+}
+
+// RestoreResourceToMax sets a trackable pool to its current max (used to keep spell_points in sync with rests).
+func (s *ResourceService) RestoreResourceToMax(characterID uuid.UUID, resourceKey string) error {
+	return s.resourceRepo.RestoreResourceToMax(characterID, resourceKey)
 }
 
 // RestoreClassResources handles resource restoration during rests.

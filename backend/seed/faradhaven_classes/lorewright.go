@@ -57,6 +57,7 @@ func Lorewright() FaradhavenClassSeed {
 		},
 		ResourceDefinitions: []ResourceDefinitionSeed{
 			{Key: "echo_slots", DisplayName: "Harvest Slots", Category: "slot_count", Description: "Total harvest slots for storing absorbed abilities", DisplayOrder: 1},
+			{Key: "madness_die", DisplayName: "Madness Die", Category: "die_size", Description: "Die size rolled when Psychic Strain triggers", DisplayOrder: 2},
 		},
 	}
 }

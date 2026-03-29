@@ -75,6 +75,61 @@ func (r *MapElementRepo) CreateWithProperties(element *models.MapElement) error 
 	})
 }
 
+// CreateMultipleWithProperties creates several MapElements and their property records
+// in a single transaction, replacing the per-element loop in the bulk-create handler.
+func (r *MapElementRepo) CreateMultipleWithProperties(elements []*models.MapElement) error {
+	if len(elements) == 0 {
+		return nil
+	}
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		for _, element := range elements {
+			trapProps := element.TrapProperties
+			dtProps := element.DifficultTerrainProperties
+			elevProps := element.ElevationProperties
+			wallProps := element.WallProperties
+
+			element.TrapProperties = nil
+			element.DifficultTerrainProperties = nil
+			element.ElevationProperties = nil
+			element.WallProperties = nil
+
+			if err := tx.Create(element).Error; err != nil {
+				return err
+			}
+
+			if trapProps != nil {
+				trapProps.MapElementID = element.ID
+				if err := tx.Create(trapProps).Error; err != nil {
+					return err
+				}
+				element.TrapProperties = trapProps
+			}
+			if dtProps != nil {
+				dtProps.MapElementID = element.ID
+				if err := tx.Create(dtProps).Error; err != nil {
+					return err
+				}
+				element.DifficultTerrainProperties = dtProps
+			}
+			if elevProps != nil {
+				elevProps.MapElementID = element.ID
+				if err := tx.Create(elevProps).Error; err != nil {
+					return err
+				}
+				element.ElevationProperties = elevProps
+			}
+			if wallProps != nil {
+				wallProps.MapElementID = element.ID
+				if err := tx.Create(wallProps).Error; err != nil {
+					return err
+				}
+				element.WallProperties = wallProps
+			}
+		}
+		return nil
+	})
+}
+
 func (r *MapElementRepo) GetByID(id uuid.UUID) (*models.MapElement, error) {
 	var element models.MapElement
 	if err := r.db.

@@ -18,14 +18,14 @@ type ClassResourceDefinition struct {
 	DisplayName string `json:"display_name" gorm:"type:text;not null"`                                     // e.g., "Concurrency Limit", "Stability"
 
 	// Rendering/category metadata
-	Category    string `json:"category" gorm:"type:text;not null"` // "pool", "die_size", "limit", "slot_count", "modifier", "state"
+	Category    ClassResourceCategory `json:"category" gorm:"type:text;not null"`
 	Description string `json:"description" gorm:"type:text"`       // tooltip/explanation text
 
 	// UI ordering
 	DisplayOrder int `json:"display_order" gorm:"type:int;default:0"` // controls rendering order on character sheet
 
 	// Behavior configuration
-	IsTrackable        bool `json:"is_trackable" gorm:"default:false"`        // true if character has mutable current value (pools, counters)
+	IsTrackable        bool `json:"is_trackable" gorm:"default:false"`          // true if character has mutable current value (pools, counters)
 	RestoreOnShortRest bool `json:"restore_on_short_rest" gorm:"default:false"` // restore current_value on short rest
 	RestoreOnLongRest  bool `json:"restore_on_long_rest" gorm:"default:false"`  // restore current_value on long rest
 

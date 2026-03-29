@@ -15,9 +15,9 @@ type Weapon struct {
 	Name        string     `json:"name" gorm:"type:text;not null"`
 	Description string     `json:"description" gorm:"type:text"`
 
-	Category  string `json:"category" gorm:"type:text;not null"`   // e.g. "Simple Melee", "Martial Ranged"
+	Category  string `json:"category" gorm:"type:text;not null"`       // e.g. "Simple Melee", "Martial Ranged"
 	Rarity    string `json:"rarity" gorm:"type:text;default:'Common'"` // e.g. "Common", "Rare", "Legendary"
-	RangeType string `json:"range_type" gorm:"type:text;not null"` // "Melee" or "Ranged"
+	RangeType string `json:"range_type" gorm:"type:text;not null"`     // "Melee" or "Ranged"
 
 	// Costs and Weight
 	Cost   string `json:"cost" gorm:"type:text"`   // e.g. "15 gp"
@@ -46,7 +46,7 @@ type Weapon struct {
 
 	// Transformation Properties
 	// If this weapon can transform into another weapon, this points to the ID of the transformed weapon.
-	TransformedToWeaponID *uuid.UUID `json:"transformed_to_weapon_id,omitempty" gorm:"type:uuid"`
+	TransformedToWeaponID     *uuid.UUID `json:"transformed_to_weapon_id,omitempty" gorm:"type:uuid"`
 	TransformationDescription string     `json:"transformation_description,omitempty" gorm:"type:text"`
 	// For self-modifying transformations (e.g., Saw Cleaver extending)
 	TransformedSelfDamageDice *string        `json:"transformed_self_damage_dice,omitempty" gorm:"type:text"` // e.g. "1d10"

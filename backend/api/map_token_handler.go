@@ -39,13 +39,13 @@ func (h *mapTokenHandler) addToken() http.HandlerFunc {
 			return
 		}
 
-		gameMap, err := h.gameMapRepo.GetByID(mapID)
+		ownerID, err := h.gameMapRepo.GetOwnerID(mapID)
 		if err != nil {
 			respondError(w, http.StatusNotFound, "Map not found")
 			return
 		}
 
-		if gameMap.OwnerID != userID {
+		if ownerID != userID {
 			respondError(w, http.StatusForbidden, "Only the DM can add tokens")
 			return
 		}
@@ -61,6 +61,18 @@ func (h *mapTokenHandler) addToken() http.HandlerFunc {
 			return
 		}
 
+		tt := req.TokenType
+		if tt == "" {
+			tt = models.MapTokenNPC
+		} else if !tt.IsValid() {
+			if p, ok := models.ParseMapTokenType(string(req.TokenType)); ok {
+				tt = p
+			} else {
+				respondError(w, http.StatusBadRequest, "invalid token_type")
+				return
+			}
+		}
+
 		token := models.MapToken{
 			MapID:          mapID,
 			CharacterID:    req.CharacterID,
@@ -68,7 +80,7 @@ func (h *mapTokenHandler) addToken() http.HandlerFunc {
 			AssignedUserID: req.AssignedUserID,
 			Name:           req.Name,
 			ImageURL:       req.ImageURL,
-			TokenType:      req.TokenType,
+			TokenType:      tt,
 			GridX:          req.GridX,
 			GridY:          req.GridY,
 			Size:           req.Size,
@@ -109,7 +121,7 @@ func (h *mapTokenHandler) updateToken() http.HandlerFunc {
 			return
 		}
 
-		gameMap, err := h.gameMapRepo.GetByID(mapID)
+		ownerID, err := h.gameMapRepo.GetOwnerID(mapID)
 		if err != nil {
 			respondError(w, http.StatusNotFound, "Map not found")
 			return
@@ -121,7 +133,7 @@ func (h *mapTokenHandler) updateToken() http.HandlerFunc {
 			return
 		}
 
-		isDM := gameMap.OwnerID == userID
+		isDM := ownerID == userID
 		isOwner := token.AssignedUserID != nil && *token.AssignedUserID == userID
 
 		if !isDM && !isOwner {
@@ -196,7 +208,16 @@ func (h *mapTokenHandler) updateToken() http.HandlerFunc {
 				respondError(w, http.StatusForbidden, "Only DM can change token type")
 				return
 			}
-			token.TokenType = *req.TokenType
+			tt := *req.TokenType
+			if !tt.IsValid() {
+				if p, ok := models.ParseMapTokenType(string(tt)); ok {
+					tt = p
+				} else {
+					respondError(w, http.StatusBadRequest, "invalid token_type")
+					return
+				}
+			}
+			token.TokenType = tt
 		}
 
 		if req.GridX != nil {
@@ -239,13 +260,13 @@ func (h *mapTokenHandler) deleteToken() http.HandlerFunc {
 			return
 		}
 
-		gameMap, err := h.gameMapRepo.GetByID(mapID)
+		ownerID, err := h.gameMapRepo.GetOwnerID(mapID)
 		if err != nil {
 			respondError(w, http.StatusNotFound, "Map not found")
 			return
 		}
 
-		if gameMap.OwnerID != userID {
+		if ownerID != userID {
 			respondError(w, http.StatusForbidden, "Only the DM can delete tokens")
 			return
 		}
@@ -297,13 +318,13 @@ func (h *mapTokenHandler) setInitiative() http.HandlerFunc {
 			return
 		}
 
-		gameMap, err := h.gameMapRepo.GetByID(mapID)
+		ownerID, err := h.gameMapRepo.GetOwnerID(mapID)
 		if err != nil {
 			respondError(w, http.StatusNotFound, "Map not found")
 			return
 		}
 
-		if gameMap.OwnerID != userID {
+		if ownerID != userID {
 			respondError(w, http.StatusForbidden, "Only the DM can set initiative")
 			return
 		}
@@ -314,11 +335,14 @@ func (h *mapTokenHandler) setInitiative() http.HandlerFunc {
 			return
 		}
 
-		for _, entry := range req.Entries {
-			order := entry.Order
-			if err := h.tokenRepo.SetInitiativeOrder(entry.TokenID, &order); err != nil {
-				log.Error().Err(err).Str("tokenID", entry.TokenID.String()).Msg("Failed to set initiative")
-			}
+		dbEntries := make([]database.InitiativeEntry, len(req.Entries))
+		for i, e := range req.Entries {
+			dbEntries[i] = database.InitiativeEntry{TokenID: e.TokenID, Order: e.Order}
+		}
+		if err := h.tokenRepo.BulkSetInitiativeOrder(dbEntries); err != nil {
+			log.Error().Err(err).Msg("Failed to set initiative order")
+			respondError(w, http.StatusInternalServerError, "Failed to set initiative")
+			return
 		}
 
 		tokens, err := h.tokenRepo.GetByInitiativeOrder(mapID)
@@ -350,19 +374,21 @@ func (h *mapTokenHandler) clearInitiative() http.HandlerFunc {
 			return
 		}
 
-		gameMap, err := h.gameMapRepo.GetByID(mapID)
+		ownerID, err := h.gameMapRepo.GetOwnerID(mapID)
 		if err != nil {
 			respondError(w, http.StatusNotFound, "Map not found")
 			return
 		}
 
-		if gameMap.OwnerID != userID {
+		if ownerID != userID {
 			respondError(w, http.StatusForbidden, "Only the DM can clear initiative")
 			return
 		}
 
-		for _, token := range gameMap.Tokens {
-			_ = h.tokenRepo.SetInitiativeOrder(token.ID, nil)
+		if err := h.tokenRepo.ClearInitiativeByMapID(mapID); err != nil {
+			log.Error().Err(err).Str("mapID", mapID.String()).Msg("Failed to clear initiative")
+			respondError(w, http.StatusInternalServerError, "Failed to clear initiative")
+			return
 		}
 
 		respondJSON(w, http.StatusOK, map[string]string{"status": "initiative cleared"})

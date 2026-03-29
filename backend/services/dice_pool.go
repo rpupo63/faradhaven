@@ -1,6 +1,10 @@
 package services
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/rpupo63/unified-personal-site-backend/models"
+)
 
 // DicePool represents a set of dice to roll.
 type DicePool struct {
@@ -18,30 +22,64 @@ func (d DicePool) Average() float64 {
 	return float64(d.Count) * (float64(d.Faces) + 1) / 2
 }
 
-// CalculateSpellEffect computes the dice pool for a spell based on tier, AoE, and magnitudo modifiers.
-// baseTier: the highest component tier in the spell.
-// isAoE: true if the Forma is an area shape (Nova, Cone, Zone, Wall, Aura).
-// magnitudes: slice of Magnitudo component names present (e.g. ["Strong"], ["Weak", "Extreme"]).
-func CalculateSpellEffect(baseTier int, isAoE bool, magnitudes []string) DicePool {
-	// Tier → Dice Count
+// CalculateSpellEffect computes the dice pool for a spell based on level, damage type, shape (Forma), and magnitudo modifiers.
+// level: the total number of components in the spell.
+// damageType: the primary damage type of the spell.
+// formaName: the name of the Forma component (shape).
+// scopusName: the name of the Scopus component (targeting).
+// magnitudes: slice of Magnitudo component names present.
+func CalculateSpellEffect(level int, damageType models.DamageType, formaName string, scopusName string, magnitudes []string) DicePool {
+	// Level (number of components) → Dice Count
 	var count int
 	switch {
-	case baseTier <= 1:
+	case level <= 3:
 		count = 2
-	case baseTier == 2:
+	case level == 4:
 		count = 3
-	case baseTier == 3:
-		count = 5
-	case baseTier == 4:
-		count = 7
-	default: // tier 5+
+	case level == 5:
+		count = 4
+	case level == 6:
+		count = 6
+	case level == 7:
+		count = 8
+	default: // level 8+
 		count = 10
 	}
 
-	// AoE Tax: AoE shapes use d6, single-target uses d8
+	// Base faces based on Shape (Forma) and Targeting (Scopus)
+	// touch (Self Scopus) is most powerful.
+	// Projectile/Beam is standard.
+	// AoE is less powerful.
 	faces := 8
-	if isAoE {
-		faces = 6
+
+	// Scopus modifier: Self (Touch) is more powerful (+2 faces)
+	if scopusName == "Self" {
+		faces += 2
+	}
+
+	// Forma modifier:
+	switch formaName {
+	case "Projectile", "Beam":
+		// Standard (d8)
+	case "Nova", "Cone":
+		// Restricted AoE (d6)
+		faces -= 2
+	case "Wall", "Zone", "Aura":
+		// Large/Persistent AoE (d4, -1 die)
+		faces -= 4
+		count -= 1
+	}
+
+	// Damage Type scaling: more resistant types get larger dice to compensate.
+	switch damageType {
+	case models.DamageForce, models.DamageRadiant, models.DamagePsychic, models.DamageThunder:
+		// Rare resistance -> Base
+	case models.DamageAcid, models.DamageCold, models.DamageLightning, models.DamageNecrotic:
+		// Moderate resistance -> Step up (+2 faces)
+		faces += 2
+	case models.DamageFire, models.DamagePoison, models.DamageBludgeoning, models.DamagePiercing, models.DamageSlashing:
+		// Common resistance -> High step (+4 faces)
+		faces += 4
 	}
 
 	// Magnitudo dice stepping
@@ -78,6 +116,11 @@ func CalculateSpellEffect(baseTier int, isAoE bool, magnitudes []string) DicePoo
 	if hasExtreme {
 		faces = 12
 		count += 2
+	}
+
+	// Ensure at least 1 die
+	if count < 1 {
+		count = 1
 	}
 
 	return DicePool{Count: count, Faces: faces}

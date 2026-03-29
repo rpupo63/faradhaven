@@ -15,14 +15,15 @@ type SpellSeed struct {
 	ID          uuid.UUID
 	Name        string
 	Description string
-	SlotLevel   int
+	Level       int
 	Type        string
-	Range       *string
+	Range       *int
 	Duration    *string
-	Concentration bool
-	SaveAttr    *string
-	DamageDice  *string
-	DamageType  *models.DamageType
+	Concentration       bool
+	SaveAttr            *models.SaveAttribute
+	DamageDiceCount     *int
+	DamageDieSize       *int
+	DamageType          *models.DamageType
 	AddModifier bool
 	Components  []string // Names of components
 }
@@ -33,133 +34,133 @@ func ExistingSpells() []SpellSeed {
 		{
 			ID:         uuids.ComponentUUID("Thaumaturgy"),
 			Name:       "Thaumaturgy",
-			SlotLevel:  0,
+			Level:  0,
 			Type:       "Utility",
 			Components: []string{"Arcanum", "Self"},
 		},
 		{
 			ID:         uuids.ComponentUUID("lightning goes boom"),
 			Name:       "lightning goes boom",
-			SlotLevel:  1,
+			Level:  1,
 			Type:       "Attack",
 			Components: []string{"Fulgur", "Increase", "Beam"}, // Expand -> Increase
 		},
 		{
 			ID:         uuids.ComponentUUID("blue man"),
 			Name:       "blue man",
-			SlotLevel:  1,
+			Level:  1,
 			Type:       "Utility",
 			Components: []string{"Fulgur", "Bind", "Increase"}, // Fuse -> Bind, Expand -> Increase
 		},
 		{
 			ID:        uuids.ComponentUUID("Calm Down"),
 			Name:      "Calm Down",
-			SlotLevel: 1,
+			Level: 1,
 			Type:      "Utility",
 			Components: []string{"Arcanum", "Strong", "Decrease"}, // Psi -> Arcanum, Focus -> Strong, Cool -> Decrease
 		},
 		{
 			ID:        uuids.ComponentUUID("Can't Sleep Yet"),
 			Name:      "Can't Sleep Yet",
-			SlotLevel: 1,
+			Level: 1,
 			Type:      "Utility",
 			Components: []string{"Vita", "Create", "Target"}, // Revive -> Vita, Create; Touch -> Target
 		},
 		{
 			ID:        uuids.ComponentUUID("Splash"),
 			Name:      "Splash",
-			SlotLevel: 1,
+			Level: 1,
 			Type:      "Attack",
 			Components: []string{"Push", "Decrease", "Aqua"}, // Cool -> Decrease
 		},
 		{
 			ID:        uuids.ComponentUUID("Flood"),
 			Name:      "Flood",
-			SlotLevel: 2,
+			Level: 2,
 			Type:      "Attack",
 			Components: []string{"Chain", "Push", "Decrease", "Aqua"}, // Cool -> Decrease
 		},
 		{
 			ID:        uuids.ComponentUUID("Massage Therapy 2.0"),
 			Name:      "Massage Therapy 2.0",
-			SlotLevel: 1,
+			Level: 1,
 			Type:      "Utility",
 			Components: []string{"Vita", "Increase", "Target"}, // Mend -> Vita, Increase; Touch -> Target
 		},
 		{
 			ID:        uuids.ComponentUUID("What big teeth you have!"),
 			Name:      "What big teeth you have!",
-			SlotLevel: 1,
+			Level: 1,
 			Type:      "Utility",
 			Components: []string{"Arcanum", "Crush", "Self"}, // Psi -> Arcanum
 		},
 		{
 			ID:        uuids.ComponentUUID("test"),
 			Name:      "test",
-			SlotLevel: 0,
+			Level: 0,
 			Type:      "Utility",
 			Components: []string{"Fulgur", "Arcanum"},
 		},
 		{
 			ID:        uuids.ComponentUUID("Bear Hug"),
 			Name:      "Bear Hug",
-			SlotLevel: 1,
+			Level: 1,
 			Type:      "Effect",
 			Components: []string{"Arcanum", "Increase", "Target"},
 		},
 		{
 			ID:        uuids.ComponentUUID("Steep"),
 			Name:      "Steep",
-			SlotLevel: 2,
+			Level: 2,
 			Type:      "Attack",
 			Components: []string{"Strong", "Increase", "Aqua"},
 		},
 		{
 			ID:        uuids.ComponentUUID("Hot Shot"),
 			Name:      "Hot Shot",
-			SlotLevel: 2,
+			Level: 2,
 			Type:      "Attack",
 			Components: []string{"Ignis", "Zone"},
 		},
 		{
 			ID:        uuids.ComponentUUID("Drip"),
 			Name:      "Drip",
-			SlotLevel: 1,
+			Level: 1,
 			Type:      "Attack",
 			Components: []string{"Aqua"},
 		},
 		{
 			ID:        uuids.ComponentUUID("Magnet Hug 2.0"),
 			Name:      "Magnet Hug 2.0",
-			SlotLevel: 2,
+			Level: 2,
 			Type:      "Save",
 			Components: []string{"Bind", "Ferrum", "Pull", "Grab"},
 		},
 		{
 			ID:        uuids.ComponentUUID("Tainted Love"),
 			Name:      "Tainted Love",
-			SlotLevel: 1,
+			Level: 1,
 			Type:      "Effect",
 			Components: []string{"Arcanum", "Decrease"},
 		},
 		{
 			ID:        uuids.ComponentUUID("Forced Entry"),
 			Name:      "Forced Entry",
-			SlotLevel: 1,
+			Level: 1,
 			Type:      "Utility",
 			Components: []string{"Vita", "Push"},
 		},
 		{
 			ID:        uuids.ComponentUUID("2112"),
 			Name:      "2112",
-			SlotLevel: 2,
+			Level: 2,
 			Type:      "Effect",
 			Components: []string{"Anger", "Extreme", "Sonus", "Cone"},
 		},
 		{
 			ID:        uuids.ComponentUUID("Can I Kick it?"),
 			Name:      "Can I Kick it?",
-			SlotLevel: 2,
+			Level: 2,
 			Type:      "Attack",
 			Components: []string{"Fulgur", "Increase", "Zone", "Push"},
 		},
@@ -199,14 +200,15 @@ func SeedExistingSpells(tx *gorm.DB) error {
 			UserID:      systemUserID, // Associate with system user
 			Name:        ss.Name,
 			Description: ss.Description,
-			SlotLevel:   ss.SlotLevel,
-			Type:        ss.Type,
+			Level:       len(ss.Components),
+			Type:        models.SpellType(ss.Type),
 			Range:       ss.Range,
 			Duration:    ss.Duration,
-			Concentration: ss.Concentration,
-			SaveAttr:    ss.SaveAttr,
-			DamageDice:  ss.DamageDice,
-			DamageType:  ss.DamageType,
+			Concentration:   ss.Concentration,
+			SaveAttr:        ss.SaveAttr,
+			DamageDiceCount: ss.DamageDiceCount,
+			DamageDieSize:   ss.DamageDieSize,
+			DamageType:      ss.DamageType,
 			AddModifier: ss.AddModifier,
 		})
 

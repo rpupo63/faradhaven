@@ -15,8 +15,8 @@ const (
 	MinionTypeEcho      MinionType = "echo"      // Lorewright stored abilities (legacy)
 	MinionTypeHarvest   MinionType = "harvest"   // Lorewright harvested abilities
 	MinionTypeRenfield  MinionType = "renfield"  // Sanguinist bonded ally
-	MinionTypeSummon    MinionType = "summon"     // Generic summoned creature
-	MinionTypeDrone     MinionType = "drone"      // Swarm Engineer micro-constructs
+	MinionTypeSummon    MinionType = "summon"    // Generic summoned creature
+	MinionTypeDrone     MinionType = "drone"     // Swarm Engineer micro-constructs
 )
 
 // Minion represents a summoned or created entity controlled by a character.

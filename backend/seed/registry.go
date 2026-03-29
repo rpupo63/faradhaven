@@ -6,6 +6,7 @@ import (
 	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_effects"
 	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_items"
 	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_races"
+	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_storeowners"
 )
 
 // AllSeeds returns all registered seeds in dependency order.
@@ -17,6 +18,9 @@ import (
 // 2. Items - weapons and items, referenced by classes for starting equipment
 // 3. Races - references components
 // 4. Classes - references components and items
+// 5. Effects
+// 6. Existing spells
+// 7. Store owners - references seeded items and weapons
 func AllSeeds() []Seed {
 	return []Seed{
 		{
@@ -66,6 +70,18 @@ func AllSeeds() []Seed {
 		{
 			Name: "06_existing_spells",
 			Run:  SeedExistingSpells,
+		},
+		{
+			Name: "07_store_owners",
+			Run:  faradhaven_storeowners.SeedFaradhavenStoreOwners,
+			HashData: func() (interface{}, int) {
+				data := faradhaven_storeowners.AllStoreOwnerSeeds()
+				n := 0
+				for _, v := range data {
+					n += 1 + len(v.Rules)
+				}
+				return data, n
+			},
 		},
 	}
 }

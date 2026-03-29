@@ -51,6 +51,7 @@ type ClassLevel struct {
 	// --- Faradhaven Class Resources ---
 	// Class-specific per-level resource values are stored in the ClassLevelResource table.
 	// Query via ClassRepo.GetLevelResourceMap(classID, level) or GetLevelResourceValue(classID, level, key).
+	ResourceValues []ClassLevelResource `json:"resource_values,omitempty" gorm:"foreignKey:ClassLevelID;constraint:OnDelete:CASCADE"`
 
 	Class Class `json:"-" gorm:"foreignKey:ClassID;references:ID"`
 }

@@ -24,14 +24,21 @@ func NewMockLLMClient() *MockLLMClient {
 // In a real scenario, this would involve calling a generative AI model.
 // For this mock, it returns a predefined JSON structure based on the prompt's keywords.
 func (m *MockLLMClient) GenerateStructuredContent(ctx context.Context, prompt string, schema string) (string, error) {
-	// In a real LLM integration, 'schema' would be used by the LLM to format its output.
-	// For this mock, we'll ignore the schema content for simplicity and return a fixed example
-	// that we know adheres to our Monster schema.
+	// 1. Check if this is a Spell Opinion request
+	if strings.Contains(prompt, "magical theorist") && strings.Contains(prompt, "Faradhaven") {
+		return `{
+			"description_opinion": "The description is evocative and aligns well with the chosen Essentia. It clearly communicates the intended magical effect without being overly verbose.",
+			"damage_opinion": "The damage dice are appropriate for a spell of this level under Faradhaven scaling rules. It feels powerful enough to be a meaningful action without overshadowing higher-level effects.",
+			"effect_opinion": "The effect mechanics are consistent with the provided Actio and Scopus components. The range and duration provide good utility for this tier of play.",
+			"overall_verdict": "This is a well-balanced spell that fits the game's power curve. Recommended for approval.",
+			"recommended_name": "Resonating Pulse",
+			"recommended_description": "You release a concentrated wave of sonic energy that ripples through the air, striking with the force of a physical blow.",
+			"recommended_damage_dice_count": 3,
+			"recommended_damage_die_size": 8
+		}`, nil
+	}
 
-	// Example output for a "fire goblin" with CR "1/2"
-	// This should be dynamic based on the prompt for a better mock,
-	// but for now, we'll keep it static and assume a successful LLM call.
-
+	// 2. Otherwise, assume it's a Monster request
 	// Attempt to load the schema from file
 	schemaPath := "docs/schemas/monster_schema.json"
 	schemaBytes, err := os.ReadFile(schemaPath)

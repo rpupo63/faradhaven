@@ -24,7 +24,7 @@ const (
 type WeaponModifier struct {
 	ID                uuid.UUID    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid();not null"`
 	CharacterWeaponID uuid.UUID    `json:"character_weapon_id" gorm:"type:uuid;not null;index"`
-	ModifierType      ModifierType `json:"modifier_type" gorm:"type:text;not null"` // "piston_core", "venom_coating", etc.
+	ModifierType      ModifierType `json:"modifier_type" gorm:"type:text;not null"`        // "piston_core", "venom_coating", etc.
 	IsPermanent       bool         `json:"is_permanent" gorm:"type:boolean;default:false"` // Piston Core = true, Coatings = false
 	IsActive          bool         `json:"is_active" gorm:"type:boolean;default:true"`     // Engaged/disengaged state
 

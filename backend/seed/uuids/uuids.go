@@ -29,6 +29,8 @@ var (
 	NamespaceClassResourceDef     = uuid.MustParse("9a0b1c2d-3e4f-5a6b-7c8d-9e0f1a2b3c4d")
 	NamespaceClassLevelResource   = uuid.MustParse("ab1c2d3e-4f5a-6b7c-8d9e-0f1a2b3c4d5e")
 	NamespaceSystemUser         = uuid.MustParse("bc2d3e4f-5a6b-7c8d-9e0f-1a2b3c4d5e6f")
+	NamespaceStoreOwner         = uuid.MustParse("cd3e4f5a-6b7c-8d9e-0f1a-2b3c4d5e6f7a")
+	NamespaceStoreOwnerRule     = uuid.MustParse("de4f5a6b-7c8d-9e0f-1a2b-3c4d5e6f7a8b")
 )
 
 // RaceUUID generates a deterministic UUID for a race by name.
@@ -134,4 +136,16 @@ func ClassResourceDefUUID(className, resourceKey string) uuid.UUID {
 // Key: ClassLevelID + ResourceKey
 func ClassLevelResourceUUID(classLevelID uuid.UUID, resourceKey string) uuid.UUID {
 	return uuid.NewSHA1(NamespaceClassLevelResource, []byte(classLevelID.String()+":"+resourceKey))
+}
+
+// StoreOwnerUUID generates a deterministic UUID for a store owner by display name.
+func StoreOwnerUUID(name string) uuid.UUID {
+	return uuid.NewSHA1(NamespaceStoreOwner, []byte(name))
+}
+
+// StoreOwnerCatalogRuleUUID generates a deterministic UUID for a catalog rule row.
+// Use a stable discriminator such as "item:"+itemName, "weapon:"+weaponName, or
+// "cat:"+category+":"+strings.Join(rarities, ",").
+func StoreOwnerCatalogRuleUUID(storeOwnerName, discriminator string) uuid.UUID {
+	return uuid.NewSHA1(NamespaceStoreOwnerRule, []byte(storeOwnerName+":"+discriminator))
 }

@@ -12,7 +12,7 @@ type MapToken struct {
 	AssignedUserID  *uuid.UUID `gorm:"type:uuid;index" json:"assigned_user_id"`
 	Name            string     `gorm:"type:varchar(255);not null" json:"name"`
 	ImageURL        string     `gorm:"type:text" json:"image_url"`
-	TokenType       string     `gorm:"type:varchar(50);default:'npc'" json:"token_type"`
+	TokenType       MapTokenType `gorm:"type:varchar(50);default:'npc'" json:"token_type"`
 	GridX           int        `gorm:"not null" json:"grid_x"`
 	GridY           int        `gorm:"not null" json:"grid_y"`
 	Size            int        `gorm:"default:1" json:"size"`

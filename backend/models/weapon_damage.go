@@ -13,11 +13,10 @@ type WeaponDamage struct {
 	WeaponID uuid.UUID `json:"weapon_id" gorm:"type:uuid;not null;index"`
 
 	DamageDice string `json:"damage_dice" gorm:"type:text;not null"` // e.g. "1d8", "2d6"
-	DamageType string `json:"damage_type" gorm:"type:text;not null"` // e.g. "Slashing", "Fire", "Radiant"
+	DamageType DamageType `json:"damage_type" gorm:"type:text;not null"`
 
 	// Category distinguishes between the base damage and extra damage (e.g., from enchantments).
-	// Typical values: "Base", "Bonus".
-	DamageCategory string `json:"damage_category" gorm:"type:text;default:'Base'"`
+	DamageCategory WeaponDamageCategory `json:"damage_category" gorm:"type:text;default:'Base'"`
 
 	CreatedAt time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 

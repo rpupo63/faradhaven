@@ -9,6 +9,7 @@ import (
 type ItemRepository interface {
 	FindAll() ([]*models.Item, error)
 	FindByID(id uuid.UUID) (*models.Item, error)
+	FindByIDs(ids []uuid.UUID) ([]*models.Item, error)
 	Add(item *models.Item) error
 	Update(item *models.Item) error
 	Delete(id uuid.UUID) error
@@ -34,6 +35,15 @@ func (r *ItemRepo) FindByID(id uuid.UUID) (*models.Item, error) {
 		return nil, err
 	}
 	return &item, nil
+}
+
+func (r *ItemRepo) FindByIDs(ids []uuid.UUID) ([]*models.Item, error) {
+	var items []*models.Item
+	if len(ids) == 0 {
+		return items, nil
+	}
+	err := r.db.Where("id IN ?", ids).Find(&items).Error
+	return items, err
 }
 
 func (r *ItemRepo) Add(item *models.Item) error {

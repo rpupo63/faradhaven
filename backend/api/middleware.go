@@ -55,8 +55,9 @@ func (m authMiddleware) authenticate(next http.Handler) http.Handler {
 			return
 		}
 		ctx := r.Context()
-		updatedCtx := ctxWithUserID(ctx, u.ID.String())
-		updatedReq := r.WithContext(updatedCtx)
+		ctx = ctxWithUserID(ctx, u.ID.String())
+		ctx = ctxWithIsAdmin(ctx, u.IsAdmin)
+		updatedReq := r.WithContext(ctx)
 		next.ServeHTTP(w, updatedReq)
 	})
 }

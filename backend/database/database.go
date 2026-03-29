@@ -33,6 +33,7 @@ type Database struct {
 	mapElementRepo         *MapElementRepo
 	monsterRepo            *MonsterRepo
 	partyRepo              *PartyRepo // NEW: Party Repository
+	storeOwnerRepo         *StoreOwnerRepo
 
 	// New Map Element Properties Repos
 	trapPropertiesRepo             *TrapPropertiesRepo
@@ -71,6 +72,7 @@ func New(db *gorm.DB) Database {
 		mapElementRepo:         NewMapElementRepo(db),
 		monsterRepo:            NewMonsterRepo(db),
 		partyRepo:              NewPartyRepo(db), // NEW: Party Repository Initialization
+		storeOwnerRepo:         NewStoreOwnerRepo(db),
 
 		// New Map Element Properties Repos
 		trapPropertiesRepo:             NewTrapPropertiesRepo(db),
@@ -184,6 +186,10 @@ func (d Database) MonsterRepo() *MonsterRepo {
 
 func (d Database) PartyRepo() *PartyRepo {
 	return d.partyRepo
+}
+
+func (d Database) StoreOwnerRepo() StoreOwnerRepository {
+	return d.storeOwnerRepo
 }
 
 // Accessor methods for new Map Element Properties Repos

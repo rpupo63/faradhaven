@@ -1,6 +1,7 @@
 package database
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -17,6 +18,7 @@ type CharacterResourceRepository interface {
 	Delete(id uuid.UUID) error
 	DeleteByCharacterID(characterID uuid.UUID) error
 	UpdateCurrentValue(characterID uuid.UUID, resourceKey string, delta int) error
+	RestoreResourceToMax(characterID uuid.UUID, resourceKey string) error
 }
 
 type CharacterResourceRepo struct {
@@ -72,7 +74,8 @@ func (r *CharacterResourceRepo) DeleteByCharacterID(characterID uuid.UUID) error
 // For deductions (negative delta), returns an error if the character doesn't have enough.
 func (r *CharacterResourceRepo) UpdateCurrentValue(characterID uuid.UUID, resourceKey string, delta int) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		resource, err := r.FindByCharacterAndKey(characterID, resourceKey)
+		var resource models.CharacterResource
+		err := tx.Where("character_id = ? AND resource_key = ?", characterID, resourceKey).First(&resource).Error
 		if err != nil {
 			return err
 		}
@@ -87,8 +90,24 @@ func (r *CharacterResourceRepo) UpdateCurrentValue(characterID uuid.UUID, resour
 			resource.CurrentValue = *resource.MaxValue
 		}
 
-		return tx.Save(resource).Error
+		return tx.Save(&resource).Error
 	})
+}
+
+// RestoreResourceToMax sets CurrentValue to MaxValue for a trackable resource (e.g. spell_points on rest).
+func (r *CharacterResourceRepo) RestoreResourceToMax(characterID uuid.UUID, resourceKey string) error {
+	res, err := r.FindByCharacterAndKey(characterID, resourceKey)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		return err
+	}
+	if res.MaxValue == nil {
+		return nil
+	}
+	res.CurrentValue = *res.MaxValue
+	return r.Update(res)
 }
 
 // ProcessRestoration handles resource restoration during rests
@@ -98,6 +117,10 @@ func (r *CharacterResourceRepo) ProcessRestoration(characterID uuid.UUID, isLong
 		err := tx.Where("character_id = ?", characterID).Find(&resources).Error
 		if err != nil {
 			return err
+		}
+
+		if len(resources) == 0 {
+			return nil
 		}
 
 		for _, res := range resources {
@@ -120,11 +143,8 @@ func (r *CharacterResourceRepo) ProcessRestoration(characterID uuid.UUID, isLong
 			}
 
 			res.UpdatedAt = time.Now()
-			if err := tx.Save(res).Error; err != nil {
-				return err
-			}
 		}
 
-		return nil
+		return tx.Save(&resources).Error
 	})
 }

@@ -31,6 +31,7 @@ func AllModels() []interface{} {
 		&CharacterSkill{},
 		&CharacterComponent{},
 		&CharacterResource{},
+		&ConsumptionHistory{},
 		&Minion{},
 		&SavedSpell{},
 		&CharacterLink{},
@@ -51,6 +52,7 @@ func AllModels() []interface{} {
 		// Beast hierarchy
 		&Beast{},
 		&Attack{},
+		&BeastSkill{},
 		&PartyBeast{}, // NEW: PartyBeast join table
 
 		// Item hierarchy
@@ -64,6 +66,10 @@ func AllModels() []interface{} {
 		&CharacterWeapon{},
 		&WeaponModifier{},
 		&ClassWeaponRequirement{},
+
+		// Vendors
+		&StoreOwner{},
+		&StoreOwnerCatalogRule{},
 
 		// Seed tracking
 		&SeedMetadata{},

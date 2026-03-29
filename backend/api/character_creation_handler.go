@@ -2,14 +2,88 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"github.com/rpupo63/unified-personal-site-backend/database"
 	"github.com/rpupo63/unified-personal-site-backend/models"
 	"github.com/rs/zerolog/log"
 )
+
+// profBonusByLevel returns the proficiency bonus for a given character level (D&D standard).
+func profBonusByLevel(level int) int {
+	switch {
+	case level <= 4:
+		return 2
+	case level <= 8:
+		return 3
+	case level <= 12:
+		return 4
+	case level <= 16:
+		return 5
+	default:
+		return 6
+	}
+}
+
+// initTraitUseResources creates or updates CharacterResource rows for traits with limited uses.
+// Called after character creation and on level-up to keep max uses in sync with proficiency bonus.
+func initTraitUseResources(
+	characterID uuid.UUID,
+	traits []models.Trait,
+	profBonus int,
+	repo database.CharacterResourceRepository,
+) error {
+	for _, trait := range traits {
+		if trait.UsesPerRest == "" {
+			continue
+		}
+		var maxUses int
+		switch trait.UsesPerRest {
+		case "Proficiency Bonus":
+			maxUses = profBonus
+		default:
+			n, err := strconv.Atoi(trait.UsesPerRest)
+			if err != nil || n <= 0 {
+				continue // Skip non-integer values like "1 per spell"
+			}
+			maxUses = n
+		}
+
+		key := "trait_" + trait.ID.String()
+		existing, err := repo.FindByCharacterAndKey(characterID, key)
+		if err != nil {
+			// Doesn't exist — create it
+			mv := maxUses
+			resource := &models.CharacterResource{
+				CharacterID:        characterID,
+				ResourceKey:        key,
+				ResourceName:       trait.Name + " Uses",
+				CurrentValue:       maxUses,
+				MaxValue:           &mv,
+				RestoreOnLongRest:  strings.Contains(trait.ResetCondition, "Long"),
+				RestoreOnShortRest: strings.Contains(trait.ResetCondition, "Short"),
+			}
+			if addErr := repo.Add(resource); addErr != nil {
+				return fmt.Errorf("failed to init trait resource %s: %w", trait.Name, addErr)
+			}
+		} else {
+			// Exists — update max if it changed (e.g. profBonus went up on level-up)
+			if existing.MaxValue == nil || *existing.MaxValue != maxUses {
+				mv := maxUses
+				existing.MaxValue = &mv
+				if updateErr := repo.Update(existing); updateErr != nil {
+					return fmt.Errorf("failed to update trait resource %s: %w", trait.Name, updateErr)
+				}
+			}
+		}
+	}
+	return nil
+}
 
 // getCreationOptions returns all races and classes with full details for the creation wizard
 func (h *characterHandler) getCreationOptions() http.HandlerFunc {
@@ -215,9 +289,33 @@ func (h *characterHandler) createCharacter() http.HandlerFunc {
 		}
 
 		// Initialize generic CharacterResource rows from class resource definitions
-		if err := h.resourceService.InitializeCharacterResources(character.ID, character.ClassID, character.Level); err != nil {
+		if err := h.resourceService.InitializeCharacterResources(character); err != nil {
 			log.Error().Err(err).Msg("Failed to initialize character resources")
 			// Non-fatal: character was created successfully, resources can be backfilled later
+		}
+
+		// Align spell point column with class level max (CharacterResource.spell_points is the spend pool for Rift Weaver)
+		if cl, err := h.classRepo.FindLevelByClassAndLevel(character.ClassID, character.Level); err == nil && cl != nil {
+			character.CurrentSpellPoints = cl.MaxSpellPoints
+			if err := h.characterRepo.Update(character); err != nil {
+				log.Error().Err(err).Msg("Failed to sync current_spell_points after resource init")
+			}
+		}
+
+		// Initialize trait use resources for race traits with limited uses
+		race, raceErr := h.raceRepo.FindByIDWithTraits(character.RaceID)
+		if raceErr == nil {
+			profBonus := profBonusByLevel(character.Level)
+			allTraits := race.Traits
+			if character.LineageID != nil {
+				if lineage, lineageErr := h.raceRepo.FindLineageByIDWithTraits(*character.LineageID); lineageErr == nil {
+					allTraits = append(allTraits, lineage.LineageTraits...)
+				}
+			}
+			if traitErr := initTraitUseResources(character.ID, allTraits, profBonus, h.characterResourceRepo); traitErr != nil {
+				log.Error().Err(traitErr).Msg("Failed to initialize trait use resources")
+				// Non-fatal
+			}
 		}
 
 		// Handle Primary Weapon and Modifiers (v2)

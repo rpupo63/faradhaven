@@ -15,8 +15,8 @@ type Corpse struct {
 
 	// Creature info
 	Name            string  `json:"name" gorm:"type:text;not null"`
-	CreatureType    string  `json:"creature_type" gorm:"type:text"`                    // "Beast", "Humanoid", "Undead", etc.
-	CreatureSize    string  `json:"creature_size" gorm:"type:text;default:'Medium'"`   // "Small", "Medium", "Large", etc.
+	CreatureType    CreatureType `json:"creature_type" gorm:"type:text"`
+	CreatureSize    CreatureSize `json:"creature_size" gorm:"type:text;default:'Medium'"`
 	ChallengeRating float64 `json:"challenge_rating" gorm:"type:decimal(4,2);default:0"`
 
 	// Position (for map integration)
@@ -24,13 +24,13 @@ type Corpse struct {
 	GridY *int `json:"grid_y,omitempty" gorm:"type:int"`
 
 	// Harvest/loot data
-	AvailableComponents pq.StringArray `json:"available_components" gorm:"type:text[]"` // Component IDs that can be harvested
+	AvailableComponents pq.StringArray `json:"available_components" gorm:"type:text[]"`   // Component IDs that can be harvested
 	ComponentYield      int            `json:"component_yield" gorm:"type:int;default:1"` // Number of generic components
 
 	// State tracking
-	HasBeenHarvested  bool `json:"has_been_harvested" gorm:"default:false"`  // Ironwright scavenge
-	HasBeenConsumed   bool `json:"has_been_consumed" gorm:"default:false"`   // Lorewright psychometry
-	HasBeenScavenged  bool `json:"has_been_scavenged" gorm:"default:false"`  // Lorewright component scavenging
+	HasBeenHarvested bool `json:"has_been_harvested" gorm:"default:false"` // Ironwright scavenge
+	HasBeenConsumed  bool `json:"has_been_consumed" gorm:"default:false"`  // Lorewright psychometry
+	HasBeenScavenged bool `json:"has_been_scavenged" gorm:"default:false"` // Lorewright component scavenging
 
 	// Timing
 	DiedAt    time.Time  `json:"died_at" gorm:"type:timestamptz;not null;default:now()"`

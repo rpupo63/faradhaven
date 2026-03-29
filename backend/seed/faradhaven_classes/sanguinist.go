@@ -65,14 +65,24 @@ func sanguinistLevelFeatures() map[int][]FeatureSeed {
 		1: {
 			{Name: "Unarmored Defense", Description: "While not wearing armor, your AC equals 10 + your Dexterity modifier + your Charisma modifier. You cannot use a shield with this feature."},
 			{Name: "The Thirst", Description: "You have a pool of Blood Ichor equal to Level + Charisma modifier. Bite: As an action, make a melee weapon attack (+ Prof + Cha). On hit, deal 2d8 necrotic damage and regain Ichor equal to your Proficiency Bonus. This attack counts for the purposes of Extra Attack. Yields Unstable Components as described in the Sanguine Extraction feature."},
-			{Name: "Siphon", Description: "As an action, deal 1d4 necrotic damage to a willing creature within 5 feet (this can be yourself). You regain 1 Ichor."},
+			{Name: "Siphon", Description: "As an action, deal 1d4 necrotic damage to a willing creature within 5 feet (this can be yourself). You regain 1 Ichor.", ActionType: "Action", ResourceGains: []ResourceCostSeed{{Key: "max_blood_ichor", Amount: 1}}},
 			{Name: "The Moral Seesaw (Notoriety System)", Description: "Your choices at levels 3, 7, 11, 15, and 18 grant Notoriety Points in Medical Prodigy (MP) or Blood Rage (BR). This creates a dynamic feedback loop. If your MP is 3+ points higher than BR (Overloaded Healer), using damage-dealing class features (Bite, Shadow Mist, Ichor Lash) triggers 'Sanguine Backfires' (you must heal the closest enemy within 30ft for 1d8 HP, or take that damage yourself if no enemy is in range). If your BR is 3+ points higher than MP (Starving Predator), using Blood Graft becomes 'Ravenous' (the target takes 1d8 necrotic damage before receiving the heal)."},
 			{Name: "Ichor Exhaustion Limit", Description: "If you spend more than 50% of your Max Ichor in a single turn, you must succeed on a DC 13 Constitution Save or gain 1 level of Sanguine Fatigue (Disadvantage on the next attack)."},
 		},
 		2: {
 			{Name: "Sanguine Extraction", Description: "When you use your Bite attack on a hostile creature or Siphon an ally, you extract unstable Components. Yields: 1 (Lvl 1-4), 2 (Lvl 5-10), 3 (Lvl 11+). Components decay on a Long Rest. As a bonus action, you can expend one Component to regain 1d4 Ichor or gain Advantage on your next saving throw. At Lvl 11+, you also gain 1 Ichor Regen per turn for 2 turns after an extraction."},
-			{Name: "Blood Graft", Description: "As an action, spend 2 Ichor to heal a creature within 5ft for 1d8 + Charisma modifier hit points."},
-			{Name: "Shadow Mist", Description: "As an action, spend 2 Ichor and 1 Unstable Component to create a 10ft radius cloud centered on you. Other creatures in the cloud must succeed on a Constitution save (DC 8 + Prof + Cha) or take 2d6 necrotic damage and be blinded until the start of your next turn."},
+			{
+				Name:          "Blood Graft",
+				Description:   "As an action, spend 2 Ichor to heal a creature within 5ft for 1d8 + Charisma modifier hit points.",
+				ActionType:    "Action",
+				ResourceCosts: []ResourceCostSeed{{Key: "max_blood_ichor", Amount: 2}},
+			},
+			{
+				Name:          "Shadow Mist",
+				Description:   "As an action, spend 2 Ichor and 1 Unstable Component to create a 10ft radius cloud centered on you. Other creatures in the cloud must succeed on a Constitution save (DC 8 + Prof + Cha) or take 2d6 necrotic damage and be blinded until the start of your next turn.",
+				ActionType:    "Action",
+				ResourceCosts: []ResourceCostSeed{{Key: "max_blood_ichor", Amount: 2}},
+			},
 		},
 		3: {
 			{Name: "Modular Choice: Level 3", Description: "Choose one: (A) Doctor's Intuition (+1 MP) or (B) Primal Senses (+1 BR)."},
@@ -85,7 +95,12 @@ func sanguinistLevelFeatures() map[int][]FeatureSeed {
 		},
 		6: {
 			{Name: "Renfield's Devotion", Description: "You can bind one willing humanoid as your 'Renfield'. While they are within 30 feet, you have advantage on Persuasion and Intimidation. Once per turn, they can use their reaction to grant you advantage on one attack roll or saving throw."},
-			{Name: "Coagulation", Description: "As an action, spend 3 Ichor and 1 Unstable Component to target a creature within 30ft. It must succeed on a Strength save (DC 8 + Prof + Cha) or be Restrained (as their blood thickens) for 1 minute (save repeats at end of turn)."},
+			{
+				Name:          "Coagulation",
+				Description:   "As an action, spend 3 Ichor and 1 Unstable Component to target a creature within 30ft. It must succeed on a Strength save (DC 8 + Prof + Cha) or be Restrained (as their blood thickens) for 1 minute (save repeats at end of turn).",
+				ActionType:    "Action",
+				ResourceCosts: []ResourceCostSeed{{Key: "max_blood_ichor", Amount: 3}},
+			},
 		},
 		7: {
 			{Name: "Modular Choice: Level 7", Description: "Choose one: (A) Field Medic (+1 MP) or (B) Ichor Lash (+1 BR)."},
@@ -100,8 +115,13 @@ func sanguinistLevelFeatures() map[int][]FeatureSeed {
 			{Name: "Choice B: Heart-Seeker (+1 BR)", Description: "Your Bite deals an extra 1d8 damage if the target is below its hit point maximum."},
 		},
 		13: {
-			{Name: "Blood Graft Mastery", Description: "Blood Graft healing increases to 3d8 + Charisma."},
-			{Name: "Empowered Siphon", Description: "As a bonus action, you can attempt to forcibly Siphon a creature within 5ft. It must make a Constitution saving throw (DC 8 + Prof + Cha). On a failed save, it takes 2d10 necrotic damage and you regain 2 Ichor. On a successful save, it takes half as much damage and you regain 1 Ichor."},
+			{
+				Name:          "Blood Graft Mastery",
+				Description:   "Blood Graft healing increases to 3d8 + Charisma.",
+				ActionType:    "Action",
+				ResourceCosts: []ResourceCostSeed{{Key: "max_blood_ichor", Amount: 2}},
+			},
+			{Name: "Empowered Siphon", Description: "As a bonus action, you can attempt to forcibly Siphon a creature within 5ft. It must make a Constitution saving throw (DC 8 + Prof + Cha). On a failed save, it takes 2d10 necrotic damage and you regain 2 Ichor. On a successful save, it takes half as much damage and you regain 1 Ichor.", ActionType: "Bonus Action", ResourceGains: []ResourceCostSeed{{Key: "max_blood_ichor", Amount: 2}}},
 		},
 		14: {{Name: "Coagulation Mastery", Description: "Coagulation cost is reduced to 2 Ichor. The target has disadvantage on its first saving throw against the effect."}},
 		15: {
@@ -139,9 +159,9 @@ func sanguinistLevelProgression() map[int]ClassLevelSeed {
 		14: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 17, "bite_damage_dice": 2}},
 		15: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 18, "bite_damage_dice": 2}},
 		16: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 19, "bite_damage_dice": 2}},
-		17: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 20, "bite_damage_dice": 2}},
-		18: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 21, "bite_damage_dice": 2}},
-		19: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 22, "bite_damage_dice": 2}},
-		20: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 23, "bite_damage_dice": 2}},
+		17: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 19, "bite_damage_dice": 2}},
+		18: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 20, "bite_damage_dice": 2}},
+		19: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 21, "bite_damage_dice": 2}},
+		20: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 21, "bite_damage_dice": 2}},
 	}
 }

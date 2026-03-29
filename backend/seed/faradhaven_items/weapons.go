@@ -340,7 +340,37 @@ func StandardWeapons() []WeaponSeed {
 			Damages: []WeaponDamageSeed{{DamageDice: "1d4", DamageType: "Piercing", DamageCategory: "Base"}},
 		},
 		{
-			Name: "Shortsword", Description: "A light, agile blade.", Category: "Simple Melee", Rarity: "Common", RangeType: "Melee", Cost: "10 gp", Weight: "2 lb.",
+			Name: "Javelin", Description: "A light spear designed to be thrown.", Category: "Simple Melee", Rarity: "Common", RangeType: "Melee", Cost: "5 sp", Weight: "2 lb.",
+			AttackModifier: "Strength", Properties: []string{"Thrown"}, RangeNormal: 30, RangeLong: 120,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d6", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Dart", Description: "A small throwing dart with a weighted tip.", Category: "Simple Ranged", Rarity: "Common", RangeType: "Ranged", Cost: "5 cp", Weight: "1/4 lb.",
+			AttackModifier: "Dexterity", Properties: []string{"Finesse", "Thrown"}, RangeNormal: 20, RangeLong: 60,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d4", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Sling", Description: "Leather straps used to hurl bullets or stones.", Category: "Simple Ranged", Rarity: "Common", RangeType: "Ranged", Cost: "1 sp", Weight: "0 lb.",
+			AttackModifier: "Dexterity", Properties: []string{"Ammunition"}, RangeNormal: 30, RangeLong: 120,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d4", DamageType: "Bludgeoning", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Club", Description: "A stout wooden club.", Category: "Simple Melee", Rarity: "Common", RangeType: "Melee", Cost: "1 sp", Weight: "2 lb.",
+			AttackModifier: "Strength", Properties: []string{"Light"}, RangeNormal: 5,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d4", DamageType: "Bludgeoning", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Greatclub", Description: "A two-handed wooden club.", Category: "Simple Melee", Rarity: "Common", RangeType: "Melee", Cost: "2 sp", Weight: "10 lb.",
+			AttackModifier: "Strength", Properties: []string{"Two-Handed"}, RangeNormal: 5,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d8", DamageType: "Bludgeoning", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Sickle", Description: "A curved blade used for cutting grain or throats.", Category: "Simple Melee", Rarity: "Common", RangeType: "Melee", Cost: "1 gp", Weight: "2 lb.",
+			AttackModifier: "Strength", Properties: []string{"Light"}, RangeNormal: 5,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d4", DamageType: "Slashing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Shortsword", Description: "A light, agile blade.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "10 gp", Weight: "2 lb.",
 			AttackModifier: "Dexterity", Properties: []string{"Finesse", "Light"}, RangeNormal: 5,
 			Damages: []WeaponDamageSeed{{DamageDice: "1d6", DamageType: "Piercing", DamageCategory: "Base"}},
 		},
@@ -398,7 +428,7 @@ func StandardWeapons() []WeaponSeed {
 			Damages: []WeaponDamageSeed{{DamageDice: "1d6", DamageType: "Slashing", DamageCategory: "Base"}},
 		},
 		{
-			Name: "Warhammer", Description: "A heavy, two-handed hammer.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "15 gp", Weight: "2 lb.",
+			Name: "Warhammer", Description: "A heavy hammer suited to one or two hands.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "15 gp", Weight: "2 lb.",
 			AttackModifier: "Strength", Properties: []string{"Versatile"}, RangeNormal: 5,
 			VersatileDamageDice: stringPtr("1d10"),
 			Damages: []WeaponDamageSeed{{DamageDice: "1d8", DamageType: "Bludgeoning", DamageCategory: "Base"}},
@@ -408,6 +438,58 @@ func StandardWeapons() []WeaponSeed {
 			AttackModifier: "Strength", Properties: []string{"Versatile"}, RangeNormal: 5,
 			VersatileDamageDice: stringPtr("1d10"),
 			Damages: []WeaponDamageSeed{{DamageDice: "1d8", DamageType: "Slashing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Flail", Description: "A spiked ball on a chain attached to a handle.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "10 gp", Weight: "2 lb.",
+			AttackModifier: "Strength", Properties: []string{}, RangeNormal: 5,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d8", DamageType: "Bludgeoning", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Glaive", Description: "A polearm with a heavy blade on a long haft.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "20 gp", Weight: "6 lb.",
+			AttackModifier: "Strength", Properties: []string{"Heavy", "Reach", "Two-Handed"}, RangeNormal: 10,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d10", DamageType: "Slashing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Halberd", Description: "An axe blade mounted on a long pole, often with a spike.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "20 gp", Weight: "6 lb.",
+			AttackModifier: "Strength", Properties: []string{"Heavy", "Reach", "Two-Handed"}, RangeNormal: 10,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d10", DamageType: "Slashing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Lance", Description: "A long spear designed for mounted combat.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "10 gp", Weight: "6 lb.",
+			AttackModifier: "Strength", Properties: []string{"Reach", "Special"}, RangeNormal: 10,
+			SecondaryEffect: "Disadvantage on attacks against a target within 5 feet unless mounted.",
+			Damages: []WeaponDamageSeed{{DamageDice: "1d12", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Maul", Description: "A massive two-handed hammer.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "10 gp", Weight: "10 lb.",
+			AttackModifier: "Strength", Properties: []string{"Heavy", "Two-Handed"}, RangeNormal: 5,
+			Damages: []WeaponDamageSeed{{DamageDice: "2d6", DamageType: "Bludgeoning", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Morningstar", Description: "A spiked metal ball on a sturdy haft.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "15 gp", Weight: "4 lb.",
+			AttackModifier: "Strength", Properties: []string{}, RangeNormal: 5,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d8", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Pike", Description: "A very long spear with a narrow blade.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "5 gp", Weight: "18 lb.",
+			AttackModifier: "Strength", Properties: []string{"Heavy", "Reach", "Two-Handed"}, RangeNormal: 10,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d10", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Trident", Description: "A three-pronged spear that can be thrown.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "5 gp", Weight: "4 lb.",
+			AttackModifier: "Strength", Properties: []string{"Thrown", "Versatile"}, RangeNormal: 20, RangeLong: 60,
+			VersatileDamageDice: stringPtr("1d8"),
+			Damages: []WeaponDamageSeed{{DamageDice: "1d6", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "War Pick", Description: "A hammer head with a piercing spike on the reverse.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "5 gp", Weight: "2 lb.",
+			AttackModifier: "Strength", Properties: []string{}, RangeNormal: 5,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d8", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Whip", Description: "A flexible leather lash.", Category: "Martial Melee", Rarity: "Common", RangeType: "Melee", Cost: "2 gp", Weight: "3 lb.",
+			AttackModifier: "Dexterity", Properties: []string{"Finesse", "Reach"}, RangeNormal: 10,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d4", DamageType: "Slashing", DamageCategory: "Base"}},
 		},
 		{
 			Name: "Shortbow", Description: "A simple ranged weapon.", Category: "Simple Ranged", Rarity: "Common", RangeType: "Ranged", Cost: "25 gp", Weight: "2 lb.",
@@ -428,6 +510,22 @@ func StandardWeapons() []WeaponSeed {
 			Name: "Hand Crossbow", Description: "A small, one-handed crossbow.", Category: "Martial Ranged", Rarity: "Common", RangeType: "Ranged", Cost: "75 gp", Weight: "3 lb.",
 			AttackModifier: "Dexterity", Properties: []string{"Ammunition", "Light", "Loading"}, RangeNormal: 30, RangeLong: 120,
 			Damages: []WeaponDamageSeed{{DamageDice: "1d6", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Heavy Crossbow", Description: "A large crossbow with a powerful draw.", Category: "Martial Ranged", Rarity: "Common", RangeType: "Ranged", Cost: "50 gp", Weight: "18 lb.",
+			AttackModifier: "Dexterity", Properties: []string{"Ammunition", "Heavy", "Loading", "Two-Handed"}, RangeNormal: 100, RangeLong: 400,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d10", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Blowgun", Description: "A narrow tube used to fire needles with a sharp puff of breath.", Category: "Martial Ranged", Rarity: "Common", RangeType: "Ranged", Cost: "10 gp", Weight: "1 lb.",
+			AttackModifier: "Dexterity", Properties: []string{"Ammunition", "Loading"}, RangeNormal: 25, RangeLong: 100,
+			Damages: []WeaponDamageSeed{{DamageDice: "1d1", DamageType: "Piercing", DamageCategory: "Base"}},
+		},
+		{
+			Name: "Net", Description: "A mesh of rope or cord weighted at the edges.", Category: "Martial Ranged", Rarity: "Common", RangeType: "Ranged", Cost: "1 gp", Weight: "3 lb.",
+			AttackModifier: "Strength", Properties: []string{"Special", "Thrown"}, RangeNormal: 5, RangeLong: 15,
+			SecondaryEffect: "A Large or smaller creature hit is Restrained until freed (DC 10 Strength check or slashing damage to the net).",
+			Damages: []WeaponDamageSeed{},
 		},
 	}
 }

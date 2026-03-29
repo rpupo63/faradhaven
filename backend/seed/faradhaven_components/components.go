@@ -28,6 +28,7 @@ func AllComponents() []ComponentSeed {
 		{Name: "Zone", Symbol: "Zn", Category: models.CategoryForma, Description: "Manifests a persistent volumetric area of effect.", Tier: 1},
 		{Name: "Cone", Symbol: "Cn", Category: models.CategoryForma, Description: "Radiates outward in a widening directional spread.", Tier: 1},
 		{Name: "Aura", Symbol: "Au", Category: models.CategoryForma, Description: "Clings to a target, radiating a localized field.", Tier: 1},
+		{Name: "Touch", Symbol: "Tc", Category: models.CategoryForma, Description: "Delivers the magic through direct physical contact. Range: self/melee.", Tier: 1},
 
 		// =====================================================================
 		// SCOPUS (TARGETING)
@@ -57,6 +58,9 @@ func AllComponents() []ComponentSeed {
 		{Name: "Arcanum", Symbol: "Ar", Category: models.CategoryEssentia, Description: "The raw, unshaped essence of pure magical force.", Element: "force", Tier: 1},
 		{Name: "Spatium", Symbol: "Sp", Category: models.CategoryEssentia, Description: "The abstract fabric of physical space and dimensions.", Tier: 2},
 		{Name: "Chronos", Symbol: "Ti", Category: models.CategoryEssentia, Description: "The abstract flow of time and temporal causality.", Tier: 2},
+		{Name: "Venenum", Symbol: "Vn", Category: models.CategoryEssentia, Description: "The essence of poison, toxin, and biological corruption.", Element: "poison", Tier: 1},
+		{Name: "Acidum", Symbol: "Ac", Category: models.CategoryEssentia, Description: "The essence of acid, corrosion, and chemical dissolution.", Element: "acid", Tier: 1},
+		{Name: "Mens", Symbol: "Mn", Category: models.CategoryEssentia, Description: "The abstract essence of thought, memory, and conscious will.", Element: "psychic", Tier: 2},
 
 		// Pathos (Emotional Spectrum)
 		{Name: "Anger", Symbol: "An", Category: models.CategoryEssentia, Description: "The emotional resonance of rage, hostility, and aggression.", Element: "psychic", Tier: 1},
@@ -73,7 +77,6 @@ func AllComponents() []ComponentSeed {
 		{Name: "Push", Symbol: "Pu", Category: models.CategoryActio, Description: "Applies outward or repelling kinetic force.", Tier: 1},
 		{Name: "Pull", Symbol: "Pl", Category: models.CategoryActio, Description: "Applies inward or attracting kinetic force.", Tier: 1},
 		{Name: "Grab", Symbol: "Gr", Category: models.CategoryActio, Description: "Seizes, holds, or grapples the target in place.", Tier: 1},
-		{Name: "Lift", Symbol: "Li", Category: models.CategoryActio, Description: "Applies upward force against gravity.", Tier: 1},
 		{Name: "Spin", Symbol: "Sn", Category: models.CategoryActio, Description: "Applies rotational or spiraling force.", Tier: 1},
 		{Name: "Crush", Symbol: "Cr", Category: models.CategoryActio, Description: "Applies compressing, inward-crushing pressure.", Tier: 1},
 		{Name: "Pierce", Symbol: "Pi", Category: models.CategoryActio, Description: "Applies highly concentrated penetrative force.", Tier: 1},
@@ -81,6 +84,12 @@ func AllComponents() []ComponentSeed {
 		{Name: "Destroy", Symbol: "Ds", Category: models.CategoryActio, Description: "Obliterates or nullifies the target or Essentia.", Tier: 2},
 		{Name: "Mutate", Symbol: "Mu", Category: models.CategoryActio, Description: "Alters the fundamental state, shape, or nature of the target.", Tier: 2},
 		{Name: "Bind", Symbol: "Bn", Category: models.CategoryActio, Description: "Tethers two entities, Essentias, or forces together.", Tier: 2},
+		{Name: "Sense", Symbol: "Se", Category: models.CategoryActio, Description: "Extends perception to detect, identify, or observe a target or phenomenon.", Tier: 1},
+		{Name: "Ward", Symbol: "Wd", Category: models.CategoryActio, Description: "Erects a protective barrier or nullifying field against a force or entity.", Tier: 1},
+		{Name: "Conceal", Symbol: "Co", Category: models.CategoryActio, Description: "Hides, obscures, or projects a false appearance over a target.", Tier: 1},
+		{Name: "Summon", Symbol: "Sm", Category: models.CategoryActio, Description: "Calls an entity or object from another location or plane into presence.", Tier: 2},
+		{Name: "Move", Symbol: "Mv", Category: models.CategoryActio, Description: "Instantly translates a target across space, bypassing the intervening distance.", Tier: 2},
+		{Name: "Compel", Symbol: "Cm", Category: models.CategoryActio, Description: "Overrides or bends the conscious will of a target, forcing behavior.", Tier: 2},
 
 		// =====================================================================
 		// MAGNITUDO (SCALE & MODIFIERS)
@@ -91,5 +100,6 @@ func AllComponents() []ComponentSeed {
 		{Name: "Strong", Symbol: "St", Category: models.CategoryMagnitudo, Description: "Amplifies the overall power, damage, or resistance to nullification.", Tier: 1},
 		{Name: "Weak", Symbol: "Wk", Category: models.CategoryMagnitudo, Description: "Diminishes the overall power, making the spell subtle or highly efficient to cast.", Tier: 1},
 		{Name: "Extreme", Symbol: "Xt", Category: models.CategoryMagnitudo, Description: "Pushes the magic to its absolute dimensional limit. Highly volatile.", Tier: 2},
+		{Name: "Inverse", Symbol: "Iv", Category: models.CategoryMagnitudo, Description: "Inverts the fundamental nature of the paired Essentia or Actio (e.g. fire→cold, push→pull, create→destroy).", Tier: 1},
 	}
 }
