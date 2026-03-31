@@ -1,0 +1,609 @@
+/* The Scribe's Toolkit – Google Fonts for ink-and-quill tome (must be first) */
+@import url('https://fonts.googleapis.com/css2?family=Mr+Sheppard&family=Eagle+Lake&family=Cinzel:wght@400;500;600;700&family=Lustria&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Architects+Daughter&family=Homemade+Apple&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ═══ Stained Vellum Palette ═══ */
+    /* Parchment Base – aged, slightly yellowed vellum */
+    --parchment: #F4EBD0;
+    --parchment-hsl: 40 52% 89%;
+    /* Deep Ink – body text, warm brownish-black */
+    --ink: #2C2421;
+    --ink-hsl: 20 14% 15%;
+    /* Dried Blood – headers and accents, classic D&D crimson */
+    --dried-blood: #7A201C;
+    --dried-blood-hsl: 2 63% 29%;
+    /* Faded Gold – borders and rare highlights, oxidized leafing */
+    --faded-gold: #B8860B;
+    --faded-gold-hsl: 43 89% 38%;
+    /* Charcoal – sketch-style illustrations and secondary notes */
+    --charcoal: #4A4A4A;
+    --charcoal-hsl: 0 0% 29%;
+
+    /* Semantic mapping for Tailwind/shadcn */
+    --background: var(--parchment-hsl);
+    --foreground: var(--ink-hsl);
+    --card: 40 45% 92%;
+    --card-foreground: var(--ink-hsl);
+    --popover: 40 48% 94%;
+    --popover-foreground: var(--ink-hsl);
+    --primary: var(--dried-blood-hsl);
+    --primary-foreground: 40 52% 95%;
+    --secondary: 40 30% 82%;
+    --secondary-foreground: var(--ink-hsl);
+    --muted: 40 25% 85%;
+    --muted-foreground: var(--charcoal-hsl);
+    --accent: var(--faded-gold-hsl);
+    --accent-foreground: var(--ink-hsl);
+    --destructive: 0 63% 29%;
+    --destructive-foreground: 40 52% 95%;
+    --border: 43 60% 45%;
+    --input: 40 30% 80%;
+    --ring: var(--faded-gold-hsl);
+    --radius: 0.25rem;
+
+    /* Spell element colors (unchanged for game logic) */
+    --element-fire: 15 85% 55%;
+    --element-ice: 200 80% 60%;
+    --element-heal: 140 60% 50%;
+    --element-shield: 45 70% 55%;
+    --element-push: 280 60% 55%;
+    --element-lightning: 50 95% 60%;
+    --element-dark: 270 40% 30%;
+    --element-nature: 100 50% 45%;
+
+    /* Tome gradients & shadows */
+    --gradient-arcane: linear-gradient(135deg, hsl(var(--dried-blood-hsl) / 0.15), hsl(var(--faded-gold-hsl) / 0.1));
+    --gradient-gold: linear-gradient(135deg, hsl(var(--faded-gold-hsl)), hsl(38 75% 35%));
+    --gradient-forge: linear-gradient(180deg, hsl(var(--parchment-hsl)) 0%, hsl(40 40% 85%) 100%);
+    --shadow-glow: 0 0 20px hsl(var(--faded-gold-hsl) / 0.25);
+    --shadow-arcane: 0 0 30px hsl(var(--dried-blood-hsl) / 0.2);
+    --shadow-card: 0 4px 20px hsl(var(--ink-hsl) / 0.12);
+    --shadow-seal: 0 2px 8px hsl(var(--ink-hsl) / 0.2);
+
+    /* Sidebar / bookmark */
+    --sidebar-background: 40 45% 88%;
+    --sidebar-foreground: var(--ink-hsl);
+    --sidebar-primary: var(--dried-blood-hsl);
+    --sidebar-primary-foreground: 40 52% 95%;
+    --sidebar-accent: 40 35% 82%;
+    --sidebar-accent-foreground: var(--ink-hsl);
+    --sidebar-border: 43 50% 55%;
+    --sidebar-ring: var(--faded-gold-hsl);
+  }
+
+  .dark {
+    --background: 20 14% 10%;
+    --foreground: 40 30% 90%;
+    --card: 20 14% 12%;
+    --card-foreground: 40 30% 90%;
+    --popover: 20 14% 11%;
+    --popover-foreground: 40 30% 90%;
+    --primary: 2 63% 40%;
+    --primary-foreground: 40 30% 95%;
+    --secondary: 20 12% 18%;
+    --secondary-foreground: 40 30% 85%;
+    --muted: 20 10% 22%;
+    --muted-foreground: 0 0% 55%;
+    --accent: 43 70% 45%;
+    --accent-foreground: 40 30% 95%;
+    --border: 20 12% 25%;
+    --input: 20 12% 18%;
+    --ring: 43 70% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Lora', Georgia, serif;
+    /* Parchment texture: subtle noise overlay for "tooth" of vellum */
+    background-image:
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    background-attachment: fixed;
+  }
+
+  /* Primary headers (H1, H2) – calligraphic flow */
+  h1, h2 {
+    font-family: 'Mr Sheppard', 'Eagle Lake', 'Cinzel', serif;
+    color: hsl(var(--primary));
+    font-weight: 400;
+  }
+
+  h1 {
+    @apply text-3xl md:text-4xl tracking-wide;
+  }
+
+  h2 {
+    @apply text-2xl md:text-3xl tracking-wide;
+  }
+
+  /* Secondary headers (H3, H4) – printed book authority */
+  h3, h4 {
+    font-family: 'Cinzel', 'Lustria', serif;
+    color: hsl(var(--foreground));
+    font-weight: 600;
+  }
+
+  h3 {
+    @apply text-xl md:text-2xl;
+  }
+
+  h4 {
+    @apply text-lg md:text-xl;
+  }
+
+  /* Marginalia / hand-written asides */
+  .marginalia,
+  [data-marginalia] {
+    font-family: 'Architects Daughter', 'Homemade Apple', cursive;
+    color: hsl(var(--charcoal-hsl));
+    font-size: 0.95rem;
+  }
+}
+
+@layer components {
+  /* Hand-drawn border – irregular quill feel */
+  .hand-drawn-border {
+    border-style: solid;
+    border-width: 3px 4px 3px 5px;
+    border-radius: 4% 95% 6% 95% / 95% 4% 92% 5%;
+    border-color: hsl(var(--ink-hsl));
+  }
+
+  /* Deckled edge effect – torn paper mask (optional overlay) */
+  .deckled-edge {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill='white' d='M0 0h100v100H0z'/%3E%3Cpath fill='black' d='M0 0v100q10-5 20 0t20 0 20 0 20 0 20 0v-100H0z' opacity='0.3'/%3E%3C/svg%3E");
+    mask-size: 100% 100%;
+    mask-repeat: no-repeat;
+  }
+
+  /* Ink-wash / sketch filter for images */
+  .ink-sketch {
+    filter: sepia(0.5) contrast(1.2) grayscale(1);
+  }
+
+  /* Two-column layout for lore / long text */
+  .tome-columns {
+    column-count: 2;
+    column-gap: 2.5rem;
+    column-rule: 1px solid hsl(var(--faded-gold-hsl) / 0.4);
+  }
+
+  @media (max-width: 768px) {
+    .tome-columns {
+      column-count: 1;
+      column-rule: none;
+    }
+  }
+
+  /* Drop cap – ornate initial for chapter start */
+  .tome-prose .drop-cap::first-letter {
+    font-family: 'Mr Sheppard', 'Eagle Lake', 'Cinzel', serif;
+    float: left;
+    font-size: 3.5rem;
+    line-height: 1;
+    padding-right: 0.35rem;
+    padding-top: 0.1rem;
+    color: hsl(var(--dried-blood-hsl));
+  }
+
+  /* Legacy arcane border – keep for compatibility, now tome-styled */
+  .arcane-border {
+    @apply relative;
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(40 45% 90%) 100%);
+    border: 2px solid hsl(var(--faded-gold-hsl) / 0.5);
+    border-radius: 4% 95% 6% 95% / 95% 4% 92% 5%;
+  }
+
+  .arcane-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, hsl(var(--faded-gold-hsl) / 0.3), transparent, hsl(var(--dried-blood-hsl) / 0.15));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .spell-element {
+    @apply relative overflow-hidden p-3 cursor-pointer transition-all duration-200;
+    border-radius: 4% 95% 6% 95% / 95% 4% 92% 5%;
+    border: 1px solid hsl(var(--faded-gold-hsl) / 0.4);
+  }
+
+  .spell-element:hover {
+    border-color: hsl(var(--dried-blood-hsl) / 0.6);
+    box-shadow: var(--shadow-seal);
+  }
+
+  .spell-element::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+    background: radial-gradient(circle at center, currentColor 0%, transparent 70%);
+  }
+
+  .spell-element:hover::after {
+    opacity: 0.08;
+  }
+
+  .glow-text {
+    text-shadow: 0 0 10px hsl(var(--faded-gold-hsl) / 0.4), 0 0 20px hsl(var(--faded-gold-hsl) / 0.2);
+  }
+
+  .forge-container {
+    background: var(--gradient-forge);
+  }
+
+  /* Tome table – no borders, alternating parchment tints, hand-drawn header underline */
+  .tome-table table {
+    border-collapse: collapse;
+    border: none;
+  }
+
+  .tome-table thead th {
+    border: none;
+    border-bottom: 2px solid hsl(var(--ink-hsl) / 0.5);
+    font-family: 'Cinzel', 'Lustria', serif;
+    color: hsl(var(--primary));
+    padding: 0.75rem 1rem;
+    text-align: left;
+  }
+
+  .tome-table tbody tr {
+    border: none;
+    transition: background-color 0.15s ease;
+  }
+
+  .tome-table tbody tr:nth-child(even) {
+    background-color: hsl(var(--parchment-hsl) / 0.5);
+  }
+
+  .tome-table tbody tr:hover {
+    background-color: hsl(var(--faded-gold-hsl) / 0.08);
+  }
+
+  .tome-table tbody td {
+    border: none;
+    padding: 0.75rem 1rem;
+  }
+
+  /* Wax seal / quill button base (see button variant) */
+  .btn-quill-underline {
+    position: relative;
+  }
+
+  .btn-quill-underline::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 2px;
+    width: 100%;
+    height: 2px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.25s ease;
+  }
+
+  .btn-quill-underline:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+
+  /* ═══ Scholar's Desk – Field Journal & Ledger ═══ */
+  /* Ink-stain stat block: faint ink-wash, ruler-and-leaky-pen borders */
+  .ink-stain-block {
+    background: linear-gradient(135deg, hsl(var(--ink-hsl) / 0.06) 0%, hsl(var(--ink-hsl) / 0.02) 100%);
+    border: 2px solid hsl(var(--ink-hsl) / 0.4);
+    border-radius: 2% 98% 3% 97% / 97% 2% 98% 3%;
+    box-shadow: inset 0 0 30px hsl(var(--ink-hsl) / 0.03);
+  }
+
+  /* Charcoal sketch – blend ink into vellum */
+  .charcoal-sketch {
+    filter: sepia(0.4) contrast(1.15) grayscale(1) brightness(0.92);
+    mix-blend-mode: multiply;
+  }
+
+  /* Parchment / sticky-note tooltip */
+  .tooltip-parchment {
+    background: hsl(var(--parchment-hsl)) !important;
+    border: 1px solid hsl(var(--faded-gold-hsl) / 0.5) !important;
+    box-shadow: 2px 4px 12px hsl(var(--ink-hsl) / 0.2), 0 0 0 1px hsl(var(--ink-hsl) / 0.1) !important;
+    font-family: 'Architects Daughter', 'Homemade Apple', cursive !important;
+    color: hsl(var(--ink-hsl)) !important;
+    padding: 0.5rem 0.75rem !important;
+    border-radius: 2% 96% 4% 98% / 96% 2% 98% 4% !important;
+    max-width: 280px;
+  }
+
+  /* Vellum overlay for modals – ragged edges, no dimming */
+  .vellum-overlay {
+    background: hsl(var(--parchment-hsl) / 0.92) !important;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .vellum-modal-content {
+    border: 2px solid hsl(var(--ink-hsl) / 0.5);
+    border-radius: 3% 97% 4% 96% / 96% 3% 97% 4%;
+    box-shadow: 0 8px 32px hsl(var(--ink-hsl) / 0.2);
+  }
+
+  /* Tome checkbox – hand-drawn circle, heavy ink check/X */
+  .tome-checkbox {
+    border-radius: 50% !important;
+    border-width: 2px !important;
+    border-color: hsl(var(--ink-hsl)) !important;
+    background: transparent !important;
+  }
+
+  .tome-checkbox[data-state="checked"] {
+    background: hsl(var(--ink-hsl) / 0.08) !important;
+    border-color: hsl(var(--ink-hsl)) !important;
+  }
+
+  /* Search bar – simple line, sketched magnifying glass */
+  .tome-search-wrap {
+    border-bottom: 2px solid hsl(var(--ink-hsl) / 0.4);
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .tome-search-wrap:focus-within {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 2px 0 0 hsl(var(--primary) / 0.3);
+  }
+
+  /* Underlined fill-in-the-blank input (Bureaucrat's Desk) */
+  .tome-input-underline {
+    border: none !important;
+    border-bottom: 2px solid hsl(var(--ink-hsl) / 0.5) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    font-family: 'Architects Daughter', 'Homemade Apple', cursive !important;
+  }
+
+  .tome-input-underline:focus {
+    border-bottom-color: hsl(var(--primary)) !important;
+    box-shadow: 0 2px 0 0 hsl(var(--primary) / 0.2) !important;
+    outline: none !important;
+  }
+
+  /* Ledger filter tabs – protruding from left */
+  .ledger-tab {
+    border: 1px solid hsl(var(--faded-gold-hsl) / 0.5);
+    border-right: none;
+    border-radius: 4px 0 0 4px;
+    background: hsl(var(--card));
+    box-shadow: -2px 2px 6px hsl(var(--ink-hsl) / 0.1);
+  }
+
+  .ledger-tab[data-state="active"] {
+    background: hsl(var(--parchment-hsl));
+    border-color: hsl(var(--primary) / 0.5);
+    z-index: 1;
+  }
+
+  /* Spellbook bound cover – leather texture frame */
+  .spellbook-cover {
+    background: linear-gradient(145deg, hsl(25 35% 22%) 0%, hsl(20 40% 18%) 50%, hsl(25 35% 22%) 100%);
+    border: 4px solid hsl(30 30% 15%);
+    border-radius: 4px 12px 4px 12px;
+    box-shadow: inset 0 0 60px hsl(0 0% 0% / 0.3), 4px 8px 24px hsl(var(--ink-hsl) / 0.4);
+  }
+
+  .spellbook-cover-inner {
+    background: hsl(var(--parchment-hsl));
+    border-radius: 2px 8px 2px 8px;
+    margin: 6px;
+    min-height: 200px;
+    border: 1px solid hsl(var(--faded-gold-hsl) / 0.3);
+  }
+
+  /* Ornate H2 with gold-leaf accent (Spellbook circles) */
+  .tome-section-heading {
+    font-family: 'Mr Sheppard', 'Eagle Lake', 'Cinzel', serif;
+    color: hsl(var(--primary));
+    position: relative;
+    display: inline-block;
+    padding-bottom: 0.25rem;
+  }
+
+  .tome-section-heading::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, hsl(var(--faded-gold-hsl)), hsl(var(--faded-gold-hsl) / 0.3), transparent);
+    border-radius: 2px;
+  }
+
+  /* Marginalia flourish – tea stain / ink splash asset */
+  .marginalia-flourish {
+    position: absolute;
+    pointer-events: none;
+    opacity: 0.4;
+    mix-blend-mode: multiply;
+  }
+
+  /* ═══ Arcanum Elementis – Periodic Table of Magic ═══ */
+  /* Element tile base styling */
+  .element-tile {
+    font-family: 'Cinzel', 'Lustria', serif;
+    background-image:
+      linear-gradient(135deg, transparent 0%, hsl(var(--parchment-hsl) / 0.1) 50%, transparent 100%);
+    box-shadow: 
+      inset 0 1px 2px hsl(0 0% 100% / 0.1),
+      0 2px 4px hsl(var(--ink-hsl) / 0.15);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .element-tile::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 30% 20%, hsl(0 0% 100% / 0.15), transparent 50%);
+    pointer-events: none;
+  }
+
+  .element-tile:hover {
+    box-shadow: 
+      inset 0 1px 2px hsl(0 0% 100% / 0.15),
+      0 4px 12px hsl(var(--ink-hsl) / 0.25),
+      0 0 20px hsl(var(--faded-gold-hsl) / 0.2);
+  }
+
+  /* Arcanum table container */
+  .arcanum-table {
+    background: 
+      radial-gradient(ellipse at 50% 0%, hsl(var(--faded-gold-hsl) / 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 0% 50%, hsl(var(--dried-blood-hsl) / 0.04) 0%, transparent 40%),
+      radial-gradient(ellipse at 100% 50%, hsl(var(--dried-blood-hsl) / 0.04) 0%, transparent 40%);
+  }
+
+  /* Category section headers */
+  .arcanum-table h2 {
+    text-shadow: 0 2px 4px hsl(var(--ink-hsl) / 0.1);
+  }
+
+  .arcanum-table h2::before,
+  .arcanum-table h2::after {
+    content: '✦';
+    margin: 0 0.75rem;
+    color: hsl(var(--faded-gold-hsl) / 0.5);
+    font-size: 0.6em;
+    vertical-align: middle;
+  }
+}
+
+@layer utilities {
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 5px hsl(var(--faded-gold-hsl) / 0.3), 0 0 10px hsl(var(--faded-gold-hsl) / 0.2);
+    }
+    50% {
+      box-shadow: 0 0 15px hsl(var(--faded-gold-hsl) / 0.5), 0 0 30px hsl(var(--faded-gold-hsl) / 0.3);
+    }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+
+  /* Ink bleed – for page transition effect (use with Framer Motion) */
+  .animate-ink-bleed {
+    animation: ink-bleed 0.4s ease-out forwards;
+  }
+
+  @keyframes ink-bleed {
+    0% {
+      opacity: 0;
+      filter: brightness(0.95);
+    }
+    100% {
+      opacity: 1;
+      filter: brightness(1);
+    }
+  }
+
+  /* Loading: inkwell fill / quill script */
+  .animate-quill-write {
+    animation: quill-write 1.2s ease-in-out infinite;
+  }
+
+  @keyframes quill-write {
+    0%, 100% { opacity: 0.4; transform: translateX(-2px); }
+    50% { opacity: 1; transform: translateX(2px); }
+  }
+
+  .inkwell-fill {
+    background: linear-gradient(to top, hsl(var(--ink-hsl)) 0%, hsl(var(--ink-hsl)) var(--fill, 0%), transparent var(--fill, 0%));
+    border-radius: 50%;
+  }
+
+  /* Arcanum element shimmer on hover */
+  .animate-shimmer {
+    animation: shimmer 2s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0%, 100% {
+      opacity: 0.8;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  /* Gaslight flicker effect */
+  .animate-gaslight {
+    animation: gaslight 4s ease-in-out infinite;
+  }
+
+  @keyframes gaslight {
+    0%, 100% { 
+      filter: brightness(1);
+      text-shadow: 0 0 10px currentColor;
+    }
+    25% {
+      filter: brightness(0.97);
+      text-shadow: 0 0 8px currentColor;
+    }
+    50% {
+      filter: brightness(1.02);
+      text-shadow: 0 0 12px currentColor;
+    }
+    75% {
+      filter: brightness(0.98);
+      text-shadow: 0 0 9px currentColor;
+    }
+  }
+
+  /* Gear spin animations */
+  .animate-gear-slow {
+    animation: gear-spin 20s linear infinite;
+  }
+
+  .animate-gear-fast {
+    animation: gear-spin 10s linear infinite;
+  }
+
+  @keyframes gear-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+}
