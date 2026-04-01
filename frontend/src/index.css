@@ -104,15 +104,51 @@
 
   html {
     scroll-behavior: smooth;
+    width: 100%;
+    overflow-x: hidden;
+    font-size: 100%;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Lora', Georgia, serif;
+    width: 100%;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    line-height: 1.5;
     /* Parchment texture: subtle noise overlay for "tooth" of vellum */
     background-image:
       url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
     background-attachment: fixed;
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100dvh;
+    overflow-x: clip;
+  }
+
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  p,
+  li,
+  blockquote,
+  td,
+  th,
+  label,
+  input,
+  textarea,
+  select,
+  button {
+    overflow-wrap: anywhere;
   }
 
   /* Primary headers (H1, H2) – calligraphic flow */

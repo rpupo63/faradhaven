@@ -27,15 +27,15 @@ export function ProficienciesSection({ sheet, onRoll }: ProficienciesSectionProp
           <button
             onClick={() => onRoll('Initiative', modifiers.initiative)}
             className={cn(
-              'w-full flex items-center justify-between py-2.5 px-3 rounded transition-colors',
+              'w-full min-w-0 flex items-center justify-between gap-2 py-2.5 px-3 rounded transition-colors',
               'hover:bg-primary/20 cursor-pointer'
             )}
           >
-            <span className="flex items-center gap-2 text-sm font-tome-subheading text-primary">
-              <Zap className="h-4 w-4" />
-              Initiative
+            <span className="flex items-center gap-2 text-sm font-tome-subheading text-primary min-w-0">
+              <Zap className="h-4 w-4 shrink-0" />
+              <span className="truncate">Initiative</span>
             </span>
-            <span className="font-display text-xl text-primary tabular-nums">
+            <span className="font-display text-xl text-primary tabular-nums shrink-0">
               {formatMod(modifiers.initiative)}
             </span>
           </button>
@@ -60,19 +60,19 @@ export function ProficienciesSection({ sheet, onRoll }: ProficienciesSectionProp
                   key={save.id}
                   onClick={() => onRoll(`${save.name} Save`, bonus)}
                   className={cn(
-                    'w-full flex items-center justify-between py-1 px-2 rounded text-sm transition-colors',
+                    'w-full min-w-0 flex items-center justify-between gap-2 py-1 px-2 rounded text-sm transition-colors',
                     'hover:bg-primary/20 cursor-pointer',
                     isProficient && 'bg-primary/10'
                   )}
                 >
-                  <span className="flex items-center gap-1.5 font-tome-marginalia">
+                  <span className="flex items-center gap-1.5 font-tome-marginalia min-w-0 text-left">
                     {isProficient && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary" title="Proficient" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" title="Proficient" />
                     )}
-                    {!isProficient && <span className="w-1.5 h-1.5" />}
-                    {save.name}
+                    {!isProficient && <span className="w-1.5 h-1.5 shrink-0" />}
+                    <span className="truncate">{save.name}</span>
                   </span>
-                  <span className="font-display text-primary tabular-nums">
+                  <span className="font-display text-primary tabular-nums shrink-0">
                     {formatMod(bonus)}
                   </span>
                 </button>
@@ -100,22 +100,22 @@ export function ProficienciesSection({ sheet, onRoll }: ProficienciesSectionProp
                   key={skill.id}
                   onClick={() => onRoll(skill.name, bonus)}
                   className={cn(
-                    'w-full flex items-center justify-between py-1 px-2 rounded text-sm transition-colors',
+                    'w-full min-w-0 flex items-center justify-between gap-2 py-1 px-2 rounded text-sm transition-colors',
                     'hover:bg-primary/20 cursor-pointer',
                     isProficient && 'bg-primary/10'
                   )}
                 >
-                  <span className="flex items-center gap-1.5 font-tome-marginalia">
+                  <span className="flex items-center gap-1.5 font-tome-marginalia min-w-0 text-left">
                     {isProficient && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary" title="Proficient" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" title="Proficient" />
                     )}
-                    {!isProficient && <span className="w-1.5 h-1.5" />}
-                    <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                    {!isProficient && <span className="w-1.5 h-1.5 shrink-0" />}
+                    <span className="text-xs text-muted-foreground uppercase tracking-wide shrink-0">
                       {skill.ability.slice(0, 3)}
                     </span>
-                    {skill.name}
+                    <span className="truncate min-w-0">{skill.name}</span>
                   </span>
-                  <span className="font-display text-primary tabular-nums">
+                  <span className="font-display text-primary tabular-nums shrink-0">
                     {formatMod(bonus)}
                   </span>
                 </button>

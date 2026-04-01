@@ -101,5 +101,13 @@ func AllComponents() []ComponentSeed {
 		{Name: "Weak", Symbol: "Wk", Category: models.CategoryMagnitudo, Description: "Diminishes the overall power, making the spell subtle or highly efficient to cast.", Tier: 1},
 		{Name: "Extreme", Symbol: "Xt", Category: models.CategoryMagnitudo, Description: "Pushes the magic to its absolute dimensional limit. Highly volatile.", Tier: 2},
 		{Name: "Inverse", Symbol: "Iv", Category: models.CategoryMagnitudo, Description: "Inverts the fundamental nature of the paired Essentia or Actio (e.g. fire→cold, push→pull, create→destroy).", Tier: 1},
+
+		// =====================================================================
+		// LOGICA (SEQUENTIAL LINKS)
+		// Establishes order and narrative causality between component groups (reuse allowed).
+		// =====================================================================
+		{Name: "If", Symbol: "If", Category: models.CategoryLogica, Description: "Opens a conditional branch: the following segment applies when the stated condition (table agreement) is met before resolving later phases.", Tier: 1},
+		{Name: "Then", Symbol: "Th", Category: models.CategoryLogica, Description: "Declares a sequenced phase: earlier magic completes first; this segment builds on that outcome (e.g. water pooled, then cold freezes it).", Tier: 1},
+		{Name: "Therefore", Symbol: "Tf", Category: models.CategoryLogica, Description: "Marks a concluding causal beat tying prior phases into a final effect or summary outcome.", Tier: 1},
 	}
 }

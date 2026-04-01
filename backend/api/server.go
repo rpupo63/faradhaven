@@ -80,8 +80,12 @@ func newRouter(database database.Database, opts ...func(*router)) *chi.Mux {
 	// Healthcheck endpoint - accessible from any origin
 	chiRouter.Get("/healthcheck", healthcheckHandler(router.startupTime))
 
+	// Initialize WebSocket Hub
+	hub := NewHub()
+	go hub.Run()
+
 	// Initialize all handlers
-	handlers := initializeHandlers(database)
+	handlers := initializeHandlers(database, hub)
 
 	// Ensure at least one user exists (from AUTH_EMAIL/AUTH_PASSWORD if table empty)
 	EnsureFirstUserExists(database.UserRepo())
@@ -90,7 +94,7 @@ func newRouter(database database.Database, opts ...func(*router)) *chi.Mux {
 	authMiddleware := newAuthMiddleware(database.UserRepo())
 
 	// Setup all route types
-	setupFrontendRoutes(chiRouter, handlers, authMiddleware)
+	setupFrontendRoutes(chiRouter, handlers, authMiddleware, hub)
 
 	return chiRouter
 }

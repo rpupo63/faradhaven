@@ -101,6 +101,36 @@ func (h *corpseHandler) CreateCorpse() http.HandlerFunc {
 			}
 		}
 
+		avail := req.AvailableComponents
+		if len(avail) > 0 {
+			parsed := make([]uuid.UUID, 0, len(avail))
+			for _, s := range avail {
+				id, err := uuid.Parse(s)
+				if err != nil {
+					continue
+				}
+				parsed = append(parsed, id)
+			}
+			comps, err := h.componentRepo.GetComponentsByIDs(parsed)
+			if err != nil || len(comps) == 0 {
+				avail = nil
+			} else {
+				avail = make([]string, len(comps))
+				for i, c := range comps {
+					avail[i] = c.ID.String()
+				}
+			}
+		}
+		if len(avail) == 0 {
+			all, err := h.componentRepo.GetAllComponents()
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to load components for corpse loot")
+				respondError(w, http.StatusInternalServerError, "Failed to create corpse")
+				return
+			}
+			avail = RandomDistinctComponentIDStrings(all, RollCorpseComponentSlotCount())
+		}
+
 		serviceReq := services.CreateCorpseRequest{
 			MapID:               req.MapID,
 			Name:                req.Name,
@@ -109,7 +139,7 @@ func (h *corpseHandler) CreateCorpse() http.HandlerFunc {
 			ChallengeRating:     req.ChallengeRating,
 			GridX:               req.GridX,
 			GridY:               req.GridY,
-			AvailableComponents: req.AvailableComponents,
+			AvailableComponents: avail,
 			ComponentYield:      req.ComponentYield,
 			SourceBeastID:       req.SourceBeastID,
 			ExpiresInMinutes:    req.ExpiresInMinutes,
@@ -148,7 +178,7 @@ func (h *corpseHandler) HarvestCorpse() http.HandlerFunc {
 			return
 		}
 
-		// Parse component IDs
+		// Parse component IDs; keep only rows that exist (stale corpse UUIDs after reseed)
 		compIDs := make([]uuid.UUID, 0, len(result.ComponentIDs))
 		for _, compIDStr := range result.ComponentIDs {
 			compID, err := uuid.Parse(compIDStr)
@@ -157,17 +187,39 @@ func (h *corpseHandler) HarvestCorpse() http.HandlerFunc {
 			}
 			compIDs = append(compIDs, compID)
 		}
-
-		// Batch-fetch all component names in one query
-		fetchedComps, _ := h.componentRepo.GetComponentsByIDs(compIDs)
+		fetchedComps, err := h.componentRepo.GetComponentsByIDs(compIDs)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to resolve corpse components")
+			respondError(w, http.StatusInternalServerError, "Failed to harvest corpse")
+			return
+		}
+		validCompIDs := make([]uuid.UUID, 0, len(fetchedComps))
+		for _, c := range fetchedComps {
+			validCompIDs = append(validCompIDs, c.ID)
+		}
+		if len(validCompIDs) == 0 {
+			all, err := h.componentRepo.GetAllComponents()
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to load components for harvest fallback")
+				respondError(w, http.StatusInternalServerError, "Failed to harvest corpse")
+				return
+			}
+			validCompIDs = RandomDistinctComponentIDs(all, RollCorpseComponentSlotCount())
+			fetchedComps, err = h.componentRepo.GetComponentsByIDs(validCompIDs)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to resolve fallback harvest components")
+				respondError(w, http.StatusInternalServerError, "Failed to harvest corpse")
+				return
+			}
+		}
 		compNameByID := make(map[uuid.UUID]string, len(fetchedComps))
 		for _, c := range fetchedComps {
 			compNameByID[c.ID] = c.Name
 		}
 
 		// Update inventory counts and collect names
-		componentNames := make([]string, 0, len(compIDs))
-		for _, compID := range compIDs {
+		componentNames := make([]string, 0, len(validCompIDs))
+		for _, compID := range validCompIDs {
 			for i := 0; i < result.ComponentsYielded; i++ {
 				if err := h.characterRepo.UpdateComponentCount(req.CharacterID, compID, 1); err != nil {
 					log.Error().Err(err).Str("componentID", compID.String()).Msg("Failed to add component to inventory")
@@ -178,9 +230,13 @@ func (h *corpseHandler) HarvestCorpse() http.HandlerFunc {
 			}
 		}
 
+		grantedIDs := make([]string, len(validCompIDs))
+		for i, id := range validCompIDs {
+			grantedIDs[i] = id.String()
+		}
 		respondJSON(w, http.StatusOK, map[string]interface{}{
 			"components_yielded": result.ComponentsYielded,
-			"component_ids":     result.ComponentIDs,
+			"component_ids":     grantedIDs,
 			"component_names":   componentNames,
 			"message":           result.Message,
 		})
@@ -310,18 +366,40 @@ func (h *corpseHandler) ScavengeComponents() http.HandlerFunc {
 			yield = remaining
 		}
 
-		// Parse available component IDs
-		scavCompIDs := make([]uuid.UUID, 0, len(corpse.AvailableComponents))
+		// Resolve corpse component IDs against the live catalog; fall back to random if none match
+		parsedCorpse := make([]uuid.UUID, 0, len(corpse.AvailableComponents))
 		for _, compIDStr := range corpse.AvailableComponents {
 			compID, err := uuid.Parse(compIDStr)
 			if err != nil {
 				continue
 			}
-			scavCompIDs = append(scavCompIDs, compID)
+			parsedCorpse = append(parsedCorpse, compID)
 		}
-
-		// Batch-fetch component names in one query
-		scavComps, _ := h.componentRepo.GetComponentsByIDs(scavCompIDs)
+		scavComps, err := h.componentRepo.GetComponentsByIDs(parsedCorpse)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to resolve scavenged components")
+			respondError(w, http.StatusInternalServerError, "Failed to scavenge corpse")
+			return
+		}
+		scavCompIDs := make([]uuid.UUID, 0, len(scavComps))
+		for _, c := range scavComps {
+			scavCompIDs = append(scavCompIDs, c.ID)
+		}
+		if len(scavCompIDs) == 0 {
+			all, err := h.componentRepo.GetAllComponents()
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to load components for scavenge fallback")
+				respondError(w, http.StatusInternalServerError, "Failed to scavenge corpse")
+				return
+			}
+			scavCompIDs = RandomDistinctComponentIDs(all, RollCorpseComponentSlotCount())
+			scavComps, err = h.componentRepo.GetComponentsByIDs(scavCompIDs)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to resolve fallback scavenge components")
+				respondError(w, http.StatusInternalServerError, "Failed to scavenge corpse")
+				return
+			}
+		}
 		scavNameByID := make(map[uuid.UUID]string, len(scavComps))
 		for _, c := range scavComps {
 			scavNameByID[c.ID] = c.Name
@@ -344,12 +422,14 @@ func (h *corpseHandler) ScavengeComponents() http.HandlerFunc {
 		corpse.HasBeenScavenged = true
 		h.corpseService.UpdateCorpse(corpse)
 
+		nSlots := len(scavCompIDs)
+		totalAdded := yield * nSlots
 		respondJSON(w, http.StatusOK, map[string]interface{}{
 			"components_yielded": yield,
 			"component_names":    componentNames,
-			"capacity_used":      currentTotal + (yield * len(corpse.AvailableComponents)),
+			"capacity_used":      currentTotal + totalAdded,
 			"capacity_max":       wisMod,
-			"message":            fmt.Sprintf("Scavenged %d components from %s", yield*len(corpse.AvailableComponents), corpse.Name),
+			"message":            fmt.Sprintf("Scavenged %d components from %s", totalAdded, corpse.Name),
 		})
 	}
 }

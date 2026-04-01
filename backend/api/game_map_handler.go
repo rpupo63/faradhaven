@@ -12,10 +12,11 @@ import (
 
 type gameMapHandler struct {
 	gameMapRepo *database.GameMapRepo
+	hub         *Hub
 }
 
-func newGameMapHandler(gameMapRepo *database.GameMapRepo) *gameMapHandler {
-	return &gameMapHandler{gameMapRepo: gameMapRepo}
+func newGameMapHandler(gameMapRepo *database.GameMapRepo, hub *Hub) *gameMapHandler {
+	return &gameMapHandler{gameMapRepo: gameMapRepo, hub: hub}
 }
 
 func (h *gameMapHandler) createMap() http.HandlerFunc {
@@ -186,6 +187,8 @@ func (h *gameMapHandler) updateMap() http.HandlerFunc {
 			respondError(w, http.StatusInternalServerError, "Failed to update map")
 			return
 		}
+
+		h.hub.BroadcastMapUpdate(mapID, "MAP_UPDATED", gameMap)
 
 		respondJSON(w, http.StatusOK, gameMap)
 	}

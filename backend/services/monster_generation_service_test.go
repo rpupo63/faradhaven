@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -33,11 +34,13 @@ func (r *inMemoryMonsterRepo) Add(m *models.Monster) error {
 	r.monsters = append(r.monsters, m)
 	return nil
 }
-func (r *inMemoryMonsterRepo) FindByID(id uuid.UUID) (*models.Monster, error)         { return nil, nil }
-func (r *inMemoryMonsterRepo) FindByUserID(userID uuid.UUID) ([]*models.Monster, error) { return nil, nil }
-func (r *inMemoryMonsterRepo) FindAll() ([]*models.Monster, error)                      { return nil, nil }
-func (r *inMemoryMonsterRepo) Update(m *models.Monster) error                           { return nil }
-func (r *inMemoryMonsterRepo) Delete(id uuid.UUID) error                                { return nil }
+func (r *inMemoryMonsterRepo) FindByID(id uuid.UUID) (*models.Monster, error) { return nil, nil }
+func (r *inMemoryMonsterRepo) FindByUserID(userID uuid.UUID) ([]*models.Monster, error) {
+	return nil, nil
+}
+func (r *inMemoryMonsterRepo) FindAll() ([]*models.Monster, error) { return nil, nil }
+func (r *inMemoryMonsterRepo) Update(m *models.Monster) error      { return nil }
+func (r *inMemoryMonsterRepo) Delete(id uuid.UUID) error           { return nil }
 
 // --- Tests ---
 
@@ -190,5 +193,51 @@ func TestGenerateMonsterFromPrompt_NilLLMClient(t *testing.T) {
 
 	if err == nil {
 		t.Fatal("expected error when LLM client is nil, got nil")
+	}
+}
+
+func TestGenerateMonsterFromPrompt_FaradhavenClass(t *testing.T) {
+	repo := &inMemoryMonsterRepo{}
+	llm := &testLLMClient{response: validMonsterJSON}
+	svc := NewMonsterGenerationService(repo, nil, llm)
+	svc.schemaPath = "../docs/schemas/monster_schema.json"
+
+	userID := uuid.New()
+	monster, err := svc.GenerateMonsterFromPrompt(context.Background(), GenerateMonsterFromPromptRequest{
+		UserID:              userID,
+		Description:         "patrolling the alchemy ward",
+		ChallengeRating:     "3",
+		FaradhavenClassName: "The Mutagen",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if monster.UserID != userID {
+		t.Errorf("UserID = %v, want %v", monster.UserID, userID)
+	}
+	if !strings.Contains(monster.Source, "Mutagen") {
+		t.Errorf("Source = %q, want substring Mutagen", monster.Source)
+	}
+	if len(repo.monsters) != 1 {
+		t.Fatalf("repo has %d monsters, want 1", len(repo.monsters))
+	}
+}
+
+func TestGenerateMonsterFromPrompt_UnknownFaradhavenClass(t *testing.T) {
+	repo := &inMemoryMonsterRepo{}
+	llm := &testLLMClient{response: validMonsterJSON}
+	svc := NewMonsterGenerationService(repo, nil, llm)
+
+	_, err := svc.GenerateMonsterFromPrompt(context.Background(), GenerateMonsterFromPromptRequest{
+		UserID:              uuid.New(),
+		Description:         "flavor",
+		ChallengeRating:     "1",
+		FaradhavenClassName: "NotARealClassNameXYZ",
+	})
+	if err == nil {
+		t.Fatal("expected error for unknown class, got nil")
+	}
+	if len(repo.monsters) != 0 {
+		t.Errorf("repo should have no monsters, got %d", len(repo.monsters))
 	}
 }

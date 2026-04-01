@@ -295,43 +295,47 @@ export default function CharacterSheetPage() {
           />
 
           {/* Tab Navigation: Bottom on mobile, Center on Desktop */}
-          <div className="order-last md:order-none w-full md:w-auto overflow-x-auto">
-            <TabsList className="grid grid-cols-5 w-full md:w-auto min-w-[375px] h-12 md:h-10">
-              <TabsTrigger value="sheet" className="gap-2 px-3 h-full">
-                <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">Sheet</span>
+          <div className="order-last md:order-none w-full md:w-auto min-w-0">
+            <TabsList className="grid grid-cols-5 w-full md:w-auto min-w-0 h-12 md:h-10 gap-0">
+              <TabsTrigger value="sheet" className="gap-1 sm:gap-2 px-1.5 sm:px-3 h-full min-w-0">
+                <FileText className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline truncate">Sheet</span>
               </TabsTrigger>
 
-              <TabsTrigger value="spellbook" className="gap-2 px-3 h-full">
-                <Wand2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Spellbook</span>
+              <TabsTrigger value="spellbook" className="gap-1 sm:gap-2 px-1.5 sm:px-3 h-full min-w-0">
+                <Wand2 className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline truncate">Spellbook</span>
               </TabsTrigger>
-              <TabsTrigger value="backstory" className="gap-2 px-3 h-full">
-                <History className="h-4 w-4" />
-                <span className="hidden sm:inline">Story</span>
+              <TabsTrigger value="backstory" className="gap-1 sm:gap-2 px-1.5 sm:px-3 h-full min-w-0">
+                <History className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline truncate">Story</span>
               </TabsTrigger>
-              <TabsTrigger value="bestiary" className="gap-2 px-3 h-full">
-                <Sparkles className="h-4 w-4" />
-                <span className="hidden sm:inline">Bestiary</span>
+              <TabsTrigger value="bestiary" className="gap-1 sm:gap-2 px-1.5 sm:px-3 h-full min-w-0">
+                <Sparkles className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline truncate">Bestiary</span>
               </TabsTrigger>
-              <TabsTrigger value="party" className="gap-2 px-3 h-full">
-                <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Party</span>
+              <TabsTrigger value="party" className="gap-1 sm:gap-2 px-1.5 sm:px-3 h-full min-w-0">
+                <Users className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline truncate">Party</span>
               </TabsTrigger>
             </TabsList>
           </div>
 
           {/* Right: Level Controls + Desktop Info */}
-          <div className="flex flex-col md:flex-row items-end md:items-center gap-2 md:gap-4 w-full md:w-auto">
+          <div className="flex flex-col md:flex-row items-end md:items-center gap-2 md:gap-4 w-full md:w-auto min-w-0">
             {/* Level Controls */}
-            <div className="flex items-center justify-end gap-2 w-full md:w-auto">
+            <div className="flex flex-col items-stretch gap-1.5 w-full md:w-auto min-w-0 md:items-end">
+              <span className="text-xs text-muted-foreground md:hidden uppercase tracking-wider font-semibold text-right">
+                Actions
+              </span>
+              <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2 min-w-0">
               {sheet.character.className === "The Lorewright" && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setShowHarvestModal(true)}
                   title="Perform Harvest (Visceral Psychometry)"
-                  className="gap-1 h-8 px-2"
+                  className="gap-1 h-8 px-2 shrink-0"
                 >
                   <FlaskRound className="h-4 w-4" />
                   <span className="hidden lg:inline">Harvest</span>
@@ -344,7 +348,7 @@ export default function CharacterSheetPage() {
                   size="sm"
                   onClick={() => setShowScavengeModal(true)}
                   title="Scavenge Components"
-                  className="gap-1 h-8 px-2"
+                  className="gap-1 h-8 px-2 shrink-0"
                 >
                   <Recycle className="h-4 w-4" />
                   <span className="hidden lg:inline">Scavenge</span>
@@ -356,7 +360,7 @@ export default function CharacterSheetPage() {
                   size="sm"
                   onClick={() => setShowScavengeModal(true)}
                   title="Sanguine Extraction"
-                  className="gap-1 h-8 px-2"
+                  className="gap-1 h-8 px-2 shrink-0"
                 >
                   <Droplets className="h-4 w-4" />
                   <span className="hidden lg:inline">Extract</span>
@@ -367,12 +371,11 @@ export default function CharacterSheetPage() {
                 size="sm"
                 onClick={() => setShowLootModal(true)}
                 title="Generate Loot"
-                className="gap-1 h-8 px-2"
+                className="gap-1 h-8 px-2 shrink-0"
               >
                 <Coins className="h-4 w-4" />
                 <span className="hidden lg:inline">Loot</span>
               </Button>
-              <span className="text-xs text-muted-foreground md:hidden uppercase tracking-wider font-semibold">Actions</span>
               <Button
                 variant="outline"
                 size="sm"
@@ -389,7 +392,7 @@ export default function CharacterSheetPage() {
                 }}
                 disabled={currentLevel <= 1}
                 title="Level Down"
-                className="gap-1 h-8 px-2"
+                className="gap-1 h-8 px-2 shrink-0"
               >
                 <ChevronDown className="h-4 w-4" />
               </Button>
@@ -409,11 +412,12 @@ export default function CharacterSheetPage() {
                 }}
                 disabled={currentLevel >= 20}
                 title="Level Up"
-                className="gap-1 h-8 px-2"
+                className="gap-1 h-8 px-2 shrink-0"
               >
                 <ChevronUp className="h-4 w-4" />
               </Button>
 
+              </div>
             </div>
 
             {/* Desktop Character Info */}

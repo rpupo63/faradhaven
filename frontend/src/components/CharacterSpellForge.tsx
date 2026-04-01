@@ -408,13 +408,13 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
   const currentMutationError = isEditMode ? updateSpellMutation.error : createSpellMutation.error;
 
   return (
-    <div className="w-full">
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+    <div className="w-full min-w-0">
+      <div className="grid gap-6 lg:grid-cols-[1fr_340px] min-w-0">
         {/* Left: Component Table */}
-        <div>
+        <div className="min-w-0">
           <div className="flex flex-col gap-4 mb-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center bg-muted/30 p-1 rounded-md border border-border">
+            <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 min-w-0">
+              <div className="flex items-center bg-muted/30 p-1 rounded-md border border-border shrink-0">
                 <Button variant={viewMode === 'table' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('table')} className="gap-2 h-8">
                   <Atom className="h-4 w-4" /> Table
                 </Button>
@@ -423,7 +423,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                 </Button>
               </div>
               {availableComponentIds && (
-                <div className="text-sm text-muted-foreground font-tome-marginalia text-right">
+                <div className="text-sm text-muted-foreground font-tome-marginalia text-right min-w-0 w-full sm:w-auto">
                   <span className="text-primary font-semibold">{availableCount}</span> of{' '}
                   <span className="text-muted-foreground">{totalCount}</span> available
                 </div>
@@ -451,7 +451,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
         </div>
 
         {/* Right: Spell Creation Panel */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
           {/* Timer Card */}
           {timerDuration !== undefined && (
             <Card className="arcane-border bg-card sticky top-4 z-10">

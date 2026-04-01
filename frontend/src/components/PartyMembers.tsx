@@ -93,15 +93,15 @@ export function PartyMembers({ characterId, token, characterSheet }: PartyMember
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="partyName" className="text-right">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                <Label htmlFor="partyName" className="text-left sm:text-right">
                   Party Name
                 </Label>
                 <Input
                   id="partyName"
                   value={newPartyName}
                   onChange={(e) => setNewPartyName(e.target.value)}
-                  className="col-span-3"
+                  className="sm:col-span-3 min-w-0"
                   disabled={createPartyMutation.isPending}
                 />
               </div>
@@ -157,7 +157,7 @@ export function PartyMembers({ characterId, token, characterSheet }: PartyMember
                   <User className="w-8 h-8 text-primary/40" />
                 )}
               </div>
-              <div className="flex-grow">
+              <div className="flex-grow min-w-0">
                 <CardTitle className="text-lg leading-tight truncate">{member.name}</CardTitle>
                 <CardDescription className="text-xs font-tome-marginalia">
                   Lvl {member.level} {member.race?.name} {member.class?.name}

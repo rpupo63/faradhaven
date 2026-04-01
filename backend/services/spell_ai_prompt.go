@@ -92,7 +92,8 @@ const spellAIOpinionPromptTemplate = `
 	- **recommended_damage_dice_count** and **recommended_damage_die_size**: Integers for damage dice (e.g. 2 and 6 for 2d6). Must both be null or both set. Die size must be one of: 4, 6, 8, 10, 12, 20, 100. Count must be at least 1. Do NOT use a single string like "2d6" — use two integers.
 	- **recommended_save_attr**: If suggesting a save, EXACTLY one of: STR, DEX, CON, INT, WIS, CHA.
 
-	Components below are ordered Forma → Scopus → Essentia → Actio → Magnitudo (then by name) so you read the spell like a pipeline.
+	When the spell has **no** If/Then/Therefore (Logica) components, the component list below is reordered Forma → Scopus → Essentia → Actio → Magnitudo (then by name) for readability.
+	When the spell **uses Logica**, a **LOGIC FLOW** section preserves **exact cast order**: each **Phase** is one narrative beat; If/Then/Therefore mark boundaries (e.g. water pooled in phase 1, then freeze in phase 2). Same Essentia name in two phases means two different story beats, not one pooled multiset.
 
 	### SPELL TO REVIEW:
 	%s
@@ -170,10 +171,54 @@ func FormatComponentContextForSpellAI(components []models.Component) string {
 	if len(components) == 0 {
 		return "(no components linked to this spell)\n"
 	}
+	if spellSequenceHasLogica(components) {
+		return formatComponentContextWithLogicPhases(components)
+	}
 	var sb strings.Builder
 	for _, c := range sortComponentsForContext(components) {
 		sb.WriteString(formatOneComponentLine(c))
 	}
+	return sb.String()
+}
+
+func spellSequenceHasLogica(components []models.Component) bool {
+	for _, c := range components {
+		if c.Category == models.CategoryLogica {
+			return true
+		}
+	}
+	return false
+}
+
+// formatComponentContextWithLogicPhases groups non-Logica runs into numbered phases separated by If/Then/Therefore in chain order.
+func formatComponentContextWithLogicPhases(components []models.Component) string {
+	var sb strings.Builder
+	sb.WriteString("LOGIC FLOW (cast order — phases are separate narrative beats; connectors separate earlier magic from later magic):\n\n")
+	phaseNum := 0
+	var phase []models.Component
+	flushPhase := func() {
+		if len(phase) == 0 {
+			return
+		}
+		phaseNum++
+		sb.WriteString(fmt.Sprintf("**Phase %d** (components for this beat, in order):\n", phaseNum))
+		for _, c := range phase {
+			sb.WriteString(formatOneComponentLine(c))
+		}
+		sb.WriteString("\n")
+		phase = nil
+	}
+	for _, c := range components {
+		if c.Category == models.CategoryLogica {
+			flushPhase()
+			sb.WriteString(fmt.Sprintf("**── %s** (Logica — separates phases; order relative to surrounding phases matters)\n", c.Name))
+			sb.WriteString(formatOneComponentLine(c))
+			sb.WriteString("\n")
+			continue
+		}
+		phase = append(phase, c)
+	}
+	flushPhase()
 	return sb.String()
 }
 
@@ -204,6 +249,8 @@ func categoryPriority(c models.ComponentCategory) int {
 		return 3
 	case models.CategoryMagnitudo:
 		return 4
+	case models.CategoryLogica:
+		return 5
 	default:
 		return 99
 	}
@@ -214,6 +261,13 @@ func sortComponentsForContext(components []models.Component) []models.Component 
 		out := make([]models.Component, len(components))
 		copy(out, components)
 		return out
+	}
+	for _, c := range components {
+		if c.Category == models.CategoryLogica {
+			out := make([]models.Component, len(components))
+			copy(out, components)
+			return out
+		}
 	}
 	out := make([]models.Component, len(components))
 	copy(out, components)

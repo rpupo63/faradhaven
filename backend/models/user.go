@@ -21,6 +21,11 @@ type User struct {
 	// Active character for shop purchases and quick access
 	ActiveCharacterID *uuid.UUID `json:"active_character_id,omitempty" gorm:"type:uuid;index"`
 
+	// Dice appearance preferences (global defaults for this user)
+	DiceTheme      string `json:"dice_theme" gorm:"type:text;default:'default'"`
+	DiceThemeColor string `json:"dice_theme_color" gorm:"type:text;default:'#7A201C'"`
+	DiceFontColor  string `json:"dice_font_color" gorm:"type:text;default:'#B8860B'"`
+
 	// Relationships (HasMany: children hold FK; constraint ensures ON DELETE CASCADE)
 	Characters      []Character `json:"characters,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 	Spells          []Spell     `json:"spells,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`

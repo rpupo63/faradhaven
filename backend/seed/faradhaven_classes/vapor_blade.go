@@ -46,11 +46,14 @@ func VaporBlade() FaradhavenClassSeed {
 			"Pierce", "Destroy", "Bind",
 			// Magnitudo (Modifiers)
 			"Decrease", "Weak",
+			// Logica (sequential links)
+			"If", "Then", "Therefore",
 		},
 		ResourceDefinitions: []ResourceDefinitionSeed{
 			{Key: "shadow_points", DisplayName: "Shadow Points", Category: "pool", Description: "Pool size equals Dexterity modifier + proficiency bonus (minimum 1). Spent on Venom, Shadow Step, Sneak Strike, etc.", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 1},
 			{Key: "sneak_strike_uses", DisplayName: "Sneak Strike Uses", Category: "pool", Description: "Uses per short rest (equal to Dex Mod, min 1)", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 2},
 			{Key: "death_mark_uses", DisplayName: "Death Mark", Category: "pool", Description: "1/Short Rest — mark a target for +2d6 Sneak Strike damage", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 3},
+			{Key: "perfect_kill_uses", DisplayName: "Perfect Kill", Category: "pool", Description: "1/Long Rest: Force a Con save (DC 8+Dex+Prof) against a surprised target. Fail = 0 HP instantly.", IsTrackable: true, RestoreOnLongRest: true, DisplayOrder: 4},
 		},
 	}
 }
@@ -82,11 +85,16 @@ func vaporBladeLevelProgression() map[int]ClassLevelSeed {
 		if i >= 10 {
 			deathMarkUses = 1
 		}
+		perfectKillUses := 0
+		if i >= 17 {
+			perfectKillUses = 1
+		}
 		entry := ClassLevelSeed{
 			SneakAttackDice: 0,
 			Resources: map[string]int{
 				"sneak_strike_uses": sneakStrikeUses,
 				"death_mark_uses":   deathMarkUses,
+				"perfect_kill_uses": perfectKillUses,
 			},
 		}
 

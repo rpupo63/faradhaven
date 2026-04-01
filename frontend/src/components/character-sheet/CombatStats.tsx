@@ -39,7 +39,7 @@ export function CombatStats({
   return (
     <div className="space-y-4">
       {/* Combat Stats Row: HP, Hit Dice, AC */}
-      <div className="grid gap-3 grid-cols-3">
+      <div className="grid gap-3 grid-cols-1 min-[400px]:grid-cols-3">
         {/* HP Card - Clickable */}
         <Card
           className={cn(

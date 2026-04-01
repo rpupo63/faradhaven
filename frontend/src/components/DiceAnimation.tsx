@@ -4,16 +4,20 @@ import { useLocation } from 'react-router-dom';
 import { DICE_CLEAR_EVENT } from '@/lib/dice';
 import { DiceManager, type DiceResult } from '@/lib/dice-manager';
 import { useAuth } from '@/context/AuthContext';
+import {
+  computeDiceScale,
+  computeTrayPixelSize,
+  useDiceTraySize,
+} from '@/hooks/useDiceTraySize';
 
 interface ResultDisplay extends DiceResult {
   id: string;
   notation: string;
 }
 
-// Size of the dice tray in pixels — dice are bounded to this area.
-const TRAY_SIZE = 800;
-
 export function DiceAnimation() {
+  const trayPx = useDiceTraySize();
+  const [diceBoxGeneration, setDiceBoxGeneration] = useState(0);
   const [result, setResult] = useState<ResultDisplay | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const location = useLocation();
@@ -36,21 +40,22 @@ export function DiceAnimation() {
     import('@3d-dice/dice-box').then(({ default: DiceBox }) => {
       if (cancelled) return;
 
+      const tray = computeTrayPixelSize();
+      const scale = computeDiceScale(tray);
+      const narrow = tray < 520;
+
       const box = new DiceBox('#dice-box', {
         assetPath: '/assets/dice-box/',
-        // Massively larger dice
-        scale: 24,
-        // Faster physics: higher gravity, more damping, less bounce
+        scale,
         gravity: 14,
         mass: 1,
         friction: 0.8,
         restitution: 0.1,
         angularDamping: 0.4,
         linearDamping: 0.4,
-        // Gentle throw keeps dice near center of the tray
-        spinForce: 6,
-        throwForce: 3,
-        startingHeight: 5,
+        spinForce: narrow ? 4 : 6,
+        throwForce: narrow ? 2 : 3,
+        startingHeight: narrow ? 4 : 5,
         lightIntensity: 1,
         theme: activeDicePrefs.dice_theme,
         themeColor: activeDicePrefs.dice_theme_color,
@@ -61,6 +66,7 @@ export function DiceAnimation() {
         if (cancelled) return;
         boxRef.current = box;
         DiceManager.register(box);
+        setDiceBoxGeneration((n) => n + 1);
       }).catch(console.error);
     }).catch(console.error);
 
@@ -80,6 +86,23 @@ export function DiceAnimation() {
       fontColor: activeDicePrefs.dice_font_color,
     });
   }, [activeDicePrefs.dice_theme, activeDicePrefs.dice_theme_color, activeDicePrefs.dice_font_color]);
+
+  // Keep canvas / physics bounds aligned when the viewport or tray size changes.
+  useEffect(() => {
+    const box = boxRef.current;
+    if (!box) return;
+    const scale = computeDiceScale(trayPx);
+    const narrow = trayPx < 520;
+    void box.updateConfig({
+      scale,
+      spinForce: narrow ? 4 : 6,
+      throwForce: narrow ? 2 : 3,
+      startingHeight: narrow ? 4 : 5,
+    });
+    if (typeof box.resizeWorld === 'function') {
+      box.resizeWorld();
+    }
+  }, [trayPx, diceBoxGeneration]);
 
   // Play sound the moment dice appear (roll start), not when they settle.
   useEffect(() => {
@@ -168,7 +191,7 @@ export function DiceAnimation() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: -20 }}
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              className="bg-background/95 border-2 border-primary/30 rounded-3xl p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] backdrop-blur-xl flex flex-col items-center gap-4 min-w-[280px]"
+              className="bg-background/95 border-2 border-primary/30 rounded-3xl p-4 sm:p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] backdrop-blur-xl flex flex-col items-center gap-4 min-w-0 max-w-[calc(100vw-2rem)] mx-4"
             >
               {result.label && (
                 <span className="text-sm font-tome-marginalia text-muted-foreground uppercase tracking-[0.2em]">
@@ -178,7 +201,7 @@ export function DiceAnimation() {
 
               {/* Total */}
               <div className="relative">
-                <span className="text-7xl font-bold font-display text-primary tracking-tighter leading-none glow-text">
+                <span className="text-5xl sm:text-7xl font-bold font-display text-primary tracking-tighter leading-none glow-text">
                   {result.total}
                 </span>
               </div>
@@ -243,8 +266,8 @@ export function DiceAnimation() {
           left: '50%',
           top: '50%',
           transform: 'translate(-50%, -50%)',
-          width: TRAY_SIZE,
-          height: TRAY_SIZE,
+          width: trayPx,
+          height: trayPx,
           zIndex: 10000,
           pointerEvents: 'none',
         }}

@@ -449,9 +449,9 @@ export function PreparedSpellCard({ spell, sheet, onCast, onEdit, isCasting, isD
     if (!hasDice && !spell.save_attr) return null;
 
     return (
-      <div className="bg-muted/30 p-2 rounded-md mb-3 flex items-center justify-between text-sm">
+      <div className="bg-muted/30 p-2 rounded-md mb-3 flex flex-col gap-2 text-sm min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
         {hasDice && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
              <span className="font-bold text-primary">
                {formatSpellDamageDice(spell.damage_dice_count!, spell.damage_die_size!)}
                {spell.add_modifier && spellMod > 0 && ` + ${spellMod}`}
@@ -463,7 +463,7 @@ export function PreparedSpellCard({ spell, sheet, onCast, onEdit, isCasting, isD
         )}
         
         {spell.save_attr && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
              <span className="font-bold text-amber-500">
                DC {saveDC}
              </span>
@@ -493,34 +493,34 @@ export function PreparedSpellCard({ spell, sheet, onCast, onEdit, isCasting, isD
       : 'Cast';
 
   return (
-    <div className={`p-4 rounded-lg border border-border bg-card/50 hover:bg-card/80 transition-all group ${isDisabled ? 'opacity-50 grayscale blur-[1px]' : ''} ${costInfo.madnessSaveRequired ? 'border-amber-500/30' : ''}`}>
-      <div className="flex items-start justify-between gap-4 mb-2">
-        <div>
-          <h4 className="font-tome-heading text-primary text-lg leading-none">{spell.name}</h4>
+    <div className={`p-4 rounded-lg border border-border bg-card/50 hover:bg-card/80 transition-all group min-w-0 ${isDisabled ? 'opacity-50 grayscale blur-[1px]' : ''} ${costInfo.madnessSaveRequired ? 'border-amber-500/30' : ''}`}>
+      <div className="flex flex-col gap-3 min-[520px]:flex-row min-[520px]:items-start min-[520px]:justify-between mb-2">
+        <div className="min-w-0 flex-1">
+          <h4 className="font-tome-heading text-primary text-lg leading-tight break-words">{spell.name}</h4>
           <p className="text-xs text-muted-foreground font-tome-marginalia mt-1">
             Level {spell.slot_level} Evocation
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 shrink-0 justify-end">
           {renderCostBadge()}
           {onCast && (
             <LoadingButton
               size="sm"
               variant="secondary"
-              className="h-7 px-3 text-xs"
+              className="h-7 px-2 sm:px-3 text-xs max-w-full"
               onClick={onCast}
               isLoading={isCasting}
               disabled={isDisabled}
               loadingText="Casting..."
             >
-              <Wand2 className="h-3 w-3 mr-1" />
-              {castButtonLabel}
+              <Wand2 className="h-3 w-3 mr-1 shrink-0" />
+              <span className="truncate">{castButtonLabel}</span>
             </LoadingButton>
           )}
           <Button
             size="icon"
             variant="ghost"
-            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="h-7 w-7 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0"
             onClick={onEdit}
             title="Edit Spell"
           >

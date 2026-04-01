@@ -5,7 +5,7 @@ import (
 )
 
 // setupFrontendRoutes sets up all routes with authentication
-func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware authMiddleware) {
+func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware authMiddleware, hub *Hub) {
 	// Public API routes (no auth)
 	r.Group(func(r chi.Router) {
 		r.Use(ColoredHTTPLoggingMiddleware)
@@ -39,12 +39,12 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		// Beast compendium (reference data, no auth required)
 		r.Get("/api/beasts", handlers.beastHandler.getAllBeasts())
 		r.Get("/api/beast/{beastID}", handlers.beastHandler.getBeast())
-		// Shared Notes
-		r.Get("/api/notes", handlers.noteHandler.getAllNotes())
-
 		// Maps (Public read access)
 		r.Get("/api/map/{mapID}", handlers.gameMapHandler.getMap())
 		r.Get("/api/map/room/{roomCode}", handlers.gameMapHandler.getMapByRoom())
+		
+		// WebSocket endpoint
+		r.Get("/api/map/{mapID}/ws", ServeWs(hub, authMiddleware))
 	})
 
 	// Protected API routes (token required)
@@ -70,6 +70,7 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Post("/api/character/{characterID}/rest", handlers.characterHandler.restSpellPoints())
 		r.Post("/api/character/{characterID}/cast", handlers.characterHandler.castSpell())
 		r.Post("/api/character/{characterID}/component/{componentID}/consume", handlers.characterHandler.consumeComponent())
+		r.Post("/api/character/{characterID}/component/{componentID}/gain", handlers.characterHandler.gainComponent())
 		r.Get("/api/user/{userID}/characters", handlers.characterHandler.getCharactersByUser())
 		r.Post("/api/character", handlers.characterHandler.createCharacter())
 		r.Put("/api/character/{characterID}", handlers.characterHandler.updateCharacter())
@@ -168,7 +169,8 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Put("/api/beast/{beastID}", handlers.beastHandler.updateBeast())
 		r.Delete("/api/beast/{beastID}", handlers.beastHandler.deleteBeast())
 
-		// Shared Notes (protected creation)
+		// Shared Notes (protected)
+		r.Get("/api/notes", handlers.noteHandler.getAllNotes())
 		r.Post("/api/notes", handlers.noteHandler.createNote())
 
 		// Map endpoints (protected)

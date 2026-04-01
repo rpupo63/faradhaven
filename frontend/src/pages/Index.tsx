@@ -8,15 +8,15 @@ export default function Index() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <div className="w-full space-y-16 py-12 px-4 md:px-8 max-w-5xl mx-auto">
+    <div className="w-full max-w-5xl mx-auto space-y-10 px-2 py-8 sm:space-y-12 sm:px-4 md:space-y-16 md:py-12 md:px-8">
       {/* Hero Section */}
       <div className="text-center space-y-8 animate-in fade-in duration-1000">
-        <div className="inline-block p-6 rounded-full bg-primary/5 border border-primary/20 mb-6 shadow-[0_0_15px_rgba(var(--primary-rgb),0.2)]">
-          <Sparkles className="w-16 h-16 text-primary animate-pulse" />
+        <div className="inline-block p-4 sm:p-5 md:p-6 rounded-full bg-primary/5 border border-primary/20 mb-4 sm:mb-6 shadow-[0_0_15px_rgba(var(--primary-rgb),0.2)]">
+          <Sparkles className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 text-primary animate-pulse" />
         </div>
-        <h1 className="font-tome-heading text-5xl md:text-7xl text-primary glow-text tracking-wider uppercase leading-tight">
+        <h1 className="font-tome-heading text-4xl sm:text-5xl md:text-7xl text-primary glow-text tracking-wider uppercase leading-tight">
           Welcome to Axiom
-          <span className="block text-2xl md:text-3xl text-muted-foreground mt-4 font-normal normal-case font-tome-marginalia border-t border-b border-primary/20 py-4 w-3/4 mx-auto">
+          <span className="block text-lg sm:text-xl md:text-3xl text-muted-foreground mt-3 sm:mt-4 font-normal normal-case font-tome-marginalia border-t border-b border-primary/20 py-3 sm:py-4 w-[92%] sm:w-3/4 mx-auto">
             The Dawn of the Vitalic Age
           </span>
         </h1>
@@ -41,34 +41,34 @@ export default function Index() {
       </div>
 
       {/* The Golden Promise */}
-      <div className="space-y-6 text-center max-w-3xl mx-auto relative">
+      <div className="space-y-4 sm:space-y-6 text-center max-w-3xl mx-auto relative px-1 sm:px-0">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
-          <h2 className="font-tome-heading text-3xl text-primary pt-8">The Golden Promise of South Axiom</h2>
-          <p className="text-lg text-muted-foreground leading-relaxed font-tome-marginalia">
+          <h2 className="font-tome-heading text-2xl sm:text-3xl text-primary pt-8">The Golden Promise of South Axiom</h2>
+          <p className="text-base sm:text-lg text-muted-foreground leading-relaxed font-tome-marginalia">
           Citizens, look to the skies! While the <span className="text-foreground font-medium">Unionists of North Axiom</span> remain huddled in the flickering shadows, fearful of the very spark that drives us forward, the Isle of South Axiom has claimed the future. Here in Faradhaven, the <span className="text-primary font-semibold">Viridian Shroud</span>—that thick, green-tinted mist of oxidized progress—is not a shroud; it’s a veil of evolution.
           </p>
-          <p className="text-lg text-muted-foreground leading-relaxed font-tome-marginalia">
+          <p className="text-base sm:text-lg text-muted-foreground leading-relaxed font-tome-marginalia">
           Above the Static Haze, the eternal Aerostat Estates of our elite carry the torch of civilization, powered by the marvel of the <span className="text-foreground font-medium">ETC (Elevated Transit Company)</span>. Travel is suspiciously cheap—whispers suggest the grid does not just move people, but <i>harvests</i> them, siphoning vital energy to keep the elite afloat.
           </p>
       </div>
 
       {/* The Current Landscape */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="arcane-border p-8 rounded-xl bg-background/50 backdrop-blur-sm hover:bg-primary/5 transition-all duration-300 group h-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+          <div className="arcane-border p-5 sm:p-6 md:p-8 rounded-xl bg-background/50 backdrop-blur-sm hover:bg-primary/5 transition-all duration-300 group h-full">
               <Users className="w-10 h-10 text-primary mb-6 group-hover:scale-110 transition-transform" />
               <h3 className="font-tome-heading text-xl text-primary mb-4 border-b border-primary/20 pb-2">The Cartels</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
               The <span className="text-foreground font-medium">DCC</span> perfects the human form through bionics, while the <span className="text-foreground font-medium">ACC</span> arms our protectors. Both profit from the war against the night.
               </p>
           </div>
-          <div className="arcane-border p-8 rounded-xl bg-background/50 backdrop-blur-sm hover:bg-primary/5 transition-all duration-300 group h-full">
+          <div className="arcane-border p-5 sm:p-6 md:p-8 rounded-xl bg-background/50 backdrop-blur-sm hover:bg-primary/5 transition-all duration-300 group h-full">
               <Swords className="w-10 h-10 text-primary mb-6 group-hover:scale-110 transition-transform" />
               <h3 className="font-tome-heading text-xl text-primary mb-4 border-b border-primary/20 pb-2">The Law</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
               The <span className="text-foreground font-medium">Blue Coats</span> try their best, but the streets truly belong to the <span className="text-foreground font-medium">Triple P</span>—private mercenaries paid to keep the rich safe and the poor quiet.
               </p>
           </div>
-          <div className="arcane-border p-8 rounded-xl bg-background/50 backdrop-blur-sm hover:bg-primary/5 transition-all duration-300 group h-full">
+          <div className="arcane-border p-5 sm:p-6 md:p-8 rounded-xl bg-background/50 backdrop-blur-sm hover:bg-primary/5 transition-all duration-300 group h-full">
               <Sparkles className="w-10 h-10 text-primary mb-6 group-hover:scale-110 transition-transform" />
               <h3 className="font-tome-heading text-xl text-primary mb-4 border-b border-primary/20 pb-2">The Shadows</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
@@ -78,13 +78,13 @@ export default function Index() {
       </div>
 
       {/* ECC Section */}
-      <div className="arcane-border rounded-2xl p-8 md:p-12 bg-primary/5 relative overflow-hidden">
+      <div className="arcane-border rounded-2xl p-5 sm:p-7 md:p-12 bg-primary/5 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
           <div className="relative z-10">
               <div className="flex flex-col md:flex-row gap-8 items-start">
                   <div className="flex-1 space-y-6">
-                      <h2 className="font-tome-heading text-3xl md:text-4xl text-primary">A New Frontier: The Evolutionary Current Company (ECC)</h2>
-                      <p className="text-lg text-muted-foreground leading-relaxed">
+                      <h2 className="font-tome-heading text-2xl sm:text-3xl md:text-4xl text-primary">A New Frontier: The Evolutionary Current Company (ECC)</h2>
+                      <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
                       The monopolies of the DCC and ACC have grown stagnant. They offer parts; we offer <span className="text-primary font-semibold italic">The Vital Spark</span>.
                       </p>
                       <p className="text-muted-foreground leading-relaxed">
@@ -96,10 +96,10 @@ export default function Index() {
       </div>
 
       {/* Player Situation */}
-      <div className="space-y-10 py-8">
-          <h2 className="font-tome-heading text-3xl text-center text-primary">For the Newcomers: Your Situation</h2>
+      <div className="space-y-8 sm:space-y-10 py-8">
+          <h2 className="font-tome-heading text-2xl sm:text-3xl text-center text-primary">For the Newcomers: Your Situation</h2>
           
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                <div className="space-y-4">
                   <h3 className="font-tome-heading text-xl text-primary border-l-4 border-primary pl-4">The Awakening</h3>
                   <p className="text-muted-foreground text-sm leading-relaxed pl-4">
@@ -129,18 +129,18 @@ export default function Index() {
                </div>
           </div>
 
-          <div className="arcane-border p-8 rounded-xl bg-background border-dashed border-primary/30">
-              <h3 className="font-tome-heading text-2xl text-primary mb-4 text-center">Your First Mission</h3>
-              <p className="text-lg text-center text-muted-foreground max-w-4xl mx-auto leading-relaxed">
+          <div className="arcane-border p-5 sm:p-6 md:p-8 rounded-xl bg-background border-dashed border-primary/30">
+              <h3 className="font-tome-heading text-xl sm:text-2xl text-primary mb-4 text-center">Your First Mission</h3>
+              <p className="text-base sm:text-lg text-center text-muted-foreground max-w-4xl mx-auto leading-relaxed">
               The <span className="text-foreground font-medium">DCC</span> is hosting a grand exhibition in The Hum to show off a new bionic arm. They have the cables, the controllers, and the test users. You have the objective: <span className="text-primary font-bold">Ensure they fail.</span> Sever the power lines, distract the controller, or break the user. As you walk the cobblestones, you will feel it—a deep, magnetic pull from the Copper Veins deep beneath the city.
               </p>
           </div>
       </div>
 
       {/* Footer */}
-      <div className="text-center py-12 border-t border-primary/10">
-          <h2 className="font-tome-heading text-3xl text-primary mb-6">Welcome to Faradhaven</h2>
-          <p className="text-xl text-muted-foreground font-tome-marginalia italic">
+      <div className="text-center py-10 sm:py-12 border-t border-primary/10">
+          <h2 className="font-tome-heading text-2xl sm:text-3xl text-primary mb-6">Welcome to Faradhaven</h2>
+          <p className="text-lg sm:text-xl text-muted-foreground font-tome-marginalia italic">
           "Try not to get grounded."
           </p>
       </div>

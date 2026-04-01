@@ -216,6 +216,8 @@ func (s *ComponentInterpreterService) InterpretModels(components []models.Compon
 
 	for _, comp := range components {
 		switch comp.Category {
+		case models.CategoryLogica:
+			continue
 
 		// -----------------------------------------------------------------
 		// Forma → Geometry

@@ -96,18 +96,8 @@ func (h *characterHandler) getCharacterSheetData(id uuid.UUID) (*CharacterSheetR
 		saveProfs = append(saveProfs, strings.ToLower(strings.TrimSpace(name)))
 	}
 
-	// Combine class and race components for spell crafting (deduplicated by ID)
-	componentMap := make(map[uuid.UUID]models.Component)
-	for _, comp := range class.Components {
-		componentMap[comp.ID] = comp
-	}
-	for _, comp := range character.Race.Components {
-		componentMap[comp.ID] = comp
-	}
-	availableComponents := make([]models.Component, 0, len(componentMap))
-	for _, comp := range componentMap {
-		availableComponents = append(availableComponents, comp)
-	}
+	// Spell pool: always from current class + race join tables (updates when seeds/DB change).
+	availableComponents := MergeSpellPoolComponents(class, &character.Race)
 
 	// Race traits are already preloaded via FindByIDForSheet (Race.Traits.Options)
 	traits := character.Race.Traits
@@ -166,6 +156,7 @@ func (h *characterHandler) getCharacterSheetData(id uuid.UUID) (*CharacterSheetR
 		})
 	}
 
+	// Inventory-only rows (foraging, scavenging, sanguine extraction, etc.); spell pool is available_components.
 	componentsList := character.Components
 
 	var harvestedAbilities models.HarvestedAbilities
@@ -211,6 +202,11 @@ func (h *characterHandler) getCharacterSheetData(id uuid.UUID) (*CharacterSheetR
 
 	// Build trait use states for limited-use race/lineage traits
 	traitUseStates := make(map[string]int)
+	traitMaxUses := make(map[string]int)
+
+	profBonus := profBonusByLevel(character.Level)
+	_ = initTraitUseResources(id, traits, profBonus, character.Level, h.characterResourceRepo)
+
 	for _, t := range traits {
 		if t.UsesPerRest == "" {
 			continue
@@ -218,10 +214,16 @@ func (h *characterHandler) getCharacterSheetData(id uuid.UUID) (*CharacterSheetR
 		key := "trait_" + t.ID.String()
 		if cr, lookupErr := h.characterResourceRepo.FindByCharacterAndKey(id, key); lookupErr == nil {
 			traitUseStates[t.ID.String()] = cr.CurrentValue
+			if cr.MaxValue != nil {
+				traitMaxUses[t.ID.String()] = *cr.MaxValue
+			}
 		}
 	}
 	if len(traitUseStates) > 0 {
 		sheet.TraitUseStates = traitUseStates
+	}
+	if len(traitMaxUses) > 0 {
+		sheet.TraitMaxUses = traitMaxUses
 	}
 
 	return sheet, nil

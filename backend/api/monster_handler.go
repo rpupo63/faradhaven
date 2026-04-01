@@ -14,22 +14,23 @@ import (
 )
 
 type monsterHandler struct {
-	monsterRepo database.MonsterRepository
+	monsterRepo              database.MonsterRepository
 	monsterGenerationService *services.MonsterGenerationService
 }
 
 func newMonsterHandler(monsterRepo database.MonsterRepository, monsterGenerationService *services.MonsterGenerationService) *monsterHandler {
 	return &monsterHandler{
-		monsterRepo: monsterRepo,
+		monsterRepo:              monsterRepo,
 		monsterGenerationService: monsterGenerationService,
 	}
 }
 
 // CreateMonsterRequest represents the request body for creating a monster.
 type CreateMonsterRequest struct {
-	Description     string    `json:"description"`
-	ChallengeRating string    `json:"challenge_rating"`
-	UserID          uuid.UUID `json:"user_id"`
+	Description         string    `json:"description"`
+	ChallengeRating     string    `json:"challenge_rating"`
+	UserID              uuid.UUID `json:"user_id"`
+	FaradhavenClassName string    `json:"faradhaven_class_name,omitempty"` // optional: enemy themed from seed/faradhaven_classes
 }
 
 // CreateMonster creates a new monster using the generation service.
@@ -58,9 +59,10 @@ func (h *monsterHandler) createMonster() http.HandlerFunc {
 		}
 
 		monster, err := h.monsterGenerationService.GenerateMonsterFromPrompt(r.Context(), services.GenerateMonsterFromPromptRequest{
-			UserID:          req.UserID,
-			Description:     req.Description,
-			ChallengeRating: req.ChallengeRating,
+			UserID:              req.UserID,
+			Description:         req.Description,
+			ChallengeRating:     req.ChallengeRating,
+			FaradhavenClassName: req.FaradhavenClassName,
 		})
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to generate monster")
@@ -138,42 +140,42 @@ func (h *monsterHandler) getMonstersByUser() http.HandlerFunc {
 // UpdateMonsterRequest represents the request body for updating a monster.
 // All fields are pointers to allow partial updates.
 type UpdateMonsterRequest struct {
-	Name                *string               `json:"name"`
-	Size                *models.CreatureSize  `json:"size"`
-	Type                *models.CreatureType  `json:"type"`
-	Alignment           *string    `json:"alignment"`
-	ChallengeRating     *string    `json:"challenge_rating"`
-	ProficiencyBonus    *int       `json:"proficiency_bonus"`
-	ArmorClass          *int       `json:"armor_class"`
-	HitPoints           *int       `json:"hit_points"`
-	HitDice             *string    `json:"hit_dice"`
-	Speed               *string    `json:"speed"`
-	Strength            *int       `json:"strength"`
-	Dexterity           *int       `json:"dexterity"`
-	Constitution        *int       `json:"constitution"`
-	Intelligence        *int       `json:"intelligence"`
-	Wisdom              *int       `json:"wisdom"`
-	Charisma            *int       `json:"charisma"`
-	SavingThrows        *[]string  `json:"saving_throws"`
-	Skills              *[]string  `json:"skills"`
-	DamageImmunities    *[]string  `json:"damage_immunities"`
-	DamageResistances   *[]string  `json:"damage_resistances"`
-	ConditionImmunities *[]string  `json:"condition_immunities"`
-	Senses              *string    `json:"senses"`
-	Languages           *string    `json:"languages"`
-	Notes               *string    `json:"notes"`
-	ImageURL            *string    `json:"image_url"`
-	SpecialTraits       *[]string  `json:"special_traits"`
-	LegendaryActions    *[]string  `json:"legendary_actions"`
-	Reactions           *[]string  `json:"reactions"`
-	LairActions         *[]string  `json:"lair_actions"`
-	Environments        *[]string  `json:"environments"`
-	Source              *string    `json:"source"`
-	VisualDescription   *string    `json:"visual_description"`
+	Name                *string              `json:"name"`
+	Size                *models.CreatureSize `json:"size"`
+	Type                *models.CreatureType `json:"type"`
+	Alignment           *string              `json:"alignment"`
+	ChallengeRating     *string              `json:"challenge_rating"`
+	ProficiencyBonus    *int                 `json:"proficiency_bonus"`
+	ArmorClass          *int                 `json:"armor_class"`
+	HitPoints           *int                 `json:"hit_points"`
+	HitDice             *string              `json:"hit_dice"`
+	Speed               *string              `json:"speed"`
+	Strength            *int                 `json:"strength"`
+	Dexterity           *int                 `json:"dexterity"`
+	Constitution        *int                 `json:"constitution"`
+	Intelligence        *int                 `json:"intelligence"`
+	Wisdom              *int                 `json:"wisdom"`
+	Charisma            *int                 `json:"charisma"`
+	SavingThrows        *[]string            `json:"saving_throws"`
+	Skills              *[]string            `json:"skills"`
+	DamageImmunities    *[]string            `json:"damage_immunities"`
+	DamageResistances   *[]string            `json:"damage_resistances"`
+	ConditionImmunities *[]string            `json:"condition_immunities"`
+	Senses              *string              `json:"senses"`
+	Languages           *string              `json:"languages"`
+	Notes               *string              `json:"notes"`
+	ImageURL            *string              `json:"image_url"`
+	SpecialTraits       *[]string            `json:"special_traits"`
+	LegendaryActions    *[]string            `json:"legendary_actions"`
+	Reactions           *[]string            `json:"reactions"`
+	LairActions         *[]string            `json:"lair_actions"`
+	Environments        *[]string            `json:"environments"`
+	Source              *string              `json:"source"`
+	VisualDescription   *string              `json:"visual_description"`
 	// Attacks and Actions updates might require more complex logic (e.g., replace all, update specific)
 	// For simplicity, let's assume they are fully replaced if provided.
-	Attacks             *[]models.MonsterAttack `json:"attacks"`
-	Actions             *[]models.MonsterAction `json:"actions"`
+	Attacks *[]models.MonsterAttack `json:"attacks"`
+	Actions *[]models.MonsterAction `json:"actions"`
 }
 
 // UpdateMonster updates an existing monster.
@@ -210,7 +212,9 @@ func (h *monsterHandler) updateMonster() http.HandlerFunc {
 		}
 
 		// Apply updates
-		if req.Name != nil { monster.Name = *req.Name }
+		if req.Name != nil {
+			monster.Name = *req.Name
+		}
 		if req.Size != nil {
 			sz, ok := models.ParseCreatureSize(strings.TrimSpace(string(*req.Size)))
 			if !ok {
@@ -227,35 +231,93 @@ func (h *monsterHandler) updateMonster() http.HandlerFunc {
 			}
 			monster.Type = ty
 		}
-		if req.Alignment != nil { monster.Alignment = *req.Alignment }
-		if req.ChallengeRating != nil { monster.ChallengeRating = *req.ChallengeRating }
-		if req.ProficiencyBonus != nil { monster.ProficiencyBonus = *req.ProficiencyBonus }
-		if req.ArmorClass != nil { monster.ArmorClass = *req.ArmorClass }
-		if req.HitPoints != nil { monster.HitPoints = *req.HitPoints }
-		if req.HitDice != nil { monster.HitDice = *req.HitDice }
-		if req.Speed != nil { monster.Speed = *req.Speed }
-		if req.Strength != nil { monster.Strength = *req.Strength }
-		if req.Dexterity != nil { monster.Dexterity = *req.Dexterity }
-		if req.Constitution != nil { monster.Constitution = *req.Constitution }
-		if req.Intelligence != nil { monster.Intelligence = *req.Intelligence }
-		if req.Wisdom != nil { monster.Wisdom = *req.Wisdom }
-		if req.Charisma != nil { monster.Charisma = *req.Charisma }
-		if req.SavingThrows != nil { monster.SavingThrows = *req.SavingThrows }
-		if req.Skills != nil { monster.Skills = *req.Skills }
-		if req.DamageImmunities != nil { monster.DamageImmunities = *req.DamageImmunities }
-		if req.DamageResistances != nil { monster.DamageResistances = *req.DamageResistances }
-		if req.ConditionImmunities != nil { monster.ConditionImmunities = *req.ConditionImmunities }
-		if req.Senses != nil { monster.Senses = *req.Senses }
-		if req.Languages != nil { monster.Languages = *req.Languages }
-		if req.Notes != nil { monster.Notes = *req.Notes }
-		if req.ImageURL != nil { monster.ImageURL = req.ImageURL }
-		if req.SpecialTraits != nil { monster.SpecialTraits = *req.SpecialTraits }
-		if req.LegendaryActions != nil { monster.LegendaryActions = *req.LegendaryActions }
-		if req.Reactions != nil { monster.Reactions = *req.Reactions }
-		if req.LairActions != nil { monster.LairActions = *req.LairActions }
-		if req.Environments != nil { monster.Environments = *req.Environments }
-		if req.Source != nil { monster.Source = *req.Source }
-		if req.VisualDescription != nil { monster.VisualDescription = *req.VisualDescription }
+		if req.Alignment != nil {
+			monster.Alignment = *req.Alignment
+		}
+		if req.ChallengeRating != nil {
+			monster.ChallengeRating = *req.ChallengeRating
+		}
+		if req.ProficiencyBonus != nil {
+			monster.ProficiencyBonus = *req.ProficiencyBonus
+		}
+		if req.ArmorClass != nil {
+			monster.ArmorClass = *req.ArmorClass
+		}
+		if req.HitPoints != nil {
+			monster.HitPoints = *req.HitPoints
+		}
+		if req.HitDice != nil {
+			monster.HitDice = *req.HitDice
+		}
+		if req.Speed != nil {
+			monster.Speed = *req.Speed
+		}
+		if req.Strength != nil {
+			monster.Strength = *req.Strength
+		}
+		if req.Dexterity != nil {
+			monster.Dexterity = *req.Dexterity
+		}
+		if req.Constitution != nil {
+			monster.Constitution = *req.Constitution
+		}
+		if req.Intelligence != nil {
+			monster.Intelligence = *req.Intelligence
+		}
+		if req.Wisdom != nil {
+			monster.Wisdom = *req.Wisdom
+		}
+		if req.Charisma != nil {
+			monster.Charisma = *req.Charisma
+		}
+		if req.SavingThrows != nil {
+			monster.SavingThrows = *req.SavingThrows
+		}
+		if req.Skills != nil {
+			monster.Skills = *req.Skills
+		}
+		if req.DamageImmunities != nil {
+			monster.DamageImmunities = *req.DamageImmunities
+		}
+		if req.DamageResistances != nil {
+			monster.DamageResistances = *req.DamageResistances
+		}
+		if req.ConditionImmunities != nil {
+			monster.ConditionImmunities = *req.ConditionImmunities
+		}
+		if req.Senses != nil {
+			monster.Senses = *req.Senses
+		}
+		if req.Languages != nil {
+			monster.Languages = *req.Languages
+		}
+		if req.Notes != nil {
+			monster.Notes = *req.Notes
+		}
+		if req.ImageURL != nil {
+			monster.ImageURL = req.ImageURL
+		}
+		if req.SpecialTraits != nil {
+			monster.SpecialTraits = *req.SpecialTraits
+		}
+		if req.LegendaryActions != nil {
+			monster.LegendaryActions = *req.LegendaryActions
+		}
+		if req.Reactions != nil {
+			monster.Reactions = *req.Reactions
+		}
+		if req.LairActions != nil {
+			monster.LairActions = *req.LairActions
+		}
+		if req.Environments != nil {
+			monster.Environments = *req.Environments
+		}
+		if req.Source != nil {
+			monster.Source = *req.Source
+		}
+		if req.VisualDescription != nil {
+			monster.VisualDescription = *req.VisualDescription
+		}
 
 		// Handle nested updates for Attacks and Actions (assuming full replacement for now)
 		if req.Attacks != nil {

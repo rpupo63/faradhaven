@@ -15,17 +15,47 @@ import (
 )
 
 type noteHandler struct {
-	noteRepo   database.NoteRepository
-	s3Service  *services.S3Service
+	noteRepo      database.NoteRepository
+	characterRepo database.CharacterRepository
+	s3Service     *services.S3Service
 }
 
-func newNoteHandler(noteRepo database.NoteRepository, s3Service *services.S3Service) *noteHandler {
-	return &noteHandler{noteRepo: noteRepo, s3Service: s3Service}
+func newNoteHandler(noteRepo database.NoteRepository, characterRepo database.CharacterRepository, s3Service *services.S3Service) *noteHandler {
+	return &noteHandler{noteRepo: noteRepo, characterRepo: characterRepo, s3Service: s3Service}
 }
 
 func (h *noteHandler) getAllNotes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		notes, err := h.noteRepo.FindAll()
+		authUserIDStr, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		userUUID, err := uuid.Parse(authUserIDStr)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Invalid user ID in context")
+			return
+		}
+
+		// Collect party IDs the user belongs to via their characters
+		characters, err := h.characterRepo.FindByUserID(userUUID)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to look up user characters for note filtering")
+			respondError(w, http.StatusInternalServerError, "Failed to get notes")
+			return
+		}
+		seen := map[uuid.UUID]struct{}{}
+		var partyIDs []uuid.UUID
+		for _, c := range characters {
+			if c.PartyID != nil {
+				if _, ok := seen[*c.PartyID]; !ok {
+					seen[*c.PartyID] = struct{}{}
+					partyIDs = append(partyIDs, *c.PartyID)
+				}
+			}
+		}
+
+		notes, err := h.noteRepo.FindVisibleToUser(partyIDs)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to get notes")
 			respondError(w, http.StatusInternalServerError, "Failed to get notes")
@@ -44,7 +74,7 @@ func (h *noteHandler) createNote() http.HandlerFunc {
 		}
 
 		contentType := r.Header.Get("Content-Type")
-		var title, description, userIDStr, username string
+		var title, description, userIDStr, username, partyIDStr, episodeTag string
 		var pdfFile multipart.File
 		var pdfHeader *multipart.FileHeader
 
@@ -57,6 +87,8 @@ func (h *noteHandler) createNote() http.HandlerFunc {
 			description = strings.TrimSpace(r.FormValue("description"))
 			userIDStr = r.FormValue("userId")
 			username = strings.TrimSpace(r.FormValue("username"))
+			partyIDStr = strings.TrimSpace(r.FormValue("partyId"))
+			episodeTag = strings.TrimSpace(r.FormValue("episodeTag"))
 
 			f, hdr, ferr := r.FormFile("pdf")
 			if ferr != nil {
@@ -75,6 +107,8 @@ func (h *noteHandler) createNote() http.HandlerFunc {
 				Description string `json:"description"`
 				UserID      string `json:"userId"`
 				Username    string `json:"username"`
+				PartyID     string `json:"partyId"`
+				EpisodeTag  string `json:"episodeTag"`
 			}
 
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -85,6 +119,8 @@ func (h *noteHandler) createNote() http.HandlerFunc {
 			description = strings.TrimSpace(req.Description)
 			userIDStr = req.UserID
 			username = strings.TrimSpace(req.Username)
+			partyIDStr = strings.TrimSpace(req.PartyID)
+			episodeTag = strings.TrimSpace(req.EpisodeTag)
 		}
 
 		if title == "" || description == "" {
@@ -107,6 +143,16 @@ func (h *noteHandler) createNote() http.HandlerFunc {
 			Description: description,
 			UserID:      userUUID,
 			Username:    username,
+			EpisodeTag:  episodeTag,
+		}
+
+		if partyIDStr != "" {
+			partyUUID, err := uuid.Parse(partyIDStr)
+			if err != nil {
+				respondError(w, http.StatusBadRequest, "Invalid party ID")
+				return
+			}
+			note.PartyID = &partyUUID
 		}
 
 		if pdfFile != nil {

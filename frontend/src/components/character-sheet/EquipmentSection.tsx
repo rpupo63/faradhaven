@@ -121,12 +121,12 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Hand Slots Indicator */}
-        <div className="flex items-center justify-between text-xs border border-border/50 rounded p-2 bg-muted/10">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Hand className="h-3.5 w-3.5" />
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs border border-border/50 rounded p-2 bg-muted/10 min-w-0">
+          <div className="flex items-center gap-1.5 text-muted-foreground min-w-0">
+            <Hand className="h-3.5 w-3.5 shrink-0" />
             <span>Hand Slots</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             {[0, 1].map(i => (
               <div
                 key={i}
@@ -163,11 +163,11 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
 
                 return (
                   <div key={cw.character_weapon_id}
-                    className={cn(`w-full text-left text-sm p-2 rounded border transition-colors group`,
+                    className={cn(`w-full min-w-0 text-left text-sm p-2 rounded border transition-colors group`,
                       cw.is_equipped ? 'border-primary/50 bg-primary/5' : 'border-border/50 bg-muted/10'
                     )}
                   >
-                    <div className="flex justify-between items-start">
+                    <div className="flex flex-col gap-2 min-[480px]:flex-row min-[480px]:justify-between min-[480px]:items-start">
                       <button onClick={() => {
                         if (!cw.is_equipped) {
                           setAttackError('Weapon must be equipped to attack.');
@@ -175,17 +175,17 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
                           return;
                         }
                         onWeaponClick(cw);
-                      }} className="flex-grow text-left">
-                        <span className="font-bold text-primary group-hover:text-primary/90 flex items-center gap-1.5">
-                          {cw.is_equipped && <Star className="h-3 w-3 fill-primary" />}
-                          <Target className={`h-3 w-3 ${cw.is_equipped ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`} />
-                          {cw.custom_name || cw.weapon.name}
-                          <span className="text-xs text-muted-foreground ml-2">
+                      }} className="min-w-0 flex-1 text-left">
+                        <span className="font-bold text-primary group-hover:text-primary/90 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                          {cw.is_equipped && <Star className="h-3 w-3 fill-primary shrink-0" />}
+                          <Target className={`h-3 w-3 shrink-0 ${cw.is_equipped ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`} />
+                          <span className="break-words">{cw.custom_name || cw.weapon.name}</span>
+                          <span className="text-xs text-muted-foreground font-normal w-full min-[480px]:w-auto min-[480px]:ml-2">
                             ({formatMod(totalAttackModifier)} Atk, {formatMod(damageAbilityMod)} Dmg)
                           </span>
                         </span>
                       </button>
-                      <div className="flex items-center gap-1 ml-2">
+                      <div className="flex flex-wrap items-center gap-1 shrink-0 justify-end">
                         {cw.weapon.properties?.includes('Transformative') && (
                           <Badge variant="outline" size="tiny" theme="warning">Transforms</Badge>
                         )}
@@ -243,16 +243,16 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
               {armor.map((it) => {
                 const isEquipped = sheet.character.equipped_armor_id === it.id;
                 return (
-                  <div key={it.id} className={cn("text-sm p-2 rounded border", isEquipped ? 'border-primary/50 bg-primary/5' : 'border-border/50 bg-muted/10')}>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="font-bold text-primary flex items-center gap-1.5">
-                          {isEquipped && <ShieldCheck className="h-3 w-3 text-primary" />}
-                          {it.name}
+                  <div key={it.id} className={cn("text-sm p-2 rounded border min-w-0", isEquipped ? 'border-primary/50 bg-primary/5' : 'border-border/50 bg-muted/10')}>
+                    <div className="flex flex-col gap-2 min-[400px]:flex-row min-[400px]:justify-between min-[400px]:items-start">
+                      <div className="min-w-0">
+                        <span className="font-bold text-primary flex items-center gap-1.5 flex-wrap">
+                          {isEquipped && <ShieldCheck className="h-3 w-3 text-primary shrink-0" />}
+                          <span className="break-words">{it.name}</span>
                         </span>
                         {it.armor_type && <span className="text-[10px] text-muted-foreground">{it.armor_type} Armor</span>}
                       </div>
-                      <Button size="xs" variant="outline" className="ml-2 h-6" onClick={() => handleEquipmentChange(it.id, false, !isEquipped, 'armor')} disabled={!!isLoading}>
+                      <Button size="xs" variant="outline" className="h-6 shrink-0 self-end min-[400px]:ml-2" onClick={() => handleEquipmentChange(it.id, false, !isEquipped, 'armor')} disabled={!!isLoading}>
                         {isLoading === it.id ? '...' : (isEquipped ? 'Unequip' : 'Equip')}
                       </Button>
                     </div>
@@ -283,16 +283,16 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
                 const isEquipped = sheet.character.equipped_shield_id === it.id;
                 const canEquipShield = isEquipped || freeHands >= 1;
                 return (
-                  <div key={it.id} className={cn("text-sm p-2 rounded border", isEquipped ? 'border-primary/50 bg-primary/5' : 'border-border/50 bg-muted/10')}>
-                    <div className="flex justify-between items-start">
-                       <span className="font-bold text-primary flex items-center gap-1.5">
-                          {isEquipped && <Shield className="h-3 w-3 text-primary" />}
+                  <div key={it.id} className={cn("text-sm p-2 rounded border min-w-0", isEquipped ? 'border-primary/50 bg-primary/5' : 'border-border/50 bg-muted/10')}>
+                    <div className="flex flex-col gap-2 min-[400px]:flex-row min-[400px]:justify-between min-[400px]:items-start">
+                       <span className="font-bold text-primary flex items-center gap-1.5 min-w-0 break-words">
+                          {isEquipped && <Shield className="h-3 w-3 text-primary shrink-0" />}
                           {it.name}
                         </span>
                       <Button
                         size="xs"
                         variant="outline"
-                        className="ml-2 h-6"
+                        className="h-6 shrink-0 self-end min-[400px]:ml-2"
                         onClick={() => handleEquipmentChange(it.id, false, !isEquipped, 'shield')}
                         disabled={!!isLoading || (!isEquipped && !canEquipShield)}
                         title={!isEquipped && !canEquipShield ? 'Not enough free hands' : undefined}
@@ -314,10 +314,10 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Items & Gear</p>
             <div className="space-y-2">
               {otherItems.map((it) => (
-                <div key={it.id} className="text-sm p-2 rounded border border-border/50 bg-muted/10">
-                  <div className="flex justify-between items-start">
-                    <span className="font-bold text-primary">{it.name}</span>
-                    <span className="text-[10px] text-muted-foreground">{it.category}</span>
+                <div key={it.id} className="text-sm p-2 rounded border border-border/50 bg-muted/10 min-w-0">
+                  <div className="flex flex-col gap-1 min-[400px]:flex-row min-[400px]:justify-between min-[400px]:items-start">
+                    <span className="font-bold text-primary break-words min-w-0">{it.name}</span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">{it.category}</span>
                   </div>
                   {it.effects && (
                     <p className="text-[10px] text-muted-foreground mt-1 italic">{it.effects}</p>
@@ -350,7 +350,7 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
         )}
 
         {/* Attack bonuses */}
-        <div className="mt-3 grid grid-cols-3 gap-2 text-center border-t border-border/30 pt-3">
+        <div className="mt-3 grid grid-cols-1 min-[400px]:grid-cols-3 gap-2 text-center border-t border-border/30 pt-3">
           <div className="rounded border border-border p-2">
             <p className="text-xs text-muted-foreground">Melee</p>
             <p className="font-display text-primary">{formatMod(modifiers.melee_attack)}</p>

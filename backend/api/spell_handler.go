@@ -215,17 +215,10 @@ func (h *spellHandler) getCharacterSpellbook() http.HandlerFunc {
 			return
 		}
 
-		// Use already-preloaded class and race (FindByIDWithRelations loads both with Components)
+		// Pool from current class + race rows (not character_components)
 		class := &character.Class
 		race := &character.Race
-
-		unlimitedComponentIDs := make(map[uuid.UUID]bool)
-		for _, comp := range class.Components {
-			unlimitedComponentIDs[comp.ID] = true
-		}
-		for _, comp := range race.Components {
-			unlimitedComponentIDs[comp.ID] = true
-		}
+		unlimitedComponentIDs := SpellPoolAllowlist(class, race)
 
 		// Get character's components with counts
 		characterComponentCounts := make(map[uuid.UUID]int)
@@ -249,16 +242,19 @@ func (h *spellHandler) getCharacterSpellbook() http.HandlerFunc {
 				continue
 			}
 
-			hasAllComponents := true
+			needByCompID := make(map[uuid.UUID]int)
 			for _, spellComp := range spell.Components {
-				if _, isUnlimited := unlimitedComponentIDs[spellComp.ID]; isUnlimited {
+				if unlimitedComponentIDs[spellComp.ID] {
 					continue
 				}
-				if _, hasResource := characterComponentCounts[spellComp.ID]; hasResource {
-					continue
+				needByCompID[spellComp.ID]++
+			}
+			hasAllComponents := true
+			for id, need := range needByCompID {
+				if characterComponentCounts[id] < need {
+					hasAllComponents = false
+					break
 				}
-				hasAllComponents = false
-				break
 			}
 
 			if hasAllComponents {

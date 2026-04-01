@@ -38,6 +38,8 @@ func gnomeTraits() []TraitSeed {
 			Description: "You are part of a lineage that grants you supernatural abilities. Choose one of the following options; whichever one you choose, Intelligence, Wisdom, or Charisma is your spellcasting ability for the spells you cast with this trait (choose the ability when you select the lineage).",
 			LevelReq:    1,
 			ActionType:  "Passive",
+			UsesPerRest: "Proficiency Bonus",
+			ResetCondition: "Long Rest",
 			Options:     gnomeLineageOptions(),
 		},
 	}

@@ -225,10 +225,10 @@ export function CharacterSheetView({
       )}
 
       {/* Main 4-column layout (responsive): Abilities | Skills | Middle | Features */}
-      <div className="grid gap-6 lg:grid-cols-[100px_200px_1fr_280px] md:grid-cols-[90px_180px_1fr]">
+      <div className="grid grid-cols-1 gap-6 min-w-0 md:grid-cols-[90px_180px_1fr] lg:grid-cols-[100px_200px_1fr_280px]">
         
         {/* FAR LEFT COLUMN: Proficiency Bonus + Ability Scores */}
-        <div className="order-2 md:order-none space-y-4">
+        <div className="order-2 md:order-none space-y-4 min-w-0">
           <div className="rounded-lg border border-primary/50 bg-primary/5 p-2 text-center">
             <p className="text-xs font-tome-marginalia text-muted-foreground uppercase tracking-wider">Prof</p>
             <p className="font-display text-xl text-primary">+{sheet.class_level?.proficiency_bonus ?? 2}</p>
@@ -244,7 +244,7 @@ export function CharacterSheetView({
         </div>
 
         {/* SECOND COLUMN: Saving Throws, Skills, Languages */}
-        <div className="order-3 md:order-none space-y-4">
+        <div className="order-3 md:order-none space-y-4 min-w-0">
           <ProficienciesSection 
             sheet={sheet} 
             onRoll={handleRoll} 
@@ -252,7 +252,7 @@ export function CharacterSheetView({
         </div>
 
         {/* MIDDLE COLUMN: HP, Stats, Equipment, Weapons, Languages */}
-        <div className="space-y-4 order-1 md:order-none">
+        <div className="space-y-4 order-1 md:order-none min-w-0">
           <CombatStats
             sheet={sheet}
             expandedPanel={expandedPanel}
@@ -371,7 +371,7 @@ export function CharacterSheetView({
         </div>
 
         {/* RIGHT COLUMN: Class Features & Racial Traits */}
-        <div className="order-4 md:order-none space-y-4">
+        <div className="order-4 md:order-none space-y-4 min-w-0">
           <div className="grid grid-cols-2 gap-2">
             {onShortRest && (
               <Button

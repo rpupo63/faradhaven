@@ -1,6 +1,7 @@
 package models
 
 import (
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -52,7 +53,34 @@ type Spell struct {
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationships
-	User       User        `json:"-" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	Character  *Character  `json:"-" gorm:"foreignKey:CharacterID;references:ID;constraint:OnDelete:SET NULL"`
-	Components []Component `json:"components" gorm:"many2many:spell_components;foreignKey:ID;joinForeignKey:SpellID;References:ID;joinReferences:ComponentID"`
+	User           User             `json:"-" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	Character      *Character       `json:"-" gorm:"foreignKey:CharacterID;references:ID;constraint:OnDelete:SET NULL"`
+	ComponentLinks []SpellComponent `json:"-" gorm:"foreignKey:SpellID;references:ID;constraint:OnDelete:CASCADE"`
+	// Components is populated from ComponentLinks in spell order (duplicates allowed). Not persisted directly.
+	Components []Component `json:"components" gorm:"-"`
+}
+
+// HydrateComponentsFromLinks sets Components from ComponentLinks ordered by SortOrder.
+func (s *Spell) HydrateComponentsFromLinks() {
+	if s == nil || len(s.ComponentLinks) == 0 {
+		if s != nil {
+			s.Components = nil
+		}
+		return
+	}
+	links := append([]SpellComponent(nil), s.ComponentLinks...)
+	sort.Slice(links, func(i, j int) bool { return links[i].SortOrder < links[j].SortOrder })
+	s.Components = make([]Component, len(links))
+	for i := range links {
+		s.Components[i] = links[i].Component
+	}
+}
+
+// HydrateComponentsFromLinksSlice runs HydrateComponentsFromLinks on each spell.
+func HydrateComponentsFromLinksSlice(spells []*Spell) {
+	for _, sp := range spells {
+		if sp != nil {
+			sp.HydrateComponentsFromLinks()
+		}
+	}
 }

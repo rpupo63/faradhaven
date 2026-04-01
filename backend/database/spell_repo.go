@@ -31,12 +31,26 @@ func NewSpellRepo(db *gorm.DB) *SpellRepo {
 	return &SpellRepo{db}
 }
 
+func preloadSpellComponentLinks(db *gorm.DB) *gorm.DB {
+	return db.Order("sort_order ASC")
+}
+
+func hydrateSpellComponents(spell *models.Spell) {
+	if spell != nil {
+		spell.HydrateComponentsFromLinks()
+	}
+}
+
+func hydrateSpellsComponents(spells []*models.Spell) {
+	models.HydrateComponentsFromLinksSlice(spells)
+}
+
 // FindAll returns all spells with components preloaded, with pagination and filtering
 func (r *SpellRepo) FindAll(page, limit, levelFilter int) ([]*models.Spell, int64, error) {
 	var spells []*models.Spell
 	var totalCount int64
 
-	query := r.db.Model(&models.Spell{}).Preload("Components").Preload("Character")
+	query := r.db.Model(&models.Spell{}).Preload("ComponentLinks", preloadSpellComponentLinks).Preload("ComponentLinks.Component").Preload("Character")
 
 	if levelFilter > 0 {
 		query = query.Where("level = ?", levelFilter)
@@ -50,6 +64,10 @@ func (r *SpellRepo) FindAll(page, limit, levelFilter int) ([]*models.Spell, int6
 	// Apply pagination
 	offset := (page - 1) * limit
 	err := query.Order("level ASC, name ASC").Offset(offset).Limit(limit).Find(&spells).Error
+	if err != nil {
+		return nil, totalCount, err
+	}
+	hydrateSpellsComponents(spells)
 	return spells, totalCount, err
 }
 
@@ -57,24 +75,33 @@ func (r *SpellRepo) FindAll(page, limit, levelFilter int) ([]*models.Spell, int6
 // Use this when the full catalog is needed in memory (e.g. spellbook eligibility checks).
 func (r *SpellRepo) FindAllWithComponents() ([]*models.Spell, error) {
 	var spells []*models.Spell
-	err := r.db.Preload("Components").Order("level ASC, name ASC").Find(&spells).Error
+	err := r.db.Preload("ComponentLinks", preloadSpellComponentLinks).Preload("ComponentLinks.Component").Order("level ASC, name ASC").Find(&spells).Error
+	if err != nil {
+		return nil, err
+	}
+	hydrateSpellsComponents(spells)
 	return spells, err
 }
 
 // FindByID returns a spell by ID with components preloaded
 func (r *SpellRepo) FindByID(id uuid.UUID) (*models.Spell, error) {
 	var spell models.Spell
-	err := r.db.Preload("Components").First(&spell, "id = ?", id).Error
+	err := r.db.Preload("ComponentLinks", preloadSpellComponentLinks).Preload("ComponentLinks.Component").First(&spell, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}
+	hydrateSpellComponents(&spell)
 	return &spell, nil
 }
 
 // FindByUserID returns all spells for a user with components preloaded
 func (r *SpellRepo) FindByUserID(userID uuid.UUID) ([]*models.Spell, error) {
 	var spells []*models.Spell
-	err := r.db.Preload("Components").Where("user_id = ?", userID).Find(&spells).Error
+	err := r.db.Preload("ComponentLinks", preloadSpellComponentLinks).Preload("ComponentLinks.Component").Where("user_id = ?", userID).Find(&spells).Error
+	if err != nil {
+		return nil, err
+	}
+	hydrateSpellsComponents(spells)
 	return spells, err
 }
 
@@ -83,7 +110,7 @@ func (r *SpellRepo) FindByUserIDPaginated(userID uuid.UUID, page, limit int) ([]
 	var spells []*models.Spell
 	var totalCount int64
 
-	query := r.db.Model(&models.Spell{}).Preload("Components").Where("user_id = ?", userID)
+	query := r.db.Model(&models.Spell{}).Preload("ComponentLinks", preloadSpellComponentLinks).Preload("ComponentLinks.Component").Where("user_id = ?", userID)
 
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, 0, err
@@ -91,6 +118,10 @@ func (r *SpellRepo) FindByUserIDPaginated(userID uuid.UUID, page, limit int) ([]
 
 	offset := (page - 1) * limit
 	err := query.Order("level ASC, name ASC").Offset(offset).Limit(limit).Find(&spells).Error
+	if err != nil {
+		return nil, totalCount, err
+	}
+	hydrateSpellsComponents(spells)
 	return spells, totalCount, err
 }
 
@@ -99,7 +130,7 @@ func (r *SpellRepo) FindByCharacterID(characterID uuid.UUID, page, limit, levelF
 	var spells []*models.Spell
 	var totalCount int64
 
-	query := r.db.Model(&models.Spell{}).Preload("Components").Where("character_id = ?", characterID)
+	query := r.db.Model(&models.Spell{}).Preload("ComponentLinks", preloadSpellComponentLinks).Preload("ComponentLinks.Component").Where("character_id = ?", characterID)
 
 	if levelFilter > 0 {
 		query = query.Where("level = ?", levelFilter)
@@ -113,13 +144,21 @@ func (r *SpellRepo) FindByCharacterID(characterID uuid.UUID, page, limit, levelF
 	// Apply pagination
 	offset := (page - 1) * limit
 	err := query.Order("level ASC, name ASC").Offset(offset).Limit(limit).Find(&spells).Error
+	if err != nil {
+		return nil, totalCount, err
+	}
+	hydrateSpellsComponents(spells)
 	return spells, totalCount, err
 }
 
 // FindUnchecked returns all spells that have not been reviewed by the GM
 func (r *SpellRepo) FindUnchecked() ([]*models.Spell, error) {
 	var spells []*models.Spell
-	err := r.db.Preload("Components").Preload("Character").Where("checked = false").Order("created_at ASC").Find(&spells).Error
+	err := r.db.Preload("ComponentLinks", preloadSpellComponentLinks).Preload("ComponentLinks.Component").Preload("Character").Where("checked = false").Order("created_at ASC").Find(&spells).Error
+	if err != nil {
+		return nil, err
+	}
+	hydrateSpellsComponents(spells)
 	return spells, err
 }
 
@@ -152,8 +191,14 @@ func (r *SpellRepo) ReplaceComponents(spellID uuid.UUID, componentIDs []uuid.UUI
 
 func replaceComponentsTx(tx *gorm.DB, spellID uuid.UUID, componentIDs []uuid.UUID) error {
 	scs := make([]models.SpellComponent, len(componentIDs))
+	now := time.Now()
 	for i, compID := range componentIDs {
-		scs[i] = models.SpellComponent{SpellID: spellID, ComponentID: compID}
+		scs[i] = models.SpellComponent{
+			SpellID:     spellID,
+			SortOrder:   i,
+			ComponentID: compID,
+			CreatedAt:   now,
+		}
 	}
 	if len(scs) > 0 {
 		return tx.Create(&scs).Error

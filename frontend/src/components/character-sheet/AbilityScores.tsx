@@ -33,7 +33,7 @@ export function AbilityScores({ sheet }: AbilityScoresProps) {
   };
 
   return (
-    <div className="grid grid-cols-3 gap-2 md:grid-cols-1">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 md:grid-cols-1">
       {ABILITIES.map(({ id, label }) => {
         const score = getAbilityScore(id);
         const mod = modifiers[id as keyof typeof modifiers] as number;

@@ -10,6 +10,7 @@ import (
 
 type NoteRepository interface {
 	FindAll() ([]*models.SharedNote, error)
+	FindVisibleToUser(partyIDs []uuid.UUID) ([]*models.SharedNote, error)
 	FindByID(id uuid.UUID) (*models.SharedNote, error)
 	Add(note *models.SharedNote) error
 	Update(note *models.SharedNote) error
@@ -27,6 +28,19 @@ func NewNoteRepo(db *gorm.DB) *NoteRepo {
 func (r *NoteRepo) FindAll() ([]*models.SharedNote, error) {
 	var notes []*models.SharedNote
 	err := r.db.Order("created_at desc").Find(&notes).Error
+	return notes, err
+}
+
+// FindVisibleToUser returns notes that are either public (no party tag) or
+// tagged with one of the given party IDs.
+func (r *NoteRepo) FindVisibleToUser(partyIDs []uuid.UUID) ([]*models.SharedNote, error) {
+	var notes []*models.SharedNote
+	var err error
+	if len(partyIDs) == 0 {
+		err = r.db.Order("created_at desc").Where("party_id IS NULL").Find(&notes).Error
+	} else {
+		err = r.db.Order("created_at desc").Where("party_id IS NULL OR party_id IN ?", partyIDs).Find(&notes).Error
+	}
 	return notes, err
 }
 

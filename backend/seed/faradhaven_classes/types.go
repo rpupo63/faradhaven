@@ -56,7 +56,7 @@ type WeaponRequirementSeed struct {
 type ClassLevelSeed struct {
 	CantripsKnown     *int // cantrips known at this level (nil = no change)
 	SpellsKnown       *int // spells known/prepared at this level (nil = no change)
-	MaxSpellPoints    int  // override for spell point pool (0 = use default formula)
+	MaxSpellPoints    *int // override for spell point pool (nil = use default formula; &0 = non-caster)
 	ExtraAttackCount  int  // 0, 1, 2, or 3 for multiattack progression
 	SneakAttackDice   int  // e.g. 2 for 2d6 sneak attack (rogue-like)
 	RageDamageBonus   int  // bonus melee damage when raging (barbarian-like)

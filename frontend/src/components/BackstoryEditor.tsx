@@ -157,14 +157,14 @@ export function BackstoryEditor({ characterId, token, characterName }: Backstory
   }
 
   return (
-    <Card className="arcane-border bg-card">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg font-tome-heading text-primary">
-            <BookOpen className="h-5 w-5" />
-            {characterName ? `${characterName}'s Backstory` : 'Backstory'}
+    <Card className="arcane-border bg-card min-w-0">
+      <CardHeader className="pb-3 min-w-0">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="flex items-center gap-2 text-lg font-tome-heading text-primary min-w-0">
+            <BookOpen className="h-5 w-5 shrink-0" />
+            <span className="break-words">{characterName ? `${characterName}'s Backstory` : 'Backstory'}</span>
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 justify-end sm:justify-start shrink-0">
             {hasUnsavedChanges && (
               <span className="text-xs text-amber-500 font-tome-marginalia">
                 Unsaved changes
@@ -191,7 +191,7 @@ export function BackstoryEditor({ characterId, token, characterName }: Backstory
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 min-w-0 overflow-x-hidden">
         {/* Toolbar */}
         <div className="flex flex-wrap gap-1 p-2 rounded-md border border-border bg-muted/30">
           <ToolbarButton

@@ -54,10 +54,17 @@ func Lorewright() FaradhavenClassSeed {
 			"Mutate", "Bind", "Crush", "Pierce", "Destroy",
 			// Magnitudo (Modifiers)
 			"Increase", "Decrease", "Strong", "Weak",
+			// Logica (sequential links)
+			"If", "Then", "Therefore",
 		},
 		ResourceDefinitions: []ResourceDefinitionSeed{
 			{Key: "echo_slots", DisplayName: "Harvest Slots", Category: "slot_count", Description: "Total harvest slots for storing absorbed abilities", DisplayOrder: 1},
 			{Key: "madness_die", DisplayName: "Madness Die", Category: "die_size", Description: "Die size rolled when Psychic Strain triggers", DisplayOrder: 2},
+			{Key: "psychic_strain", DisplayName: "Psychic Strain", Category: "state", Description: "Accumulated Strain from failed Psychic Strain saves. Each failure adds 1. Clears on Long Rest.", IsTrackable: true, RestoreOnLongRest: true, DisplayOrder: 3},
+			{Key: "component_capacity", DisplayName: "Component Capacity", Category: "limit", Description: "Maximum number of harvested components your mind can hold simultaneously (WIS modifier).", DisplayOrder: 4},
+			{Key: "prey_instinct_uses", DisplayName: "Prey Instinct", Category: "pool", Description: "1/Short Rest: Gain advantage on an ability check using a harvested skill proficiency.", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 5},
+			{Key: "collective_consciousness_uses", DisplayName: "Collective Consciousness", Category: "pool", Description: "1/Long Rest: Share a harvested ability's benefit with up to 2 allies within 30ft for 1 hour.", IsTrackable: true, RestoreOnLongRest: true, DisplayOrder: 6},
+			{Key: "predators_trance_uses", DisplayName: "Predator's Trance", Category: "pool", Description: "1/Long Rest: Bonus action. Use harvested attacks freely for 1 minute without expending uses.", IsTrackable: true, RestoreOnLongRest: true, DisplayOrder: 7},
 		},
 	}
 }
@@ -87,26 +94,26 @@ func lorewrightArchetypes() []ArchetypeSeed {
 
 func lorewrightLevelProgression() map[int]ClassLevelSeed {
 	return map[int]ClassLevelSeed{
-		1:  {Resources: map[string]int{"echo_slots": 0, "madness_die": 4}},
-		2:  {Resources: map[string]int{"echo_slots": 1, "madness_die": 4}},
-		3:  {Resources: map[string]int{"echo_slots": 1, "madness_die": 4}},
-		4:  {Resources: map[string]int{"echo_slots": 1, "madness_die": 4}},
-		5:  {Resources: map[string]int{"echo_slots": 2, "madness_die": 6}},
-		6:  {Resources: map[string]int{"echo_slots": 2, "madness_die": 6}},
-		7:  {Resources: map[string]int{"echo_slots": 2, "madness_die": 6}},
-		8:  {Resources: map[string]int{"echo_slots": 2, "madness_die": 6}},
-		9:  {Resources: map[string]int{"echo_slots": 3, "madness_die": 8}},
-		10: {Resources: map[string]int{"echo_slots": 3, "madness_die": 8}},
-		11: {Resources: map[string]int{"echo_slots": 3, "madness_die": 8}},
-		12: {Resources: map[string]int{"echo_slots": 3, "madness_die": 8}},
-		13: {Resources: map[string]int{"echo_slots": 4, "madness_die": 10}},
-		14: {Resources: map[string]int{"echo_slots": 4, "madness_die": 10}},
-		15: {Resources: map[string]int{"echo_slots": 4, "madness_die": 10}},
-		16: {Resources: map[string]int{"echo_slots": 4, "madness_die": 10}},
-		17: {Resources: map[string]int{"echo_slots": 5, "madness_die": 12}},
-		18: {Resources: map[string]int{"echo_slots": 5, "madness_die": 12}},
-		19: {Resources: map[string]int{"echo_slots": 5, "madness_die": 12}},
-		20: {Resources: map[string]int{"echo_slots": 5, "madness_die": 20}},
+		1:  {Resources: map[string]int{"echo_slots": 0, "madness_die": 4, "component_capacity": 3, "prey_instinct_uses": 0, "collective_consciousness_uses": 0, "predators_trance_uses": 0}},
+		2:  {Resources: map[string]int{"echo_slots": 1, "madness_die": 4, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 0, "predators_trance_uses": 0}},
+		3:  {Resources: map[string]int{"echo_slots": 1, "madness_die": 4, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 0, "predators_trance_uses": 0}},
+		4:  {Resources: map[string]int{"echo_slots": 1, "madness_die": 4, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 0, "predators_trance_uses": 0}},
+		5:  {Resources: map[string]int{"echo_slots": 2, "madness_die": 6, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 0}},
+		6:  {Resources: map[string]int{"echo_slots": 2, "madness_die": 6, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 0}},
+		7:  {Resources: map[string]int{"echo_slots": 2, "madness_die": 6, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 0}},
+		8:  {Resources: map[string]int{"echo_slots": 2, "madness_die": 6, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 0}},
+		9:  {Resources: map[string]int{"echo_slots": 3, "madness_die": 8, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 0}},
+		10: {Resources: map[string]int{"echo_slots": 3, "madness_die": 8, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 0}},
+		11: {Resources: map[string]int{"echo_slots": 3, "madness_die": 8, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 0}},
+		12: {Resources: map[string]int{"echo_slots": 3, "madness_die": 8, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 0}},
+		13: {Resources: map[string]int{"echo_slots": 4, "madness_die": 10, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 0}},
+		14: {Resources: map[string]int{"echo_slots": 4, "madness_die": 10, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 0}},
+		15: {Resources: map[string]int{"echo_slots": 4, "madness_die": 10, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 0}},
+		16: {Resources: map[string]int{"echo_slots": 4, "madness_die": 10, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 0}},
+		17: {Resources: map[string]int{"echo_slots": 5, "madness_die": 12, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 1}},
+		18: {Resources: map[string]int{"echo_slots": 5, "madness_die": 12, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 1}},
+		19: {Resources: map[string]int{"echo_slots": 5, "madness_die": 12, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 1}},
+		20: {Resources: map[string]int{"echo_slots": 5, "madness_die": 20, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 1}},
 	}
 }
 
@@ -122,7 +129,7 @@ func lorewrightLevelFeatures() map[int][]FeatureSeed {
 		// Level 2: Harvest Bank begins
 		2: {
 			{Name: "Harvest Bank", Description: "You unlock the ability to store harvested abilities. You begin with 1 Harvest Slot, and your capacity increases as you level up. A Harvest Slot can hold any single ability you learn through Visceral Psychometry—be it a skill proficiency, a creature's attack, or a magical recipe. To replace an ability, you must overwrite the slot with a new one."},
-			{Name: "Prey Instinct", Description: "Once per short rest, when you make an ability check using a harvested skill proficiency, you can gain advantage on the roll. Your predatory connection to the source creature sharpens your instincts."},
+			{Name: "Prey Instinct", Description: "Once per short rest, when you make an ability check using a harvested skill proficiency, you can gain advantage on the roll. Your predatory connection to the source creature sharpens your instincts.", ActionType: "Bonus Action", ResourceCosts: []ResourceCostSeed{{Key: "prey_instinct_uses", Amount: 1}}},
 		},
 
 		// Level 3: Archetype choice
@@ -131,7 +138,7 @@ func lorewrightLevelFeatures() map[int][]FeatureSeed {
 		// Level 5: Expanded Harvest
 		5: {
 			{Name: "Expanded Harvest", Description: "Your Harvest Slot capacity increases to 2. You can now hold two different harvested abilities simultaneously."},
-			{Name: "Collective Consciousness", Description: "As an action, you can share the benefits of one of your harvested abilities with a willing ally within 30 feet for 1 hour. You retain the ability while sharing it. Once per long rest."},
+			{Name: "Collective Consciousness", Description: "As an action, you can share the benefits of one of your harvested abilities with a willing ally within 30 feet for 1 hour. You retain the ability while sharing it. Once per long rest.", ActionType: "Action", ResourceCosts: []ResourceCostSeed{{Key: "collective_consciousness_uses", Amount: 1}}},
 		},
 
 		// Level 6: Predatory Techniques
@@ -169,7 +176,7 @@ func lorewrightLevelFeatures() map[int][]FeatureSeed {
 		// Level 17: Apex Predator's Soul
 		17: {
 			{Name: "Apex Predator's Soul", Description: "Your Harvest Slot capacity increases to 5."},
-			{Name: "Predator's Trance", Description: "As a bonus action, enter a heightened state for 1 minute. While in this trance, you can use any of your harvested attacks without expending their per-rest uses. Once per Long Rest."},
+			{Name: "Predator's Trance", Description: "As a bonus action, enter a heightened state for 1 minute. While in this trance, you can use any of your harvested attacks without expending their per-rest uses. Once per Long Rest.", ActionType: "Bonus Action", ResourceCosts: []ResourceCostSeed{{Key: "predators_trance_uses", Amount: 1}}},
 		},
 
 		// Level 18: Perfected Digestion

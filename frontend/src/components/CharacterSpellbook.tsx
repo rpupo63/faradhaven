@@ -122,19 +122,28 @@ export function CharacterSpellbook({
   }
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="available" className="gap-2">
-          <Sparkles className="h-4 w-4" />
-          Available Spells
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0">
+      <TabsList className="grid w-full min-w-0 grid-cols-3 h-auto gap-0">
+        <TabsTrigger value="available" className="gap-1 sm:gap-2 px-1.5 sm:px-3 py-2.5 min-w-0 text-xs sm:text-sm">
+          <Sparkles className="h-4 w-4 shrink-0" />
+          <span className="truncate leading-tight text-center">
+            <span className="sm:hidden">Avail.</span>
+            <span className="hidden sm:inline">Available Spells</span>
+          </span>
         </TabsTrigger>
-        <TabsTrigger value="my-spells" className="gap-2" disabled={!userId}>
-          <User className="h-4 w-4" />
-          My Spells
+        <TabsTrigger value="my-spells" className="gap-1 sm:gap-2 px-1.5 sm:px-3 py-2.5 min-w-0 text-xs sm:text-sm" disabled={!userId}>
+          <User className="h-4 w-4 shrink-0" />
+          <span className="truncate leading-tight text-center">
+            <span className="sm:hidden">Mine</span>
+            <span className="hidden sm:inline">My Spells</span>
+          </span>
         </TabsTrigger>
-        <TabsTrigger value="forge" className="gap-2" disabled={!userId}>
-          <Wand2 className="h-4 w-4" />
-          Spell Forge
+        <TabsTrigger value="forge" className="gap-1 sm:gap-2 px-1.5 sm:px-3 py-2.5 min-w-0 text-xs sm:text-sm" disabled={!userId}>
+          <Wand2 className="h-4 w-4 shrink-0" />
+          <span className="truncate leading-tight text-center">
+            <span className="sm:hidden">Forge</span>
+            <span className="hidden sm:inline">Spell Forge</span>
+          </span>
         </TabsTrigger>
       </TabsList>
       <TabsContent value="available" className="mt-4">

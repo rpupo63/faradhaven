@@ -88,25 +88,25 @@ export function ComponentInventorySection({ sheet, token }: ComponentInventorySe
                 {items.map((c) => (
                   <div
                     key={c.component_id}
-                    className="flex items-center justify-between p-1.5 rounded border border-border bg-primary/5 group"
+                    className="flex items-center justify-between gap-2 p-1.5 rounded border border-border bg-primary/5 group min-w-0"
                   >
-                    <div className="flex flex-col min-w-0">
+                    <div className="flex flex-col min-w-0 flex-1">
                       <span className="text-xs font-medium truncate" title={c.component?.name}>
                         {c.component?.name}
                       </span>
                       {c.component?.element && (
-                        <span className="text-[9px] text-muted-foreground italic">
+                        <span className="text-[9px] text-muted-foreground italic truncate">
                           {c.component.element}
                         </span>
                       )}
                     </div>
                     
-                    <div className="flex items-center gap-1.5">
-                      <Badge variant="outline" className="h-5 px-1.5 text-xs font-mono">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Badge variant="outline" className="h-5 px-1.5 text-xs font-mono shrink-0">
                         ×{c.count}
                       </Badge>
                       
-                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         <Button
                           size="icon"
                           variant="ghost"

@@ -46,9 +46,14 @@ func RiftWeaver() FaradhavenClassSeed {
 			"Create", "Destroy", "Push", "Pull", "Crush", "Pierce",
 			// Magnitudo (Modifiers)
 			"Increase", "Decrease", "Strong", "Weak", "Extreme",
+			// Logica (sequential links)
+			"If", "Then", "Therefore",
 		},
 		ResourceDefinitions: []ResourceDefinitionSeed{
 			{Key: "spell_points", DisplayName: "Spell Points", Category: "pool", Description: "A pool of magical energy for casting spells.", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 1},
+			{Key: "overchannel_uses", DisplayName: "Overchannel", Category: "pool", Description: "1/Short Rest: Spend 3 extra spell points to add your INT modifier to a damage roll.", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 2},
+			{Key: "elemental_surge_uses", DisplayName: "Elemental Surge", Category: "pool", Description: "1/Short Rest: Double a spell's range/area, or change its damage type.", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 3},
+			{Key: "elemental_overload_uses", DisplayName: "Elemental Overload", Category: "pool", Description: "1/Long Rest: Spend all remaining spell points (min 20) for a 30ft elemental burst.", IsTrackable: true, RestoreOnLongRest: true, DisplayOrder: 4},
 		},
 	}
 }
@@ -59,8 +64,26 @@ func riftWeaverLevelProgression() map[int]ClassLevelSeed {
 	cantrips2, cantrips3, cantrips4, cantrips5 := 2, 3, 4, 5
 	spells2, spells3, spells4, spells5, spells6, spells7, spells8 := 2, 3, 4, 5, 6, 7, 8
 	spells9, spells10, spells11, spells12, spells13, spells14, spells15 := 9, 10, 11, 12, 13, 14, 15
+	// overchannel unlocks at level 3, elemental_surge at level 5, elemental_overload at level 17
 	sp := func(level int) map[string]int {
-		return map[string]int{"spell_points": maxSpellPointsByLevel(level)}
+		overchannelUses := 0
+		if level >= 3 {
+			overchannelUses = 1
+		}
+		elementalSurgeUses := 0
+		if level >= 5 {
+			elementalSurgeUses = 1
+		}
+		elementalOverloadUses := 0
+		if level >= 17 {
+			elementalOverloadUses = 1
+		}
+		return map[string]int{
+			"spell_points":           maxSpellPointsByLevel(level),
+			"overchannel_uses":       overchannelUses,
+			"elemental_surge_uses":   elementalSurgeUses,
+			"elemental_overload_uses": elementalOverloadUses,
+		}
 	}
 	return map[int]ClassLevelSeed{
 		1:  {CantripsKnown: &cantrips2, SpellsKnown: &spells2, Resources: sp(1)},

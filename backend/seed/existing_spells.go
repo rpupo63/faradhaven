@@ -164,6 +164,13 @@ func ExistingSpells() []SpellSeed {
 			Type:      "Attack",
 			Components: []string{"Fulgur", "Increase", "Zone", "Push"},
 		},
+		{
+			ID:          uuids.ComponentUUID("Frozen Shallows"),
+			Name:        "Frozen Shallows",
+			Description: "Pool water on the ground, then flash-freeze it—a narrative logic chain using Then with repeated Aqua.",
+			Type:        "Effect",
+			Components:  []string{"Zone", "Aqua", "Create", "Then", "Decrease", "Aqua"},
+		},
 	}
 }
 
@@ -212,10 +219,11 @@ func SeedExistingSpells(tx *gorm.DB) error {
 			AddModifier: ss.AddModifier,
 		})
 
-		for _, compName := range ss.Components {
+		for ord, compName := range ss.Components {
 			if compID, ok := componentMap[compName]; ok {
 				spellComponents = append(spellComponents, models.SpellComponent{
 					SpellID:     ss.ID,
+					SortOrder:   ord,
 					ComponentID: compID,
 				})
 			} else {

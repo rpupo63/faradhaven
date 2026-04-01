@@ -45,10 +45,10 @@ export function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen w-full flex flex-col overflow-x-hidden">
       {/* Tome header – bar like a handbook title strip */}
       <header className="border-b-2 border-faded-gold/50 bg-card/80 backdrop-blur-sm sticky top-0 z-50 hand-drawn-border border-t-0 border-l-0 border-r-0 rounded-none">
-        <div className="container mx-auto px-4 py-3">
+        <div className="container mx-auto w-full px-3 py-3 sm:px-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-3 group">
               <div className="p-2 rounded-full border-2 border-faded-gold/50 bg-primary/10 group-hover:border-primary/60 transition-colors">
@@ -69,7 +69,7 @@ export function Layout({ children }: LayoutProps) {
                       <Menu className="w-6 h-6" />
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="left" className="w-[280px] bg-card/95 backdrop-blur-sm border-r-2 border-faded-gold/50 p-0">
+                  <SheetContent side="left" className="w-[85vw] max-w-[320px] bg-card/95 backdrop-blur-sm border-r-2 border-faded-gold/50 p-0">
                     <SheetHeader className="p-6 border-b border-faded-gold/20">
                       <SheetTitle className="font-tome-heading text-xl text-primary text-left flex items-center gap-3">
                         <Flame className="w-5 h-5" />
@@ -151,8 +151,8 @@ export function Layout({ children }: LayoutProps) {
 
       <div className="flex flex-1">
         {/* Main content – tighter padding on mobile, generous on desktop */}
-        <main className="flex-1 w-full px-3 py-4 md:px-10 md:py-12 md:pl-40">
-          <div className="w-full max-w-5xl mx-auto">
+        <main className="flex-1 w-full px-2 py-4 sm:px-3 md:px-8 md:py-10 md:pl-40 lg:px-10 lg:py-12">
+          <div className="w-full max-w-5xl mx-auto overflow-x-hidden">
             {children}
           </div>
         </main>

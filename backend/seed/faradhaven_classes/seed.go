@@ -26,6 +26,7 @@ func AllClasses() []FaradhavenClassSeed {
 		RiftWeaver(),
 		VaporBlade(),
 		Lorewright(),
+		Syllogist(),
 	}
 }
 
@@ -214,8 +215,8 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 					if lp.SpellsKnown != nil {
 						cl.SpellsKnown = lp.SpellsKnown
 					}
-					if lp.MaxSpellPoints > 0 {
-						cl.MaxSpellPoints = lp.MaxSpellPoints
+					if lp.MaxSpellPoints != nil {
+						cl.MaxSpellPoints = *lp.MaxSpellPoints
 					}
 					cl.ExtraAttackCount = lp.ExtraAttackCount
 					cl.SneakAttackDice = lp.SneakAttackDice

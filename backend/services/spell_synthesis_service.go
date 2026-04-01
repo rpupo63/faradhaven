@@ -29,9 +29,9 @@ func NewSpellSynthesisService(componentRepo *database.ComponentRepo) *SpellSynth
 	return &SpellSynthesisService{componentRepo: componentRepo}
 }
 
-// FetchComponents retrieves components by their IDs.
+// FetchComponents retrieves components by their IDs in request order (duplicates preserved).
 func (s *SpellSynthesisService) FetchComponents(ids []uuid.UUID) ([]models.Component, error) {
-	return s.componentRepo.GetComponentsByIDs(ids)
+	return s.componentRepo.GetComponentsByIDsOrdered(ids)
 }
 
 // Validate checks component MECE rules and returns any violations.
@@ -44,6 +44,8 @@ func (s *SpellSynthesisService) Validate(components []models.Component) []string
 
 	for _, c := range components {
 		switch c.Category {
+		case models.CategoryLogica:
+			continue
 		case models.CategoryForma:
 			formaCount++
 		case models.CategoryEssentia:
@@ -100,6 +102,8 @@ func (s *SpellSynthesisService) Synthesize(components []models.Component) *Spell
 
 	for _, c := range components {
 		switch c.Category {
+		case models.CategoryLogica:
+			continue
 		case models.CategoryEssentia:
 			if c.Element != "" {
 				dmgType := mapElementToDamageType(c.Element)

@@ -49,10 +49,14 @@ func Ironwright() FaradhavenClassSeed {
 			"Push", "Pull", "Grab", "Lift", "Spin", "Crush", "Pierce", "Create", "Destroy", "Mutate", "Bind",
 			// Magnitudo (Modifiers)
 			"Increase", "Decrease", "Strong", "Weak", "Extreme",
+			// Logica (sequential links)
+			"If", "Then", "Therefore",
 		},
 		ResourceDefinitions: []ResourceDefinitionSeed{
-			{Key: "concurrency_limit", DisplayName: "Concurrency Limit", Category: "limit", Description: "Maximum number of active constructs", DisplayOrder: 1},
-			{Key: "yield_die", DisplayName: "Scavenge Yield Die", Category: "die_size", Description: "Die size rolled when scavenging components from fallen creatures", DisplayOrder: 2},
+			{Key: "component_count", DisplayName: "Components", Category: "pool", Description: "Scavenged components available to build constructs. Spend to assemble and maintain constructs.", IsTrackable: true, RestoreOnLongRest: false, DisplayOrder: 1},
+			{Key: "concurrency_limit", DisplayName: "Concurrency Limit", Category: "limit", Description: "Maximum number of active constructs", DisplayOrder: 2},
+			{Key: "drone_limit", DisplayName: "Drone Limit", Category: "limit", Description: "Maximum number of active micro-drones (INT modifier + Proficiency)", DisplayOrder: 3},
+			{Key: "yield_die", DisplayName: "Scavenge Yield Die", Category: "die_size", Description: "Die size rolled when scavenging components from fallen creatures", DisplayOrder: 4},
 		},
 	}
 }
@@ -126,26 +130,26 @@ func ironwrightLevelFeatures() map[int][]FeatureSeed {
 
 func ironwrightLevelProgression() map[int]ClassLevelSeed {
 	return map[int]ClassLevelSeed{
-		1:  {Resources: map[string]int{"concurrency_limit": 1, "yield_die": 4}},
-		2:  {Resources: map[string]int{"concurrency_limit": 1, "yield_die": 4}},
-		3:  {Resources: map[string]int{"concurrency_limit": 1, "yield_die": 4}},
-		4:  {Resources: map[string]int{"concurrency_limit": 1, "yield_die": 4}},
-		5:  {ExtraAttackCount: 1, Resources: map[string]int{"concurrency_limit": 2, "yield_die": 6}},
-		6:  {ExtraAttackCount: 1, Resources: map[string]int{"concurrency_limit": 2, "yield_die": 6}},
-		7:  {ExtraAttackCount: 1, Resources: map[string]int{"concurrency_limit": 2, "yield_die": 6}},
-		8:  {ExtraAttackCount: 1, Resources: map[string]int{"concurrency_limit": 2, "yield_die": 6}},
-		9:  {ExtraAttackCount: 1, Resources: map[string]int{"concurrency_limit": 3, "yield_die": 8}},
-		10: {ExtraAttackCount: 1, Resources: map[string]int{"concurrency_limit": 3, "yield_die": 8}},
-		11: {ExtraAttackCount: 1, Resources: map[string]int{"concurrency_limit": 3, "yield_die": 8}},
-		12: {ExtraAttackCount: 1, Resources: map[string]int{"concurrency_limit": 3, "yield_die": 8}},
-		13: {ExtraAttackCount: 1, Resources: map[string]int{"concurrency_limit": 4, "yield_die": 10}},
-		14: {ExtraAttackCount: 1, Resources: map[string]int{"concurrency_limit": 4, "yield_die": 10}},
-		15: {ExtraAttackCount: 1, Resources: map[string]int{"concurrency_limit": 4, "yield_die": 10}},
-		16: {ExtraAttackCount: 1, Resources: map[string]int{"concurrency_limit": 4, "yield_die": 10}},
-		17: {ExtraAttackCount: 1, Resources: map[string]int{"concurrency_limit": 4, "yield_die": 12}},
-		18: {ExtraAttackCount: 1, Resources: map[string]int{"concurrency_limit": 4, "yield_die": 12}},
-		19: {ExtraAttackCount: 1, Resources: map[string]int{"concurrency_limit": 4, "yield_die": 12}},
-		20: {ExtraAttackCount: 1, Resources: map[string]int{"concurrency_limit": 5, "yield_die": 12}},
+		1:  {Resources: map[string]int{"component_count": 0, "concurrency_limit": 1, "drone_limit": 5, "yield_die": 4}},
+		2:  {Resources: map[string]int{"component_count": 0, "concurrency_limit": 1, "drone_limit": 5, "yield_die": 4}},
+		3:  {Resources: map[string]int{"component_count": 0, "concurrency_limit": 1, "drone_limit": 5, "yield_die": 4}},
+		4:  {Resources: map[string]int{"component_count": 0, "concurrency_limit": 1, "drone_limit": 5, "yield_die": 4}},
+		5:  {ExtraAttackCount: 1, Resources: map[string]int{"component_count": 0, "concurrency_limit": 2, "drone_limit": 6, "yield_die": 6}},
+		6:  {ExtraAttackCount: 1, Resources: map[string]int{"component_count": 0, "concurrency_limit": 2, "drone_limit": 6, "yield_die": 6}},
+		7:  {ExtraAttackCount: 1, Resources: map[string]int{"component_count": 0, "concurrency_limit": 2, "drone_limit": 6, "yield_die": 6}},
+		8:  {ExtraAttackCount: 1, Resources: map[string]int{"component_count": 0, "concurrency_limit": 2, "drone_limit": 6, "yield_die": 6}},
+		9:  {ExtraAttackCount: 1, Resources: map[string]int{"component_count": 0, "concurrency_limit": 3, "drone_limit": 7, "yield_die": 8}},
+		10: {ExtraAttackCount: 1, Resources: map[string]int{"component_count": 0, "concurrency_limit": 3, "drone_limit": 7, "yield_die": 8}},
+		11: {ExtraAttackCount: 1, Resources: map[string]int{"component_count": 0, "concurrency_limit": 3, "drone_limit": 7, "yield_die": 8}},
+		12: {ExtraAttackCount: 1, Resources: map[string]int{"component_count": 0, "concurrency_limit": 3, "drone_limit": 7, "yield_die": 8}},
+		13: {ExtraAttackCount: 1, Resources: map[string]int{"component_count": 0, "concurrency_limit": 4, "drone_limit": 8, "yield_die": 10}},
+		14: {ExtraAttackCount: 1, Resources: map[string]int{"component_count": 0, "concurrency_limit": 4, "drone_limit": 8, "yield_die": 10}},
+		15: {ExtraAttackCount: 1, Resources: map[string]int{"component_count": 0, "concurrency_limit": 4, "drone_limit": 8, "yield_die": 10}},
+		16: {ExtraAttackCount: 1, Resources: map[string]int{"component_count": 0, "concurrency_limit": 4, "drone_limit": 8, "yield_die": 10}},
+		17: {ExtraAttackCount: 1, Resources: map[string]int{"component_count": 0, "concurrency_limit": 4, "drone_limit": 8, "yield_die": 12}},
+		18: {ExtraAttackCount: 1, Resources: map[string]int{"component_count": 0, "concurrency_limit": 4, "drone_limit": 8, "yield_die": 12}},
+		19: {ExtraAttackCount: 1, Resources: map[string]int{"component_count": 0, "concurrency_limit": 4, "drone_limit": 8, "yield_die": 12}},
+		20: {ExtraAttackCount: 1, Resources: map[string]int{"component_count": 0, "concurrency_limit": 5, "drone_limit": 10, "yield_die": 12}},
 	}
 }
 

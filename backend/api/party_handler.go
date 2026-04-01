@@ -65,6 +65,24 @@ func (h *partyHandler) createParty() http.HandlerFunc {
 			return
 		}
 
+		if req.CharacterID != nil {
+			character, err := h.characterRepo.FindByID(*req.CharacterID)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to find character for party join")
+				respondError(w, http.StatusNotFound, "Character not found")
+				return
+			}
+			if character.UserID.String() != ownerIDStr {
+				respondError(w, http.StatusForbidden, "Cannot add character owned by another user")
+				return
+			}
+			if err := h.partyRepo.AddMember(party.ID, *req.CharacterID); err != nil {
+				log.Error().Err(err).Msg("Failed to add character to newly created party")
+				respondError(w, http.StatusInternalServerError, "Party created but failed to add character")
+				return
+			}
+		}
+
 		respondJSON(w, http.StatusCreated, party)
 	}
 }

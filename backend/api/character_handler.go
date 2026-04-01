@@ -397,6 +397,22 @@ func (h *characterHandler) updateCharacter() http.HandlerFunc {
 				return
 			}
 		}
+		if req.DiceTheme != nil {
+			character.DiceTheme = req.DiceTheme
+		}
+		if req.DiceThemeColor != nil {
+			character.DiceThemeColor = req.DiceThemeColor
+		}
+		if req.DiceFontColor != nil {
+			character.DiceFontColor = req.DiceFontColor
+		}
+		if req.ClearDiceTheme {
+			character.DiceTheme = nil
+		}
+		if req.ClearDiceColors {
+			character.DiceThemeColor = nil
+			character.DiceFontColor = nil
+		}
 
 		if err := h.characterRepo.Update(character); err != nil {
 			log.Error().Err(err).Msg("Failed to update character")
@@ -734,10 +750,19 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 			return
 		}
 
-		// Preload class with component pool for knowledge validation
+		// Class + race component pools (live definitions, not character_components)
 		class, err := h.classRepo.FindByIDWithLevels(character.ClassID)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, "Failed to load class data")
+			return
+		}
+		if class.Name == "The Syllogist" {
+			respondError(w, http.StatusBadRequest, "This class cannot cast spells")
+			return
+		}
+		race, err := h.raceRepo.FindByID(character.RaceID)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to load race data")
 			return
 		}
 
@@ -749,11 +774,7 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 		}
 		defer tx.Rollback()
 
-		// Build class component pool set for O(1) lookup
-		classPoolIDs := make(map[uuid.UUID]bool, len(class.Components))
-		for _, c := range class.Components {
-			classPoolIDs[c.ID] = true
-		}
+		spellPoolIDs := SpellPoolAllowlist(class, race)
 
 		// 0. Handle Spell Components
 		cost := 0
@@ -764,35 +785,48 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 				return
 			}
 
-			// Validate: pool components pass freely; non-pool must be in inventory
+			// Validate: pool components pass freely; non-pool must meet multiset inventory counts
+			needByCompID := make(map[uuid.UUID]int)
 			for _, comp := range spell.Components {
-				if classPoolIDs[comp.ID] {
+				if spellPoolIDs[comp.ID] {
 					continue
 				}
+				needByCompID[comp.ID]++
+			}
+			for compID, need := range needByCompID {
+				name := compID.String()
+				for _, c := range spell.Components {
+					if c.ID == compID {
+						name = c.Name
+						break
+					}
+				}
 				found := false
+				var have int
 				for _, charComp := range character.Components {
-					if charComp.ComponentID == comp.ID {
-						if charComp.Count < 1 {
-							respondError(w, http.StatusBadRequest, fmt.Sprintf("Not enough %s", comp.Name))
-							return
-						}
+					if charComp.ComponentID == compID {
+						have = charComp.Count
 						found = true
 						break
 					}
 				}
 				if !found {
-					respondError(w, http.StatusBadRequest, fmt.Sprintf("Character does not have component: %s", comp.Name))
+					respondError(w, http.StatusBadRequest, fmt.Sprintf("Character does not have component: %s", name))
+					return
+				}
+				if have < need {
+					respondError(w, http.StatusBadRequest, fmt.Sprintf("Not enough %s (need %d, have %d)", name, need, have))
 					return
 				}
 			}
 
-			// Consume only non-pool components from inventory
+			// Consume only non-pool components from inventory (one decrement per spell component slot)
 			for _, comp := range spell.Components {
-				if classPoolIDs[comp.ID] {
+				if spellPoolIDs[comp.ID] {
 					continue
 				}
 				for i, charComp := range character.Components {
-					if charComp.ComponentID == comp.ID {
+					if charComp.ComponentID == comp.ID && charComp.Count > 0 {
 						character.Components[i].Count--
 						if err := tx.Save(&character.Components[i]).Error; err != nil {
 							log.Error().Err(err).Msg("Failed to update character component count")
@@ -965,6 +999,47 @@ func (h *characterHandler) consumeComponent() http.HandlerFunc {
 	}
 }
 
+// gainComponent handles manual increment of a single component
+func (h *characterHandler) gainComponent() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "characterID")
+		charID, err := uuid.Parse(idStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		compIDStr := chi.URLParam(r, "componentID")
+		compID, err := uuid.Parse(compIDStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid component ID")
+			return
+		}
+
+		// Verify user owns this character
+		authUserIDStr, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		authUserID, _ := uuid.Parse(authUserIDStr)
+
+		belongs, err := h.characterRepo.CharacterBelongsToUser(charID, authUserID)
+		if err != nil || !belongs {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		if err := h.characterRepo.UpdateComponentCount(charID, compID, 1); err != nil {
+			log.Error().Err(err).Msg("Failed to gain component")
+			respondError(w, http.StatusInternalServerError, "Failed to gain component")
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]string{"message": "Component gained"})
+	}
+}
+
 // extractComponents handles Sanguinist Sanguine Extraction — gains random class components
 func (h *characterHandler) extractComponents() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -1049,7 +1124,7 @@ func (h *characterHandler) extractComponents() http.HandlerFunc {
 }
 
 // forageComponents handles the "forage" action for Sanguinist, Ironwright, and Lorewright.
-// It grants a level-appropriate number of random components NOT in the class's own component pool.
+// It grants a level-appropriate number of random components NOT in the live class+race spell pool.
 func (h *characterHandler) forageComponents() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "characterID")
@@ -1085,18 +1160,18 @@ func (h *characterHandler) forageComponents() http.HandlerFunc {
 			return
 		}
 
-		// Load class with its own component pool
+		// Load class + race with live component pools (same source as spellbook / casting)
 		class, err := h.classRepo.FindByIDWithLevels(character.ClassID)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, "Failed to load class")
 			return
 		}
-
-		// Build excluded set from the class's own component pool
-		excluded := make(map[string]bool, len(class.Components))
-		for _, c := range class.Components {
-			excluded[c.ID.String()] = true
+		race, err := h.raceRepo.FindByID(character.RaceID)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to load race")
+			return
 		}
+		spellPool := SpellPoolAllowlist(class, race)
 
 		// Load all global components and filter to forageable pool
 		allComponents, err := h.componentRepo.GetAllComponents()
@@ -1114,7 +1189,7 @@ func (h *characterHandler) forageComponents() http.HandlerFunc {
 
 		forageable := make([]models.Component, 0, len(allComponents))
 		for _, c := range allComponents {
-			if !excluded[c.ID.String()] && !alreadyOwned[c.ID.String()] {
+			if !spellPool[c.ID] && !alreadyOwned[c.ID.String()] {
 				forageable = append(forageable, c)
 			}
 		}

@@ -52,10 +52,13 @@ func Sanguinist() FaradhavenClassSeed {
 			"Bind", "Pull", "Pierce", "Destroy", "Mutate", "Increase", "Decrease",
 			// Magnitudo (Modifiers)
 			"Strong", "Weak",
+			// Logica (sequential links)
+			"If", "Then", "Therefore",
 		},
 		ResourceDefinitions: []ResourceDefinitionSeed{
 			{Key: "max_blood_ichor", DisplayName: "Blood Ichor", Category: "pool", Description: "Blood Ichor pool for fueling vampiric abilities", IsTrackable: true, RestoreOnLongRest: true, DisplayOrder: 1},
-			{Key: "bite_damage_dice", DisplayName: "Bite Damage Dice", Category: "die_size", Description: "Number of d8 dice for Bite attack damage", DisplayOrder: 2},
+			{Key: "unstable_components", DisplayName: "Unstable Components", Category: "pool", Description: "Raw blood components harvested from victims. Decay on Long Rest.", IsTrackable: true, RestoreOnLongRest: true, DisplayOrder: 2},
+			{Key: "bite_damage_dice", DisplayName: "Bite Damage Dice", Category: "die_size", Description: "Number of d8 dice for Bite attack damage", DisplayOrder: 3},
 		},
 	}
 }
@@ -143,25 +146,25 @@ func sanguinistLevelFeatures() map[int][]FeatureSeed {
 
 func sanguinistLevelProgression() map[int]ClassLevelSeed {
 	return map[int]ClassLevelSeed{
-		1:  {Resources: map[string]int{"max_blood_ichor": 4, "bite_damage_dice": 2}},
-		2:  {Resources: map[string]int{"max_blood_ichor": 5, "bite_damage_dice": 2}},
-		3:  {Resources: map[string]int{"max_blood_ichor": 6, "bite_damage_dice": 2}},
-		4:  {Resources: map[string]int{"max_blood_ichor": 7, "bite_damage_dice": 2}},
-		5:  {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 8, "bite_damage_dice": 2}},
-		6:  {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 9, "bite_damage_dice": 2}},
-		7:  {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 10, "bite_damage_dice": 2}},
-		8:  {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 11, "bite_damage_dice": 2}},
-		9:  {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 12, "bite_damage_dice": 2}},
-		10: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 13, "bite_damage_dice": 2}},
-		11: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 14, "bite_damage_dice": 2}},
-		12: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 15, "bite_damage_dice": 2}},
-		13: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 16, "bite_damage_dice": 2}},
-		14: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 17, "bite_damage_dice": 2}},
-		15: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 18, "bite_damage_dice": 2}},
-		16: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 19, "bite_damage_dice": 2}},
-		17: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 19, "bite_damage_dice": 2}},
-		18: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 20, "bite_damage_dice": 2}},
-		19: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 21, "bite_damage_dice": 2}},
-		20: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 21, "bite_damage_dice": 2}},
+		1:  {Resources: map[string]int{"max_blood_ichor": 4, "unstable_components": 10, "bite_damage_dice": 2}},
+		2:  {Resources: map[string]int{"max_blood_ichor": 5, "unstable_components": 10, "bite_damage_dice": 2}},
+		3:  {Resources: map[string]int{"max_blood_ichor": 6, "unstable_components": 10, "bite_damage_dice": 2}},
+		4:  {Resources: map[string]int{"max_blood_ichor": 7, "unstable_components": 10, "bite_damage_dice": 2}},
+		5:  {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 8, "unstable_components": 10, "bite_damage_dice": 2}},
+		6:  {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 9, "unstable_components": 10, "bite_damage_dice": 2}},
+		7:  {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 10, "unstable_components": 10, "bite_damage_dice": 2}},
+		8:  {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 11, "unstable_components": 10, "bite_damage_dice": 2}},
+		9:  {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 12, "unstable_components": 10, "bite_damage_dice": 2}},
+		10: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 13, "unstable_components": 10, "bite_damage_dice": 2}},
+		11: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 14, "unstable_components": 10, "bite_damage_dice": 2}},
+		12: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 15, "unstable_components": 10, "bite_damage_dice": 2}},
+		13: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 16, "unstable_components": 10, "bite_damage_dice": 2}},
+		14: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 17, "unstable_components": 10, "bite_damage_dice": 2}},
+		15: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 18, "unstable_components": 10, "bite_damage_dice": 2}},
+		16: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 19, "unstable_components": 10, "bite_damage_dice": 2}},
+		17: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 19, "unstable_components": 10, "bite_damage_dice": 2}},
+		18: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 20, "unstable_components": 10, "bite_damage_dice": 2}},
+		19: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 21, "unstable_components": 10, "bite_damage_dice": 2}},
+		20: {ExtraAttackCount: 1, Resources: map[string]int{"max_blood_ichor": 21, "unstable_components": 10, "bite_damage_dice": 2}},
 	}
 }

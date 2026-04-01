@@ -162,6 +162,15 @@ func (h *userHandler) updateUser() http.HandlerFunc {
 		if req.ActiveCharacterID != nil {
 			user.ActiveCharacterID = req.ActiveCharacterID
 		}
+		if req.DiceTheme != nil {
+			user.DiceTheme = *req.DiceTheme
+		}
+		if req.DiceThemeColor != nil {
+			user.DiceThemeColor = *req.DiceThemeColor
+		}
+		if req.DiceFontColor != nil {
+			user.DiceFontColor = *req.DiceFontColor
+		}
 
 		if err := h.userRepo.Update(user); err != nil {
 			log.Error().Err(err).Msg("Failed to update user")

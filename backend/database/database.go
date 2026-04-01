@@ -211,6 +211,9 @@ func (d Database) WallPropertiesRepo() *WallPropertiesRepo {
 
 // AutoMigrate runs GORM auto-migration for all models
 func (d Database) AutoMigrate() error {
+	if err := MigrateSpellComponentsOrdered(d.db); err != nil {
+		return err
+	}
 	if err := d.db.AutoMigrate(models.AllModels()...); err != nil {
 		return err
 	}
@@ -222,6 +225,51 @@ func (d Database) AutoMigrate() error {
 		}
 	}
 
+	return nil
+}
+
+// MigrateSpellComponentsOrdered rekeys spell_components from (spell_id, component_id) to
+// (spell_id, sort_order) so duplicate components and stable ordering are supported.
+func MigrateSpellComponentsOrdered(db *gorm.DB) error {
+	var tableExists bool
+	if err := db.Raw(`SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = 'spell_components')`).Scan(&tableExists).Error; err != nil {
+		return err
+	}
+	if !tableExists {
+		return nil
+	}
+	var hasSortOrder bool
+	if err := db.Raw(`SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'spell_components' AND column_name = 'sort_order')`).Scan(&hasSortOrder).Error; err != nil {
+		return err
+	}
+	if hasSortOrder {
+		return nil
+	}
+	if err := db.Exec(`ALTER TABLE spell_components ADD COLUMN sort_order INTEGER`).Error; err != nil {
+		return err
+	}
+	if err := db.Exec(`
+		WITH ordered AS (
+			SELECT spell_id, component_id,
+				(ROW_NUMBER() OVER (PARTITION BY spell_id ORDER BY created_at ASC, component_id ASC) - 1)::int AS ord
+			FROM spell_components
+		)
+		UPDATE spell_components sc
+		SET sort_order = ordered.ord
+		FROM ordered
+		WHERE sc.spell_id = ordered.spell_id AND sc.component_id = ordered.component_id
+	`).Error; err != nil {
+		return err
+	}
+	if err := db.Exec(`ALTER TABLE spell_components ALTER COLUMN sort_order SET NOT NULL`).Error; err != nil {
+		return err
+	}
+	if err := db.Exec(`ALTER TABLE spell_components DROP CONSTRAINT spell_components_pkey`).Error; err != nil {
+		return err
+	}
+	if err := db.Exec(`ALTER TABLE spell_components ADD PRIMARY KEY (spell_id, sort_order)`).Error; err != nil {
+		return err
+	}
 	return nil
 }
 

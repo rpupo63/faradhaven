@@ -45,11 +45,27 @@ func (r *ComponentRepo) GetComponentsByNames(names []string) ([]models.Component
 	return components, err
 }
 
-// GetComponentsByIDs returns components matching the given IDs.
+// GetComponentsByIDs returns components matching the given IDs (unordered, duplicates collapsed to one row per id).
 func (r *ComponentRepo) GetComponentsByIDs(ids []uuid.UUID) ([]models.Component, error) {
 	var components []models.Component
 	err := r.db.Where("id IN ?", ids).Find(&components).Error
 	return components, err
+}
+
+// GetComponentsByIDsOrdered resolves ids in request order, including duplicate ids.
+func (r *ComponentRepo) GetComponentsByIDsOrdered(ids []uuid.UUID) ([]models.Component, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	out := make([]models.Component, 0, len(ids))
+	for _, id := range ids {
+		c, err := r.GetComponentByID(id)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *c)
+	}
+	return out, nil
 }
 
 // FindByName returns a single component by name.

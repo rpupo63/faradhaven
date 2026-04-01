@@ -9,6 +9,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/rpupo63/unified-personal-site-backend/internal/bootstrap"
 	"github.com/rpupo63/unified-personal-site-backend/models"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -27,8 +28,12 @@ func main() {
 	}
 
 	var spells []*models.Spell
-	if err := db.Preload("Components").Find(&spells).Error; err != nil {
+	if err := db.Preload("ComponentLinks", func(db *gorm.DB) *gorm.DB { return db.Order("sort_order ASC") }).
+		Preload("ComponentLinks.Component").Find(&spells).Error; err != nil {
 		log.Fatalf("Failed to query spells: %v", err)
+	}
+	for _, sp := range spells {
+		sp.HydrateComponentsFromLinks()
 	}
 
 	total := len(spells)

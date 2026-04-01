@@ -419,4 +419,5 @@ const (
 	CategoryEssentia  ComponentCategory = "Essentia"  // Domain/Matter — elemental substance
 	CategoryActio     ComponentCategory = "Actio"     // Kinetic Verbs — what the spell does
 	CategoryMagnitudo ComponentCategory = "Magnitudo" // Scale/Modifiers — power dials
+	CategoryLogica    ComponentCategory = "Logica"    // Sequential / logical links between spell phases
 )

@@ -102,6 +102,11 @@ type Character struct {
 	// Hex color for the backstory text
 	BackstoryHexColor string `json:"backstory_hex_color" gorm:"type:text;default:'#000000'"`
 
+	// Dice appearance overrides (nil = use user-level defaults)
+	DiceTheme      *string `json:"dice_theme,omitempty" gorm:"type:text"`
+	DiceThemeColor *string `json:"dice_theme_color,omitempty" gorm:"type:text"`
+	DiceFontColor  *string `json:"dice_font_color,omitempty" gorm:"type:text"`
+
 	// Character profile picture URL
 	ImageURL string `json:"image_url" gorm:"type:text"`
 

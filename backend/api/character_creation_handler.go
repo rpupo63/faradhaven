@@ -36,6 +36,7 @@ func initTraitUseResources(
 	characterID uuid.UUID,
 	traits []models.Trait,
 	profBonus int,
+	characterLevel int,
 	repo database.CharacterResourceRepository,
 ) error {
 	for _, trait := range traits {
@@ -46,10 +47,18 @@ func initTraitUseResources(
 		switch trait.UsesPerRest {
 		case "Proficiency Bonus":
 			maxUses = profBonus
+		case "1 per spell":
+			if characterLevel >= 5 {
+				maxUses = 2
+			} else if characterLevel >= 3 {
+				maxUses = 1
+			} else {
+				continue // not yet unlocked
+			}
 		default:
 			n, err := strconv.Atoi(trait.UsesPerRest)
 			if err != nil || n <= 0 {
-				continue // Skip non-integer values like "1 per spell"
+				continue // Skip non-integer values
 			}
 			maxUses = n
 		}
@@ -312,7 +321,7 @@ func (h *characterHandler) createCharacter() http.HandlerFunc {
 					allTraits = append(allTraits, lineage.LineageTraits...)
 				}
 			}
-			if traitErr := initTraitUseResources(character.ID, allTraits, profBonus, h.characterResourceRepo); traitErr != nil {
+			if traitErr := initTraitUseResources(character.ID, allTraits, profBonus, character.Level, h.characterResourceRepo); traitErr != nil {
 				log.Error().Err(traitErr).Msg("Failed to initialize trait use resources")
 				// Non-fatal
 			}

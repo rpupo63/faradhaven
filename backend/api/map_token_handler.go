@@ -14,10 +14,11 @@ import (
 type mapTokenHandler struct {
 	tokenRepo   *database.MapTokenRepo
 	gameMapRepo *database.GameMapRepo
+	hub         *Hub
 }
 
-func newMapTokenHandler(tokenRepo *database.MapTokenRepo, gameMapRepo *database.GameMapRepo) *mapTokenHandler {
-	return &mapTokenHandler{tokenRepo: tokenRepo, gameMapRepo: gameMapRepo}
+func newMapTokenHandler(tokenRepo *database.MapTokenRepo, gameMapRepo *database.GameMapRepo, hub *Hub) *mapTokenHandler {
+	return &mapTokenHandler{tokenRepo: tokenRepo, gameMapRepo: gameMapRepo, hub: hub}
 }
 
 func (h *mapTokenHandler) addToken() http.HandlerFunc {
@@ -92,6 +93,8 @@ func (h *mapTokenHandler) addToken() http.HandlerFunc {
 			respondError(w, http.StatusInternalServerError, "Failed to add token")
 			return
 		}
+
+		h.hub.BroadcastMapUpdate(mapID, "TOKEN_ADDED", token)
 
 		respondJSON(w, http.StatusCreated, token)
 	}
@@ -232,6 +235,8 @@ func (h *mapTokenHandler) updateToken() http.HandlerFunc {
 			return
 		}
 
+		h.hub.BroadcastMapUpdate(mapID, "TOKEN_UPDATED", token)
+
 		respondJSON(w, http.StatusOK, token)
 	}
 }
@@ -275,6 +280,8 @@ func (h *mapTokenHandler) deleteToken() http.HandlerFunc {
 			respondError(w, http.StatusInternalServerError, "Failed to delete token")
 			return
 		}
+
+		h.hub.BroadcastMapUpdate(mapID, "TOKEN_DELETED", map[string]string{"token_id": tokenID.String()})
 
 		respondJSON(w, http.StatusOK, map[string]string{"message": "Token deleted successfully"})
 	}
@@ -351,6 +358,8 @@ func (h *mapTokenHandler) setInitiative() http.HandlerFunc {
 			return
 		}
 
+		h.hub.BroadcastMapUpdate(mapID, "INITIATIVE_UPDATED", tokens)
+
 		respondJSON(w, http.StatusOK, tokens)
 	}
 }
@@ -390,6 +399,8 @@ func (h *mapTokenHandler) clearInitiative() http.HandlerFunc {
 			respondError(w, http.StatusInternalServerError, "Failed to clear initiative")
 			return
 		}
+
+		h.hub.BroadcastMapUpdate(mapID, "INITIATIVE_CLEARED", nil)
 
 		respondJSON(w, http.StatusOK, map[string]string{"status": "initiative cleared"})
 	}

@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"github.com/rpupo63/unified-personal-site-backend/database"
 	"github.com/rpupo63/unified-personal-site-backend/internal/bootstrap"
 	"github.com/rpupo63/unified-personal-site-backend/models"
 	"github.com/rpupo63/unified-personal-site-backend/seed"
@@ -34,6 +35,9 @@ func main() {
 	}
 
 	fmt.Println("Running migrations...")
+	if err := database.MigrateSpellComponentsOrdered(db); err != nil {
+		log.Fatalf("spell_components migration failed: %v", err)
+	}
 	if err := db.AutoMigrate(models.AllModels()...); err != nil {
 		log.Fatalf("Migration failed: %v", err)
 	}

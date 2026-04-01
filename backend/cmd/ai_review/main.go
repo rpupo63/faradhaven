@@ -11,6 +11,7 @@ import (
 	"github.com/rpupo63/unified-personal-site-backend/internal/bootstrap"
 	"github.com/rpupo63/unified-personal-site-backend/models"
 	"github.com/rpupo63/unified-personal-site-backend/services"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -30,12 +31,16 @@ func main() {
 
 	// All spells with checked = false (GM not yet approved), regardless of existing AI columns.
 	var spells []*models.Spell
-	err = db.Preload("Components").
+	err = db.Preload("ComponentLinks", func(db *gorm.DB) *gorm.DB { return db.Order("sort_order ASC") }).
+		Preload("ComponentLinks.Component").
 		Where("checked = false").
 		Order("created_at ASC").
 		Find(&spells).Error
 	if err != nil {
 		log.Fatalf("Failed to query spells: %v", err)
+	}
+	for _, sp := range spells {
+		sp.HydrateComponentsFromLinks()
 	}
 
 	total := len(spells)

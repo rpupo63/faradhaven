@@ -128,7 +128,8 @@ type GenerateLootRequest struct {
 
 // Party Types
 type CreatePartyRequest struct {
-	Name string `json:"name"`
+	Name        string     `json:"name"`
+	CharacterID *uuid.UUID `json:"character_id,omitempty"`
 }
 
 type UpdatePartyRequest struct {
@@ -352,6 +353,11 @@ type UpdateCharacterRequest struct {
 	Notoriety          *int       `json:"notoriety,omitempty"`
 	Notes              *string    `json:"notes,omitempty"`
 	SkillProficiencies []string   `json:"skill_proficiencies,omitempty"`
+	DiceTheme          *string    `json:"dice_theme,omitempty"`
+	DiceThemeColor     *string    `json:"dice_theme_color,omitempty"`
+	DiceFontColor      *string    `json:"dice_font_color,omitempty"`
+	ClearDiceTheme     bool       `json:"clear_dice_theme,omitempty"`
+	ClearDiceColors    bool       `json:"clear_dice_colors,omitempty"`
 }
 
 // UpdateBackstoryRequest is the request body for updating a character's backstory
@@ -428,6 +434,7 @@ type CharacterSheetResponse struct {
 	MaxSpellPoints           int                         `json:"max_spell_points"`
 	CurrentSpellPoints       int                         `json:"current_spell_points"`
 	SavingThrowProficiencies []string                    `json:"saving_throw_proficiencies"`
+	// Class + race pool from live Class.Components / Race.Components (not character_components).
 	AvailableComponents      []models.Component          `json:"available_components"`
 	HitDiceTotal             int                         `json:"hit_dice_total"`
 	HitDiceRemaining         int                         `json:"hit_dice_remaining"`
@@ -439,11 +446,13 @@ type CharacterSheetResponse struct {
 	Lineage                  *models.Lineage             `json:"lineage,omitempty"`
 	InventoryWeapons         []CharacterWeaponResponse   `json:"inventory_weapons"`
 	InventoryItems           []models.Item               `json:"inventory_items"`
+	// Expendable / acquired component counts (character_components). Spell pool is available_components.
 	Components               []models.CharacterComponent `json:"components"`
 	HarvestedAbilities       models.HarvestedAbilities   `json:"harvested_abilities"`
 	ClassResources           []ClassResourceResponse     `json:"class_resources"`
 	MadnessTable             map[int]string              `json:"madness_table,omitempty"`
 	TraitUseStates           map[string]int              `json:"trait_use_states,omitempty"` // traitID → current uses
+	TraitMaxUses             map[string]int              `json:"trait_max_uses,omitempty"`   // traitID → max uses
 }
 
 // ConsumeCorpseRequest is the request body for consuming a corpse (Lorewright Visceral Psychometry)
@@ -460,7 +469,8 @@ type CreateCorpseRequest struct {
 	ChallengeRating     float64    `json:"challenge_rating,omitempty"`
 	GridX               *int       `json:"grid_x,omitempty"`
 	GridY               *int       `json:"grid_y,omitempty"`
-	AvailableComponents []string   `json:"available_components,omitempty"`
+	// When empty or all IDs unknown, server picks 1–4 random distinct components from the current catalog.
+	AvailableComponents []string `json:"available_components,omitempty"`
 	ComponentYield      int        `json:"component_yield,omitempty"`
 	SourceBeastID       *uuid.UUID `json:"source_beast_id,omitempty"`
 	ExpiresInMinutes    *int       `json:"expires_in_minutes,omitempty"`
@@ -645,6 +655,9 @@ type UpdateUserRequest struct {
 	Name              *string    `json:"name,omitempty"`
 	Email             *string    `json:"email,omitempty"`
 	ActiveCharacterID *uuid.UUID `json:"active_character_id,omitempty"`
+	DiceTheme         *string    `json:"dice_theme,omitempty"`
+	DiceThemeColor    *string    `json:"dice_theme_color,omitempty"`
+	DiceFontColor     *string    `json:"dice_font_color,omitempty"`
 }
 
 type SetActiveCharacterRequest struct {

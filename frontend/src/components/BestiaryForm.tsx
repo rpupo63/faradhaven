@@ -83,10 +83,10 @@ export function BestiaryForm({ entry, onSubmit, onCancel }: BestiaryFormProps) {
   };
 
   return (
-    <Card className="arcane-border bg-card/90 backdrop-blur-sm">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 font-display text-primary">
+    <Card className="arcane-border bg-card/90 backdrop-blur-sm min-w-0">
+      <CardHeader className="pb-4 min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle className="flex items-center gap-2 font-display text-primary min-w-0">
             <Skull className="w-5 h-5" />
             {entry ? 'Edit Creature' : 'Add New Creature'}
           </CardTitle>
@@ -96,8 +96,8 @@ export function BestiaryForm({ entry, onSubmit, onCancel }: BestiaryFormProps) {
         </div>
       </CardHeader>
 
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <CardContent className="min-w-0">
+        <form onSubmit={handleSubmit} className="space-y-6 min-w-0">
           {/* Basic Info */}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
@@ -161,7 +161,7 @@ export function BestiaryForm({ entry, onSubmit, onCancel }: BestiaryFormProps) {
           </div>
 
           {/* Combat Stats */}
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="ac">Armor Class</Label>
               <Input
@@ -216,7 +216,7 @@ export function BestiaryForm({ entry, onSubmit, onCancel }: BestiaryFormProps) {
           {/* Ability Scores */}
           <div>
             <Label className="mb-3 block">Ability Scores</Label>
-            <div className="grid grid-cols-6 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6">
               {[
                 { label: 'STR', value: strength, setter: setStrength },
                 { label: 'DEX', value: dexterity, setter: setDexterity },
@@ -251,18 +251,18 @@ export function BestiaryForm({ entry, onSubmit, onCancel }: BestiaryFormProps) {
             </div>
             {attacks.map((attack) => (
               <div key={attack.id} className="p-3 rounded-lg border border-border bg-muted/30 space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
                   <Input
                     value={attack.name}
                     onChange={(e) => updateAttack(attack.id, { name: e.target.value })}
                     placeholder="Attack name"
-                    className="max-w-[200px]"
+                    className="min-w-0 flex-1 max-w-full"
                   />
-                  <Button type="button" variant="ghost" size="icon" onClick={() => removeAttack(attack.id)}>
+                  <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={() => removeAttack(attack.id)}>
                     <Trash2 className="w-4 h-4 text-destructive" />
                   </Button>
                 </div>
-                <div className="grid gap-2 md:grid-cols-4">
+                <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
                   <div className="space-y-1">
                     <Label className="text-xs">Attack Bonus</Label>
                     <Input
@@ -333,7 +333,7 @@ export function BestiaryForm({ entry, onSubmit, onCancel }: BestiaryFormProps) {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 justify-end pt-4 border-t border-border">
+          <div className="flex flex-wrap gap-3 justify-end pt-4 border-t border-border">
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
             </Button>

@@ -10,7 +10,7 @@ import (
 )
 
 // initializeHandlers creates and returns all handlers organized in a routeHandlers struct
-func initializeHandlers(db database.Database) *routeHandlers {
+func initializeHandlers(db database.Database, hub *Hub) *routeHandlers {
 	// Initialize a logger for handlers that require it
 	// In a real application, this would likely be passed down from main or a global config.
 	// For now, create a basic console logger.
@@ -128,9 +128,9 @@ func initializeHandlers(db database.Database) *routeHandlers {
 		characterEffectHandler: newCharacterEffectHandler(effectService),
 		resourceHandler:        newResourceHandler(db.CharacterResourceRepo()),
 		minionHandler:          newMinionHandler(minionService),
-		noteHandler:            newNoteHandler(db.NoteRepo(), s3Service),
-		gameMapHandler:         newGameMapHandler(db.GameMapRepo()),
-		mapTokenHandler:        newMapTokenHandler(db.MapTokenRepo(), db.GameMapRepo()),
+		noteHandler:            newNoteHandler(db.NoteRepo(), db.CharacterRepo(), s3Service),
+		gameMapHandler:         newGameMapHandler(db.GameMapRepo(), hub),
+		mapTokenHandler:        newMapTokenHandler(db.MapTokenRepo(), db.GameMapRepo(), hub),
 		mapElementHandler:      newMapElementHandler(db.MapElementRepo(), db.GameMapRepo()),
 		mechanicsHandler:       NewMechanicsHandler(db.DB()),
 		corpseHandler:          corpseHandlerInstance, // Use the instance
