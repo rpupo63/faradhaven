@@ -28,7 +28,6 @@ import { EquipmentSection } from './character-sheet/EquipmentSection';
 import { FeaturesSection } from './character-sheet/FeaturesSection';
 import { ActiveAbilitiesSection } from './character-sheet/ActiveAbilitiesSection';
 import { MoneyPanel } from './character-sheet/MoneyPanel';
-import { SaveDCDisplay } from './character-sheet/SaveDCDisplay';
 import { WeaponAttackDialog } from './character-sheet/WeaponAttackDialog';
 import { DieOptions } from './character-sheet/DieOptions';
 import { SanguinistFeaturesCard } from './SanguinistFeaturesCard';
@@ -263,6 +262,7 @@ export function CharacterSheetView({
                 setExpandedPanel={setExpandedPanel}
                 onHPChange={onHPChange}
                 onUseHitDice={onUseHitDice}
+                onRoll={handleRoll}
               />
               {sheet.character.raceName.includes('Changeling') && (
                 <Card className="arcane-border bg-card">
@@ -289,10 +289,6 @@ export function CharacterSheetView({
               Ability scores
             </AccordionTrigger>
             <AccordionContent className="space-y-3 pb-3">
-              <div className="rounded-lg border border-primary/50 bg-primary/5 p-2 text-center">
-                <p className="text-xs font-tome-marginalia text-muted-foreground uppercase tracking-wider">Prof</p>
-                <p className="font-display text-xl text-primary">+{sheet.class_level?.proficiency_bonus ?? 2}</p>
-              </div>
               <AbilityScores sheet={sheet} />
             </AccordionContent>
           </AccordionItem>
@@ -318,7 +314,6 @@ export function CharacterSheetView({
               {token && (
                 <RacialResourceTracker sheet={sheet} characterId={character.id} token={token} />
               )}
-              {sheet.save_dc && <SaveDCDisplay saveDC={sheet.save_dc} />}
               {sheet.class.name === 'The Lorewright' && (
                 <>
                   <HarvestBankSection sheet={sheet} />
@@ -407,12 +402,8 @@ export function CharacterSheetView({
       {/* Main 4-column layout (desktop): Abilities | Skills | Middle | Features */}
       <div className="hidden md:grid grid-cols-1 gap-6 min-w-0 md:grid-cols-[90px_180px_1fr] lg:grid-cols-[100px_200px_1fr_280px]">
         
-        {/* FAR LEFT COLUMN: Proficiency Bonus + Ability Scores */}
+        {/* FAR LEFT COLUMN: Ability Scores */}
         <div className="order-2 md:order-none space-y-4 min-w-0">
-          <div className="rounded-lg border border-primary/50 bg-primary/5 p-2 text-center">
-            <p className="text-xs font-tome-marginalia text-muted-foreground uppercase tracking-wider">Prof</p>
-            <p className="font-display text-xl text-primary">+{sheet.class_level?.proficiency_bonus ?? 2}</p>
-          </div>
           <AbilityScores sheet={sheet} />
           <Button
             variant="outline"
@@ -439,6 +430,7 @@ export function CharacterSheetView({
             setExpandedPanel={setExpandedPanel}
             onHPChange={onHPChange}
             onUseHitDice={onUseHitDice}
+            onRoll={handleRoll}
           />
 
           {/* Changeling Persona */}
@@ -474,11 +466,6 @@ export function CharacterSheetView({
           {/* Racial Resources */}
           {token && (
             <RacialResourceTracker sheet={sheet} characterId={character.id} token={token} />
-          )}
-
-          {/* Save DC */}
-          {sheet.save_dc && (
-            <SaveDCDisplay saveDC={sheet.save_dc} />
           )}
 
           {/* Harvest Bank (Lorewright only) */}

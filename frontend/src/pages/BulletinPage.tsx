@@ -55,7 +55,7 @@ export default function BulletinPage() {
   };
 
   return (
-    <div className="space-y-8 animate-ink-bleed">
+    <div className="space-y-12 animate-ink-bleed">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="flex items-center gap-3">

@@ -16,7 +16,7 @@ export default function ArcanumSpellbookPage() {
   });
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="w-full space-y-12">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 md:w-auto min-w-[300px] mb-8">
           <TabsTrigger value="spellbook" className="gap-2 px-3">

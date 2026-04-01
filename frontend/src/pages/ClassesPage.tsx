@@ -286,7 +286,7 @@ export function ClassesTabContent({ classId }: { classId?: string }) {
   }
 
   return (
-    <div className="w-full space-y-8">
+    <div className="w-full space-y-12">
       {/* Header */}
       <div className="flex items-center gap-4">
         <div className="p-3 rounded-full border-2 border-faded-gold/50 bg-primary/10">

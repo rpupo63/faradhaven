@@ -21,27 +21,6 @@ export function ProficienciesSection({ sheet, onRoll }: ProficienciesSectionProp
 
   return (
     <div className="space-y-4">
-      {/* Initiative */}
-      <Card className="arcane-border bg-card">
-        <CardContent className="p-0">
-          <button
-            onClick={() => onRoll('Initiative', modifiers.initiative)}
-            className={cn(
-              'w-full min-w-0 flex items-center justify-between gap-2 py-2.5 px-3 rounded transition-colors',
-              'hover:bg-primary/20 cursor-pointer'
-            )}
-          >
-            <span className="flex items-center gap-2 text-sm font-tome-subheading text-primary min-w-0">
-              <Zap className="h-4 w-4 shrink-0" />
-              <span className="truncate">Initiative</span>
-            </span>
-            <span className="font-display text-xl text-primary tabular-nums shrink-0">
-              {formatMod(modifiers.initiative)}
-            </span>
-          </button>
-        </CardContent>
-      </Card>
-
       {/* Saving Throws */}
       <Card className="arcane-border bg-card">
         <CardHeader className="pb-2 px-3 pt-3">

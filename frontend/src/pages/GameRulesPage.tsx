@@ -33,7 +33,7 @@ export default function GameRulesPage() {
   };
 
   return (
-    <div className="w-full space-y-8">
+    <div className="w-full space-y-12">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-4 arcane-border bg-card">
           <TabsTrigger value="classes">

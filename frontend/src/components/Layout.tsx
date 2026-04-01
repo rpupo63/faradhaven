@@ -48,20 +48,10 @@ export function Layout({ children }: LayoutProps) {
     <div className="min-h-screen w-full flex flex-col overflow-x-hidden">
       {/* Tome header – bar like a handbook title strip */}
       <header className="border-b-2 border-faded-gold/50 bg-card/80 backdrop-blur-sm sticky top-0 z-50 hand-drawn-border border-t-0 border-l-0 border-r-0 rounded-none">
-        <div className="container mx-auto w-full px-3 py-3 sm:px-4">
+        <div className="container mx-auto w-full px-6 py-4 sm:px-10">
           <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-3 group">
-              <div className="p-2 rounded-full border-2 border-faded-gold/50 bg-primary/10 group-hover:border-primary/60 transition-colors">
-                <Flame className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h1 className="font-tome-heading text-xl text-primary tracking-wide">Faradhaven</h1>
-                <p className="text-xs text-muted-foreground font-tome-marginalia">Character Creator</p>
-              </div>
-            </Link>
-
-            <div className="flex items-center gap-2">
-              {/* Mobile Hamburger Menu */}
+            <div className="flex items-center gap-6">
+              {/* Mobile Hamburger Menu - now on the far left */}
               <div className="md:hidden">
                 <Sheet>
                   <SheetTrigger asChild>
@@ -101,6 +91,40 @@ export function Layout({ children }: LayoutProps) {
                 </Sheet>
               </div>
 
+              <Link to="/" className="flex items-center gap-3 group shrink-0">
+                <div>
+                  <h1 className="font-tome-heading text-xl text-primary tracking-wide leading-tight">Faradhaven</h1>
+                  <p className="text-xs text-muted-foreground font-tome-marginalia">Steampunk RPG System</p>
+                </div>
+              </Link>
+
+              {/* Desktop Horizontal Navigation (Top Menu) */}
+              <nav className="hidden md:flex items-center gap-1 ml-4">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path ||
+                    location.pathname.startsWith(`${item.path}/`)
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={cn(
+                        'flex items-center gap-2 px-3 py-2 rounded-md transition-all text-sm font-tome-subheading uppercase tracking-wide',
+                        isActive
+                          ? 'text-primary bg-primary/15 border border-primary/20 shadow-seal'
+                          : 'text-muted-foreground hover:text-primary hover:bg-primary/10'
+                      )}
+                      title={item.label}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span className="hidden lg:inline">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+
+            <div className="flex items-center gap-2">
               {/* User menu / Sign in */}
               {isAuthenticated ? (
                 <DropdownMenu>
@@ -151,41 +175,11 @@ export function Layout({ children }: LayoutProps) {
 
       <div className="flex flex-1">
         {/* Main content – tighter padding on mobile, generous on desktop */}
-        <main className="flex-1 w-full px-2 py-4 sm:px-3 md:px-8 md:py-10 md:pl-40 lg:px-10 lg:py-12">
-          <div className="w-full max-w-5xl mx-auto overflow-x-hidden">
+        <main className="flex-1 w-full px-6 py-10 sm:px-10 sm:py-16 md:px-16 md:py-20 lg:px-24 lg:py-24">
+          <div className="w-full max-w-6xl mx-auto overflow-x-hidden">
             {children}
           </div>
         </main>
-
-        {/* Bookmark strip – vertical tabs sticking out from the left (desktop) */}
-        <aside
-          className="hidden md:flex flex-col fixed left-0 top-[4.5rem] bottom-0 w-32 border-r border-faded-gold/40 bg-card/60 backdrop-blur-sm py-6 px-3 gap-2 z-40"
-          aria-label="Table of contents"
-        >
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path ||
-              location.pathname.startsWith(`${item.path}/`)
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  'flex flex-col items-center justify-center py-3 px-3 border border-faded-gold/40 rounded-lg transition-all duration-200 min-h-[3.5rem]',
-                  isActive
-                    ? 'bg-primary/15 text-primary shadow-seal border-primary/50 z-10'
-                    : 'bg-card/80 text-muted-foreground hover:text-primary hover:bg-primary/10 hover:border-primary/30'
-                )}
-                title={item.label}
-              >
-                <Icon className="w-5 h-5 mb-0.5 shrink-0" />
-                <span className="text-[0.6rem] font-tome-marginalia uppercase tracking-wider hidden lg:block text-center leading-tight">
-                  {item.label}
-                </span>
-              </Link>
-            );
-          })}
-        </aside>
       </div>
 
       {/* Footer – ledger-style line */}

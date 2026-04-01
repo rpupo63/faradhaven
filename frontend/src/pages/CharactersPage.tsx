@@ -60,7 +60,7 @@ export default function CharactersPage() {
 
   if (showWizard) {
     return (
-      <div className="py-8">
+      <div className="w-full">
         <CharacterCreationWizard
           onComplete={handleCharacterCreated}
           onCancel={() => setShowWizard(false)}
@@ -70,7 +70,7 @@ export default function CharactersPage() {
   }
 
   return (
-    <div className="w-full space-y-8 relative">
+    <div className="w-full space-y-12 relative">
       <RefreshIndicator isFetching={isFetching && !isLoading} />
 
       {/* Header */}

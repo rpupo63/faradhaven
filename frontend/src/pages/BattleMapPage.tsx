@@ -276,7 +276,7 @@ const BattleMapLanding = ({ token, userId }: { token: string | null, userId?: st
     };
 
     return (
-        <div className="container mx-auto p-6 space-y-8">
+        <div className="w-full space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Join Section */}
                 <div className="space-y-6">

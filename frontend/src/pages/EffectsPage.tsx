@@ -263,7 +263,7 @@ export function EffectsTabContent() {
   }, [effects, search, category]);
 
   return (
-    <div className="w-full space-y-8 p-6">
+    <div className="w-full space-y-12">
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="p-3 rounded-full border-2 border-faded-gold/50 bg-primary/10">

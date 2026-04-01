@@ -28,7 +28,7 @@ export default function DMToolsPage() {
   }, [location.search, queryParams]);
 
   return (
-      <div className="space-y-6">
+      <div className="space-y-10">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as DMToolTab)} className="w-full">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
             <h1 className="text-3xl font-bold text-primary glow-text">DM Tools</h1>

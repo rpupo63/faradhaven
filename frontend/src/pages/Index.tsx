@@ -8,7 +8,7 @@ export default function Index() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-10 px-2 py-8 sm:space-y-12 sm:px-4 md:space-y-16 md:py-12 md:px-8">
+    <div className="space-y-16 sm:space-y-20 md:space-y-24">
       {/* Hero Section */}
       <div className="text-center space-y-8 animate-in fade-in duration-1000">
         <div className="inline-block p-4 sm:p-5 md:p-6 rounded-full bg-primary/5 border border-primary/20 mb-4 sm:mb-6 shadow-[0_0_15px_rgba(var(--primary-rgb),0.2)]">

@@ -244,7 +244,7 @@ export default function CharacterSheetPage() {
   const currentLevel = apiSheet?.character?.level ?? character?.level ?? 1;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       {/* Unified Header Row */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as CharacterTab)} className="w-full">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">

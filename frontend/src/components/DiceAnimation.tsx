@@ -44,7 +44,8 @@ export function DiceAnimation() {
       const scale = computeDiceScale(tray);
       const narrow = tray < 520;
 
-      const box = new DiceBox('#dice-box', {
+      const box = new DiceBox({
+        container: '#dice-box',
         assetPath: '/assets/dice-box/',
         scale,
         gravity: 14,

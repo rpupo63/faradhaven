@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Wrench, Plus, Minus, Trash2, Shield, Heart, Loader2, Dices, Recycle, Bug, ShieldAlert, Zap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -171,7 +171,7 @@ export function ConstructsSection({ sheet }: ConstructsSectionProps) {
   const renderMinionCard = (minion: ApiMinion) => {
     const hpPct = minion.max_hp > 0 ? (minion.current_hp / minion.max_hp) * 100 : 0;
     return (
-      <div key={minion.id} className="border border-border rounded-md p-2 space-y-1">
+      <div className="border border-border rounded-md p-2 space-y-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-display text-primary">{minion.name}</span>
@@ -268,7 +268,9 @@ export function ConstructsSection({ sheet }: ConstructsSectionProps) {
             </p>
           ) : (
             <div className="space-y-2">
-              {activeConstructs.map(renderMinionCard)}
+              {activeConstructs.map((minion) => (
+                <Fragment key={minion.id}>{renderMinionCard(minion)}</Fragment>
+              ))}
             </div>
           )}
 
@@ -324,7 +326,9 @@ export function ConstructsSection({ sheet }: ConstructsSectionProps) {
                 <p className="text-xs text-muted-foreground italic text-center py-1">No active drones</p>
               ) : (
                 <div className="space-y-2">
-                  {activeDrones.map(renderMinionCard)}
+                  {activeDrones.map((minion) => (
+                    <Fragment key={minion.id}>{renderMinionCard(minion)}</Fragment>
+                  ))}
                 </div>
               )}
               <Button
@@ -355,14 +359,14 @@ export function ConstructsSection({ sheet }: ConstructsSectionProps) {
             {templates &&
               Object.values(templates)
                 .filter((t: ApiConstructTemplate) => t.key !== 'drone')
-                .map((template: ApiConstructTemplate) => {
+                .map((template: ApiConstructTemplate, templateIndex: number) => {
                   const required = template.required_components || [];
                   const availability = getComponentAvailability(required);
                   const canBuild = allComponentsAvailable(required);
                   const durationMinutes = required.length * 10;
                   return (
                     <button
-                      key={template.key}
+                      key={template.key || `template-${templateIndex}`}
                       className="w-full text-left border border-border rounded-md p-3 hover:bg-accent/50 transition-colors disabled:opacity-50"
                       onClick={() => createMutation.mutate(template.key)}
                       disabled={createMutation.isPending || !canBuild}
@@ -383,9 +387,9 @@ export function ConstructsSection({ sheet }: ConstructsSectionProps) {
                       {/* Required Components */}
                       {required.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {availability.map(({ name, has }) => (
+                          {availability.map(({ name, has }, availIdx) => (
                             <Badge
-                              key={name}
+                              key={`${name}-${availIdx}`}
                               variant={has ? 'secondary' : 'destructive'}
                               className="text-micro"
                             >
@@ -394,8 +398,8 @@ export function ConstructsSection({ sheet }: ConstructsSectionProps) {
                           ))}
                         </div>
                       )}
-                      {template.actions?.map((action) => (
-                        <div key={action.name} className="text-micro text-muted-foreground mt-0.5">
+                      {template.actions?.map((action, actionIdx) => (
+                        <div key={`${action.name}-${actionIdx}`} className="text-micro text-muted-foreground mt-0.5">
                           {action.name}: {action.damage_dice || ''} {action.damage_type || ''} {action.range ? `(${action.range})` : ''}
                         </div>
                       ))}
@@ -421,9 +425,9 @@ export function ConstructsSection({ sheet }: ConstructsSectionProps) {
           <div className="space-y-1 max-h-64 overflow-y-auto">
             {components
               .filter((c: ApiCharacterComponent) => c.count >= 1)
-              .map((c: ApiCharacterComponent) => (
+              .map((c: ApiCharacterComponent, compIdx: number) => (
                 <button
-                  key={c.component_id}
+                  key={c.component_id || `component-${compIdx}`}
                   className="w-full text-left border border-border rounded-md p-2 hover:bg-accent/50 transition-colors flex items-center justify-between"
                   onClick={() => createDroneMutation.mutate(c.component_id)}
                   disabled={createDroneMutation.isPending}

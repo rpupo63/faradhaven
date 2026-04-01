@@ -548,7 +548,7 @@ export default function ShopPage() {
   };
 
   return (
-    <div className="w-full space-y-8 p-6 relative">
+    <div className="w-full space-y-12 relative">
       <RefreshIndicator isFetching={isFetching && !isLoading} />
 
       {/* Header */}
