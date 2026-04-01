@@ -20,12 +20,12 @@ const badgeVariants = cva(
       },
       size: {
         default: "px-2.5 py-0.5 text-xs", // The current default size
-        sm: "h-4 px-1 py-0 text-[10px]", // Common small size like text-[10px] h-4 py-0
-        tiny: "h-4 px-1.5 py-0 text-[9px]", // Even smaller, like text-[9px] h-4 px-1.5
+        sm: "h-4 px-1 py-0 text-micro", // Common small size
+        tiny: "h-4 px-1.5 py-0 text-tiny", // Even smaller
         lg: "px-3 py-1 text-lg",
         xl: "px-4 py-2 text-xl",
         "xl-compact": "px-3 py-1 text-xl",
-        "h5-sm": "h-5 px-1 py-0 text-[10px]", // For PreparedSpells.tsx concentration
+        "h5-sm": "h-5 px-1 py-0 text-micro", // For PreparedSpells.tsx concentration
         "min-w-sm": "min-w-[3rem] justify-center", // Added default size values to not break it
         "min-w-xs": "min-w-[1.2rem] flex justify-center", // Added default size values
       },

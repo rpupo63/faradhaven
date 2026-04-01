@@ -89,8 +89,8 @@ export function ElementTile({
   };
 
   const nameSizes = {
-    sm: 'text-[8px] md:text-[9px]',
-    md: 'text-[9px] md:text-xs',
+    sm: 'text-nano md:text-tiny',
+    md: 'text-tiny md:text-xs',
     lg: 'text-xs md:text-sm',
   };
 
@@ -114,7 +114,7 @@ export function ElementTile({
     >
       {/* Element icon indicator */}
       {showElement && elementIcon && (
-        <span className="absolute top-0.5 right-0.5 text-[10px] md:text-xs opacity-70">
+        <span className="absolute top-0.5 right-0.5 text-micro md:text-xs opacity-70">
           {elementIcon}
         </span>
       )}
@@ -123,8 +123,8 @@ export function ElementTile({
       {count !== undefined && (
         <span 
           className={cn(
-            "absolute -top-1.5 -left-1.5 z-20 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full border border-background bg-primary px-1 text-[10px] font-bold text-primary-foreground shadow-sm",
-            size === 'sm' && "h-4 min-w-[1rem] text-[9px] -top-1 -left-1"
+            "absolute -top-1.5 -left-1.5 z-20 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full border border-background bg-primary px-1 text-micro font-bold text-primary-foreground shadow-sm",
+            size === 'sm' && "h-4 min-w-[1rem] text-tiny -top-1 -left-1"
           )}
           title={`Quantity: ${count >= 999 ? 'Infinite' : count}`}
         >

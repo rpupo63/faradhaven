@@ -131,7 +131,7 @@ export function ComponentKeyboard({
           key={keyChar} 
           className="w-12 h-12 m-0.5 rounded-md bg-muted/20 border border-border/30 flex items-center justify-center opacity-30 select-none relative"
         >
-          <span className="text-[10px] absolute top-0.5 left-1 font-mono uppercase text-muted-foreground">{keyChar}</span>
+          <span className="text-micro absolute top-0.5 left-1 font-mono uppercase text-muted-foreground">{keyChar}</span>
         </div>
       );
     }
@@ -159,13 +159,13 @@ export function ComponentKeyboard({
         title={`${component.name} (${component.symbol}) - Press '${activeKey.toUpperCase()}'`}
       >
         {/* Key Label (Top Left) */}
-        <span className="absolute top-0.5 left-1 text-[10px] font-mono font-bold opacity-50 uppercase">
+        <span className="absolute top-0.5 left-1 text-micro font-mono font-bold opacity-50 uppercase">
           {activeKey}
         </span>
 
         {/* Shift Hint (Top Right) */}
         {shiftKey && !isShiftPressed && mappedComponents.has(shiftKey) && (
-          <span className="absolute top-0.5 right-1 text-[8px] font-mono font-bold opacity-30 uppercase">
+          <span className="absolute top-0.5 right-1 text-nano font-mono font-bold opacity-30 uppercase">
             ⇧{shiftKey}
           </span>
         )}
@@ -176,7 +176,7 @@ export function ComponentKeyboard({
         </span>
 
         {/* Component Name (Bottom, truncated) */}
-        <span className="text-[10px] text-center opacity-80 font-medium">
+        <span className="text-micro text-center opacity-80 font-medium">
           {component.name}
         </span>
       </button>

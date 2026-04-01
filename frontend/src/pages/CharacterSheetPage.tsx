@@ -513,7 +513,7 @@ export default function CharacterSheetPage() {
           if (!open) dispatchClearDice();
         }}
       >
-        <DialogContent className="max-w-2xl p-0 border-0 bg-transparent">
+        <DialogContent className="max-w-2xl p-0 border-0 bg-transparent" noPadding>
           <DialogTitle className="sr-only">Level Up Wizard</DialogTitle>
           <DialogDescription className="sr-only">Interface for leveling up your character and choosing new features.</DialogDescription>
           <LevelUpWizard

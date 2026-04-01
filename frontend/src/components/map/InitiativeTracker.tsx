@@ -149,7 +149,7 @@ export function InitiativeTracker({ mapId, isDM }: InitiativeTrackerProps) {
                   </Badge>
                 )}
                 {slot.type === 'minion' && slot.minion && (
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-micro text-muted-foreground">
                     HP {slot.minion.current_hp}/{slot.minion.max_hp}
                   </span>
                 )}

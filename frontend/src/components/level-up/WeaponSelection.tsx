@@ -52,7 +52,7 @@ export function WeaponSelection({ preview, selectedWeaponId, onSelect }: WeaponS
           >
             <div className="flex justify-between items-start mb-2">
               <p className="font-tome-subheading text-foreground">{weapon.name}</p>
-              <span className="text-[10px] text-muted-foreground">{weapon.range_type}</span>
+              <span className="text-micro text-muted-foreground">{weapon.range_type}</span>
             </div>
             <div className="flex flex-wrap gap-2 mb-2">
               {weapon.damages?.map((d, i) => (
@@ -61,7 +61,7 @@ export function WeaponSelection({ preview, selectedWeaponId, onSelect }: WeaponS
                 </Badge>
               ))}
               {weapon.properties?.map((prop, i) => (
-                <Badge key={`prop-${i}`} variant="outline" className="text-[10px] h-4 py-0">
+                <Badge key={`prop-${i}`} variant="outline" className="text-micro h-4 py-0">
                   {prop}
                 </Badge>
               ))}

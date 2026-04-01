@@ -107,7 +107,7 @@ function TraitAbilityCard({ trait, currentUses, maxUses, characterId, token }: T
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-tome-subheading text-primary truncate">{trait.name}</span>
-            <Badge variant={actionTypeBadgeVariant(trait.action_type)} className="text-[10px] shrink-0">
+            <Badge variant={actionTypeBadgeVariant(trait.action_type)} className="text-micro shrink-0">
               {trait.action_type}
             </Badge>
             {isActive && <Sparkles className="h-3 w-3 text-primary animate-pulse" />}
@@ -128,7 +128,7 @@ function TraitAbilityCard({ trait, currentUses, maxUses, characterId, token }: T
           )}
           
           {hasUsesTracking && currentUses !== undefined && (maxUses === undefined || maxUses <= 1) && (
-            <span className="text-[10px] text-muted-foreground uppercase font-tome-marginalia mt-1 block">
+            <span className="text-micro text-muted-foreground uppercase font-tome-marginalia mt-1 block">
               {currentUses > 0 ? 'Available' : 'Spent'}
             </span>
           )}
@@ -140,7 +140,7 @@ function TraitAbilityCard({ trait, currentUses, maxUses, characterId, token }: T
               size="sm"
               variant={currentUses! > 0 ? "outline" : "ghost"}
               className={cn(
-                "h-7 px-2 text-[10px] font-display",
+                "h-7 px-2 text-micro font-display",
                 currentUses! > 0 ? "border-primary/30 text-primary hover:bg-primary/10" : "text-muted-foreground"
               )}
               onClick={() => currentUses! > 0 ? mutation.mutate() : restoreMutation.mutate()}
@@ -155,7 +155,7 @@ function TraitAbilityCard({ trait, currentUses, maxUses, characterId, token }: T
                  <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 px-2 text-[10px] font-display text-muted-foreground hover:text-primary"
+                    className="h-7 px-2 text-micro font-display text-muted-foreground hover:text-primary"
                     onClick={() => restoreMutation.mutate()}
                     disabled={restoreMutation.isPending}
                  >
@@ -191,7 +191,7 @@ function TraitAbilityCard({ trait, currentUses, maxUses, characterId, token }: T
           
           {trait.name === 'Severed from Dreams' && (
             <div className="pt-2 border-t border-border/50">
-              <p className="text-[10px] text-muted-foreground uppercase font-tome-marginalia mb-1">Select Daily Proficiency:</p>
+              <p className="text-micro text-muted-foreground uppercase font-tome-marginalia mb-1">Select Daily Proficiency:</p>
               <Select
                 defaultValue={localStorage.getItem(`kalashtar_skill_${characterId}`) || ''}
                 onValueChange={(val) => {
@@ -247,7 +247,7 @@ function FeatureAbilityCard({ feature, classResources, characterId, token }: Fea
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-tome-subheading text-primary truncate">{feature.name}</span>
             {feature.action_type && (
-              <Badge variant={actionTypeBadgeVariant(feature.action_type)} className="text-[10px] shrink-0">
+              <Badge variant={actionTypeBadgeVariant(feature.action_type)} className="text-micro shrink-0">
                 {feature.action_type}
               </Badge>
             )}

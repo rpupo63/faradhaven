@@ -77,7 +77,7 @@ function RarityBadge({ rarity }: { rarity: string }) {
     <Badge
       variant="outline"
       className={cn(
-        'font-tome-marginalia text-[10px] uppercase tracking-wider',
+        'font-tome-marginalia text-micro uppercase tracking-wider',
         colorClass
       )}
     >
@@ -96,7 +96,7 @@ function CurrencyDisplay({ cp }: { cp: number }) {
       {gp > 0 && (
         <div className="flex items-center gap-1">
           <span className="text-faded-gold font-bold">{gp}</span>
-          <span className="text-muted-foreground text-[10px] uppercase">
+          <span className="text-muted-foreground text-micro uppercase">
             gp
           </span>
         </div>
@@ -104,14 +104,14 @@ function CurrencyDisplay({ cp }: { cp: number }) {
       {sp > 0 && (
         <div className="flex items-center gap-1">
           <span className="text-slate-400 font-bold">{sp}</span>
-          <span className="text-muted-foreground text-[10px] uppercase">
+          <span className="text-muted-foreground text-micro uppercase">
             sp
           </span>
         </div>
       )}
       <div className="flex items-center gap-1">
         <span className="text-orange-700 font-bold">{remainingCp}</span>
-        <span className="text-muted-foreground text-[10px] uppercase">cp</span>
+        <span className="text-muted-foreground text-micro uppercase">cp</span>
       </div>
     </div>
   );
@@ -125,7 +125,7 @@ function DamageDisplay({ damage }: { damage: ApiWeaponDamage }) {
       </Badge>
       <span className="text-muted-foreground">{damage.damage_type}</span>
       {damage.damage_category !== 'Base' && (
-        <span className="text-[10px] text-muted-foreground/70 italic">
+        <span className="text-micro text-muted-foreground/70 italic">
           ({damage.damage_category})
         </span>
       )}
@@ -210,7 +210,7 @@ function ShopItemCard({
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <CurrencyDisplay cp={vendorPriceCp} />
                   {listPriceCp != null && listPriceCp !== vendorPriceCp && (
-                    <div className="text-[10px] text-muted-foreground/80 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <div className="text-micro text-muted-foreground/80 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                       <span>List:</span>
                       <CurrencyDisplay cp={listPriceCp} />
                     </div>
@@ -270,7 +270,7 @@ function ShopItemCard({
                 <Badge
                   key={idx}
                   variant="outline"
-                  className="text-[10px] font-tome-marginalia border-muted-foreground/20 text-muted-foreground"
+                  className="text-micro font-tome-marginalia border-muted-foreground/20 text-muted-foreground"
                 >
                   {prop}
                 </Badge>
@@ -690,13 +690,13 @@ export default function ShopPage() {
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     <Badge
                       variant="outline"
-                      className="text-[10px] font-tome-marginalia"
+                      className="text-micro font-tome-marginalia"
                     >
                       Buy ×{owner.exchange_rate.toFixed(2)}
                     </Badge>
                     <Badge
                       variant="outline"
-                      className="text-[10px] font-tome-marginalia border-muted-foreground/30"
+                      className="text-micro font-tome-marginalia border-muted-foreground/30"
                     >
                       Sell ×{owner.willingness_to_purchase.toFixed(2)}
                     </Badge>
@@ -721,14 +721,14 @@ export default function ShopPage() {
               </p>
               {(selectedVendor.categories_obtained?.length ?? 0) > 0 && (
                 <div className="flex flex-wrap gap-1.5">
-                  <span className="text-[10px] uppercase text-muted-foreground font-tome-marginalia w-full">
+                  <span className="text-micro uppercase text-muted-foreground font-tome-marginalia w-full">
                     Seeks / sources
                   </span>
                   {selectedVendor.categories_obtained!.map(cat => (
                     <Badge
                       key={cat}
                       variant="secondary"
-                      className="text-[10px] font-tome-marginalia"
+                      className="text-micro font-tome-marginalia"
                     >
                       {cat}
                     </Badge>

@@ -278,7 +278,7 @@ function NewsClipping({ note, index }: { note: SharedNote; index: number }) {
           <div className="absolute -bottom-1 left-0 right-0 h-2 bg-[#fdfaf3] deckled-edge" />
         </div>
       </DialogTrigger>
-      <DialogContent className="vellum-modal-content max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="vellum-modal-content max-w-2xl">
         <DialogHeader>
           <DialogTitle className="font-tome-heading text-3xl text-primary border-b-2 border-primary/20 pb-2 mb-2">
             {note.title}

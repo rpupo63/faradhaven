@@ -72,7 +72,7 @@ export function ActiveEffectsSection({ characterId, effects }: ActiveEffectsSect
             </p>
             
             {effect.mechanics && (
-              <div className="text-[10px] font-tome-marginalia text-muted-foreground italic border-t border-border/30 pt-1 mt-1">
+              <div className="text-micro font-tome-marginalia text-muted-foreground italic border-t border-border/30 pt-1 mt-1">
                 {effect.mechanics}
               </div>
             )}

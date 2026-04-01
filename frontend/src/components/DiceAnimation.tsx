@@ -231,7 +231,7 @@ export function DiceAnimation() {
                     </div>
                   )}
                 </div>
-                <span className="text-[10px] uppercase font-tome-marginalia text-muted-foreground/60 tracking-widest">
+                <span className="text-micro uppercase font-tome-marginalia text-muted-foreground/60 tracking-widest">
                   {result.notation}
                 </span>
               </div>

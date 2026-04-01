@@ -31,14 +31,14 @@ export function MutagenStatusCard({ sheet, onClick, className }: MutagenStatusCa
         <div className="flex items-center justify-around text-center">
           <div>
             <p className="text-2xl font-display text-red-400">{madnessDC}</p>
-            <p className="text-[10px] font-tome-marginalia text-muted-foreground uppercase">Madness DC</p>
+            <p className="text-micro font-tome-marginalia text-muted-foreground uppercase">Madness DC</p>
           </div>
           <div>
             <p className="text-2xl font-display text-orange-400">+{feralBonus}</p>
-            <p className="text-[10px] font-tome-marginalia text-muted-foreground uppercase">Feral Bonus</p>
+            <p className="text-micro font-tome-marginalia text-muted-foreground uppercase">Feral Bonus</p>
           </div>
         </div>
-        <p className="text-[10px] font-tome-marginalia text-muted-foreground text-center italic mt-2">
+        <p className="text-micro font-tome-marginalia text-muted-foreground text-center italic mt-2">
           Click to manage Feral Mechanics
         </p>
       </CardContent>

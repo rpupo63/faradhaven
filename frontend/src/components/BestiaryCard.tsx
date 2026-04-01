@@ -77,18 +77,18 @@ export function BestiaryCard({ entry, onEdit, onDelete }: BestiaryCardProps) {
           <div className="grid grid-cols-3 gap-2 text-center mb-3">
             <div className="py-2 px-1">
               <Shield className="w-4 h-4 mx-auto text-primary mb-0.5" />
-              <p className="text-[10px] text-muted-foreground font-tome-marginalia">AC</p>
+              <p className="text-micro text-muted-foreground font-tome-marginalia">AC</p>
               <p className="font-tome-subheading text-base text-foreground">{entry.armorClass}</p>
             </div>
             <div className="py-2 px-1">
               <Heart className="w-4 h-4 mx-auto text-dried-blood mb-0.5" />
-              <p className="text-[10px] text-muted-foreground font-tome-marginalia">HP</p>
+              <p className="text-micro text-muted-foreground font-tome-marginalia">HP</p>
               <p className="font-tome-subheading text-base text-foreground">{entry.hitPoints}</p>
-              <p className="text-[10px] text-muted-foreground">({entry.hitDice})</p>
+              <p className="text-micro text-muted-foreground">({entry.hitDice})</p>
             </div>
             <div className="py-2 px-1">
               <Skull className="w-4 h-4 mx-auto text-faded-gold mb-0.5" />
-              <p className="text-[10px] text-muted-foreground font-tome-marginalia">CR</p>
+              <p className="text-micro text-muted-foreground font-tome-marginalia">CR</p>
               <p className="font-tome-subheading text-base text-foreground">{entry.challengeRating}</p>
             </div>
           </div>
@@ -111,7 +111,7 @@ export function BestiaryCard({ entry, onEdit, onDelete }: BestiaryCardProps) {
               <div key={label} className="py-1 border-b border-ink/20">
                 <p className="text-muted-foreground font-tome-marginalia">{label}</p>
                 <p className="font-tome-subheading text-foreground">{value}</p>
-                <p className="text-primary text-[10px]">{modifierFromScore(value)}</p>
+                <p className="text-primary text-micro">{modifierFromScore(value)}</p>
               </div>
             ))}
           </div>

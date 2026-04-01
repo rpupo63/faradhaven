@@ -61,7 +61,7 @@ export const PowderMageFeaturesCard: React.FC<PowderMageFeaturesCardProps> = ({ 
         <div className="flex items-center justify-between">
           <div className="text-center">
             <p className="text-3xl font-display text-orange-400">{timerDuration}s</p>
-            <p className="text-[10px] text-muted-foreground uppercase">Window Duration</p>
+            <p className="text-micro text-muted-foreground uppercase">Window Duration</p>
           </div>
           <div className="flex flex-col gap-2 items-end">
             {casting && (

@@ -116,7 +116,7 @@ export const MutagenFeaturesCard: React.FC<MutagenFeaturesCardProps> = ({ sheet,
         <div className="flex items-center justify-between">
           <div className="text-center">
             <p className="text-3xl font-display text-red-400">{madnessDC}</p>
-            <p className="text-[10px] text-muted-foreground uppercase">Current DC</p>
+            <p className="text-micro text-muted-foreground uppercase">Current DC</p>
           </div>
           <div className="flex flex-col gap-2">
             <Button size="sm" onClick={() => castMutation.mutate()} disabled={castMutation.isPending}>

@@ -87,7 +87,7 @@ export function SpellElementCard({ element, selected, onClick, size = 'md' }: Sp
       </span>
       <span className="text-xs font-display tracking-wider">{element.name}</span>
       {size !== 'sm' && (
-        <span className="text-[10px] text-muted-foreground">Cost: {element.baseCost}</span>
+        <span className="text-micro text-muted-foreground">Cost: {element.baseCost}</span>
       )}
     </button>
   );

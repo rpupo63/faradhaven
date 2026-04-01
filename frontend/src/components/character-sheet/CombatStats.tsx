@@ -105,17 +105,17 @@ export function CombatStats({
             </div>
             <p className="font-display text-2xl text-primary">{ac}</p>
             {equippedArmorItem ? (
-              <p className="text-[10px] text-muted-foreground font-tome-marginalia leading-tight mt-1">
+              <p className="text-micro text-muted-foreground font-tome-marginalia leading-tight mt-1">
                 {equippedArmorItem.name}
                 {hasShieldEquipped && ' + Shield'}
               </p>
             ) : hasUnarmoredDefense ? (
-              <p className="text-[10px] text-muted-foreground font-tome-marginalia leading-tight mt-1">
+              <p className="text-micro text-muted-foreground font-tome-marginalia leading-tight mt-1">
                 Unarmored Defense
                 {hasShieldEquipped && ' + Shield'}
               </p>
             ) : hasShieldEquipped ? (
-              <p className="text-[10px] text-muted-foreground font-tome-marginalia leading-tight mt-1">
+              <p className="text-micro text-muted-foreground font-tome-marginalia leading-tight mt-1">
                 Unarmored + Shield
               </p>
             ) : null}
@@ -127,7 +127,7 @@ export function CombatStats({
       {(sheet.class_level.sneak_attack_dice ?? 0) > 0 && (
         <Card className="arcane-border bg-card">
           <CardContent className="p-3 text-center">
-            <p className="text-[10px] font-tome-marginalia text-muted-foreground uppercase tracking-wider">Sneak Strike</p>
+            <p className="text-micro font-tome-marginalia text-muted-foreground uppercase tracking-wider">Sneak Strike</p>
             <p className="text-xl font-display text-primary">{sheet.class_level.sneak_attack_dice}d6</p>
           </CardContent>
         </Card>

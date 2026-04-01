@@ -24,7 +24,7 @@ function CategoryBadge({ category }: { category: string }) {
     <Badge
       variant="outline"
       font="tomeMarginalia"
-      size="sm" // text-[10px] is now size="sm"
+      size="sm" // text-micro is now size="sm"
       theme={themeVariant}
       className="uppercase tracking-wider" // uppercase tracking-wider remains in className
     >
@@ -87,7 +87,7 @@ function EffectCard({ effect }: { effect: ApiEffect }) {
           </p>
 
           <div className="bg-primary/5 p-3 rounded-lg border border-primary/10 text-xs mt-2 space-y-2">
-            <span className="font-bold text-primary flex items-center gap-1.5 uppercase tracking-widest text-[10px]">
+            <span className="font-bold text-primary flex items-center gap-1.5 uppercase tracking-widest text-micro">
               <Info className="w-3 h-3" /> Mechanics
             </span>
             <p className="text-foreground/90 font-tome-marginalia leading-relaxed">

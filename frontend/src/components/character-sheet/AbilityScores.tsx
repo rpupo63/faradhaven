@@ -33,7 +33,7 @@ export function AbilityScores({ sheet }: AbilityScoresProps) {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 md:grid-cols-1">
+    <div className="grid grid-cols-3 gap-1 md:grid-cols-1 md:gap-2">
       {ABILITIES.map(({ id, label }) => {
         const score = getAbilityScore(id);
         const mod = modifiers[id as keyof typeof modifiers] as number;
@@ -43,21 +43,23 @@ export function AbilityScores({ sheet }: AbilityScoresProps) {
           <div
             key={id}
             className={cn(
-              'rounded-lg border p-2 text-center',
+              'rounded-md md:rounded-lg border px-1 py-1.5 text-center md:p-2',
               isPrimary
                 ? 'border-primary/50 bg-primary/5'
                 : 'border-border bg-muted/20'
             )}
           >
-            <p className="text-xs font-tome-marginalia text-muted-foreground uppercase tracking-wider">
+            <p className="text-micro font-tome-marginalia text-muted-foreground uppercase tracking-wide leading-none md:text-xs md:tracking-wider">
               {label}
-              {isPrimary && <span className="ml-1 text-primary">*</span>}
+              {isPrimary && <span className="ml-0.5 text-primary">*</span>}
             </p>
-            <p className="font-display text-xl text-primary">{score}</p>
-            <p className={cn(
-              'text-sm font-tome-marginalia',
-              mod >= 0 ? 'text-primary' : 'text-muted-foreground'
-            )}>
+            <p className="font-display text-lg leading-tight text-primary md:text-xl">{score}</p>
+            <p
+              className={cn(
+                'text-fine font-tome-marginalia leading-none md:text-sm',
+                mod >= 0 ? 'text-primary' : 'text-muted-foreground'
+              )}
+            >
               {formatMod(mod)}
             </p>
           </div>

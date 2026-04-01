@@ -21,7 +21,7 @@ const GM_EMAIL = 'rpupo63@gmail.com';
 const aiAccentLabel =
   'text-amber-950 dark:text-amber-200 font-medium';
 const aiHintRow =
-  'flex items-start gap-1.5 rounded-sm border border-amber-800/25 dark:border-amber-400/25 bg-amber-100/80 dark:bg-amber-950/50 px-2 py-1 text-[11px] text-amber-950 dark:text-amber-100';
+  'flex items-start gap-1.5 rounded-sm border border-amber-800/25 dark:border-amber-400/25 bg-amber-100/80 dark:bg-amber-950/50 px-2 py-1 text-fine text-amber-950 dark:text-amber-100';
 const aiHintIcon = 'w-3 h-3 mt-0.5 shrink-0 text-amber-900 dark:text-amber-300';
 
 interface SpellEditState {
@@ -111,7 +111,7 @@ function AIHint({
         </div>
       )}
       {hasOpinion && (
-        <p className="text-[11px] text-foreground/80 dark:text-foreground/75 italic border-l-2 border-amber-800/35 dark:border-amber-500/40 pl-3">
+        <p className="text-fine text-foreground/80 dark:text-foreground/75 italic border-l-2 border-amber-800/35 dark:border-amber-500/40 pl-3">
           {opinion}
         </p>
       )}
@@ -168,7 +168,7 @@ function SpellCard({ spell, token }: { spell: ApiSpell; token: string }) {
           {hasAI && (
             <Badge
               variant="outline"
-              className="text-[10px] gap-1 border-amber-800/45 dark:border-amber-400/40 text-amber-950 dark:text-amber-200 bg-amber-50/90 dark:bg-amber-950/35"
+              className="text-micro gap-1 border-amber-800/45 dark:border-amber-400/40 text-amber-950 dark:text-amber-200 bg-amber-50/90 dark:bg-amber-950/35"
             >
               <Sparkles className="w-2.5 h-2.5 text-amber-900 dark:text-amber-300" /> AI reviewed
             </Badge>
@@ -292,7 +292,7 @@ function SpellCard({ spell, token }: { spell: ApiSpell; token: string }) {
                 className={cn(!durationOk && edit.duration.trim() !== '' && 'border-destructive')}
               />
               {!durationOk && edit.duration.trim() !== '' && (
-                <p className="text-[11px] text-destructive">Duration does not match allowed patterns.</p>
+                <p className="text-fine text-destructive">Duration does not match allowed patterns.</p>
               )}
               <AIHint
                 recommendation={spell.ai_recommended_duration}

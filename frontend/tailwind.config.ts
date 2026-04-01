@@ -15,6 +15,13 @@ export default {
       },
     },
     extend: {
+      fontSize: {
+        /* Sub-xs semantic scale — rem so they inherit the fluid html base */
+        nano:  ['0.5rem',    { lineHeight: '1' }],      /* 8px @ 16px base  */
+        tiny:  ['0.5625rem', { lineHeight: '1' }],      /* 9px @ 16px base  */
+        micro: ['0.625rem',  { lineHeight: '1' }],      /* 10px @ 16px base */
+        fine:  ['0.6875rem', { lineHeight: '1.2' }],    /* 11px @ 16px base */
+      },
       fontFamily: {
         display: ['Cinzel', 'serif'],
         serif: ['Lora', 'Georgia', 'serif'],

@@ -203,7 +203,7 @@ export function HarvestBankSection({ sheet }: HarvestBankSectionProps) {
                 <div key={type}>
                   <div className="flex items-center gap-1 mb-1">
                     {ABILITY_TYPE_ICONS[type]}
-                    <span className="text-[10px] font-tome-marginalia text-muted-foreground uppercase">
+                    <span className="text-micro font-tome-marginalia text-muted-foreground uppercase">
                       {typeLabel}
                     </span>
                   </div>

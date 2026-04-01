@@ -183,7 +183,7 @@ export function DiceCustomizer({ open, onOpenChange }: DiceCustomizerProps) {
           )}
 
           {/* Preview indicator */}
-          <p className="text-[11px] text-muted-foreground/60 font-tome-marginalia">
+          <p className="text-fine text-muted-foreground/60 font-tome-marginalia">
             Changes preview live — roll a die to see them in action.
           </p>
 

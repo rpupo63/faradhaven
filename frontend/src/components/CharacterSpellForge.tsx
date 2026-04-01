@@ -532,11 +532,11 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
               {isPistonBrawler && (
                 <div className="grid grid-cols-2 gap-4 pb-2 border-b border-border/50">
                   <div className="text-center">
-                    <p className="text-[10px] font-tome-marginalia text-muted-foreground uppercase">Stability (components)</p>
+                    <p className="text-micro font-tome-marginalia text-muted-foreground uppercase">Stability (components)</p>
                     <p className={`font-display text-2xl ${stabilityCost > (currentStability ?? 0) ? 'text-red-500' : 'text-primary'}`}>{stabilityCost}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-[10px] font-tome-marginalia text-muted-foreground uppercase">Blueprint Slots</p>
+                    <p className="text-micro font-tome-marginalia text-muted-foreground uppercase">Blueprint Slots</p>
                     <p className="font-display text-2xl text-primary">{maxBlueprintSlots !== undefined ? maxBlueprintSlots : '\u221e'}</p>
                   </div>
                 </div>
@@ -552,7 +552,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                     {selectedComponents.length > 0 && (
                       <Badge
                         variant="secondary"
-                        className="text-[9px] font-normal font-tome-marginalia shrink-0 border border-border/60"
+                        className="text-tiny font-normal font-tome-marginalia shrink-0 border border-border/60"
                       >
                         {spellChainHasLogica(selectedComponents) ? 'Multi-phase' : 'Single phase · default'}
                       </Badge>
@@ -564,7 +564,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                     </Button>
                   )}
                 </div>
-                <div className="text-[10px] text-muted-foreground font-tome-marginalia space-y-1.5">
+                <div className="text-micro text-muted-foreground font-tome-marginalia space-y-1.5">
                   <p>
                     <strong className="text-foreground/90">Default — single phase:</strong> add components in cast order. Table clicks append; arrows reorder; click a chip to remove. No If/Then/Therefore needed for normal spells.
                   </p>
@@ -579,7 +579,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                   </p>
                 ) : spellChainHasLogica(selectedComponents) ? (
                   <div className="flex flex-col gap-3">
-                    <p className="text-[9px] text-muted-foreground font-tome-marginalia rounded-md bg-muted/40 border border-border/60 px-2 py-1.5">
+                    <p className="text-tiny text-muted-foreground font-tome-marginalia rounded-md bg-muted/40 border border-border/60 px-2 py-1.5">
                       <span className="font-medium text-foreground/85">Multi-phase layout.</span>{' '}
                       Phases are split by your logic links. Delete those connectors to collapse back to the default single-phase view.
                     </p>
@@ -645,10 +645,10 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                           className="rounded-lg border border-primary/25 bg-primary/[0.06] p-2 space-y-2"
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-tome-marginalia uppercase tracking-wide text-primary/90">
+                            <span className="text-micro font-tome-marginalia uppercase tracking-wide text-primary/90">
                               Phase {seg.phaseNumber}
                             </span>
-                            <span className="text-[9px] text-muted-foreground font-tome-marginalia">
+                            <span className="text-tiny text-muted-foreground font-tome-marginalia">
                               Order within this phase matters
                             </span>
                           </div>
@@ -702,10 +702,10 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                 ) : (
                   <div className="rounded-lg border border-border/90 bg-background/50 p-2 space-y-2">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <span className="text-[10px] font-tome-marginalia uppercase tracking-wide text-muted-foreground">
+                      <span className="text-micro font-tome-marginalia uppercase tracking-wide text-muted-foreground">
                         Single phase
                       </span>
-                      <span className="text-[9px] text-muted-foreground font-tome-marginalia">
+                      <span className="text-tiny text-muted-foreground font-tome-marginalia">
                         Standard — one ordered chain
                       </span>
                     </div>
@@ -825,7 +825,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                     className={`bg-background ${duration.trim() !== '' && !isDurationValid ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                   />
                   {duration.trim() !== '' && !isDurationValid && (
-                    <p className="text-[10px] text-red-500 mt-1 font-tome-marginalia">
+                    <p className="text-micro text-red-500 mt-1 font-tome-marginalia">
                       Use a timed form (1 min, 2 hours), rounds (1 round), or concentration / instantaneous / until dispelled / special / permanent.
                     </p>
                   )}

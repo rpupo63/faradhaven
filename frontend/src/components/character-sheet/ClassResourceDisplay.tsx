@@ -133,7 +133,7 @@ function ResourceItem({ resource, characterId, token }: { resource: ApiClassReso
                     disabled={isPending}
                     title={isAvailable ? 'Click to use slot' : 'Click to restore slot'}
                     className={cn(
-                      'h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-display transition-colors cursor-pointer',
+                      'h-5 w-5 rounded-full flex items-center justify-center text-micro font-display transition-colors cursor-pointer',
                       isAvailable
                         ? 'bg-primary text-primary-foreground hover:bg-primary/80'
                         : 'border border-border text-muted-foreground hover:border-primary/50'
@@ -145,7 +145,7 @@ function ResourceItem({ resource, characterId, token }: { resource: ApiClassReso
                   <Badge
                     key={i}
                     variant={isAvailable ? 'default' : 'outline'}
-                    className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px] font-display"
+                    className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-micro font-display"
                   >
                     {i + 1}
                   </Badge>
@@ -220,7 +220,7 @@ function ResourceItem({ resource, characterId, token }: { resource: ApiClassReso
       <Tooltip>
         <TooltipTrigger asChild>
           <div className="flex flex-col items-center gap-1 min-w-[80px]">
-            <p className="text-[10px] font-tome-marginalia text-muted-foreground uppercase text-center leading-tight">
+            <p className="text-micro font-tome-marginalia text-muted-foreground uppercase text-center leading-tight">
               {resource.display_name}
             </p>
             {content}

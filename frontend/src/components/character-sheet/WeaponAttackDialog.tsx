@@ -301,7 +301,7 @@ export function WeaponAttackDialog({ open, onOpenChange, selectedWeapon, sheet, 
                       key={i}
                       variant={m.is_active ? "default" : "outline"}
                       className={cn(
-                        "text-[10px] h-5 gap-1",
+                        "text-micro h-5 gap-1",
                         m.is_active ? "bg-primary/80" : "opacity-60"
                       )}
                     >
@@ -338,7 +338,7 @@ export function WeaponAttackDialog({ open, onOpenChange, selectedWeapon, sheet, 
                     </p>
                   )}
                   {effectiveWeapon.secondary_effect && (
-                    <div className="text-center text-[10px] text-primary/90 font-tome-marginalia border-t border-primary/10 pt-2">
+                    <div className="text-center text-micro text-primary/90 font-tome-marginalia border-t border-primary/10 pt-2">
                       <span className="font-bold uppercase tracking-tighter mr-1 text-primary">Effect:</span>
                       {effectiveWeapon.secondary_effect}
                     </div>
@@ -349,7 +349,7 @@ export function WeaponAttackDialog({ open, onOpenChange, selectedWeapon, sheet, 
               {/* Transformation Description */}
               {selectedWeapon.weapon.transformation_description && (
                  <div className="mt-3 px-4 space-y-2">
-                   <div className="text-center text-[10px] text-yellow-400/90 font-tome-marginalia border-t border-yellow-400/10 pt-2">
+                   <div className="text-center text-micro text-yellow-400/90 font-tome-marginalia border-t border-yellow-400/10 pt-2">
                       <span className="font-bold uppercase tracking-tighter mr-1 text-yellow-400">Transform:</span>
                       {selectedWeapon.weapon.transformation_description}
                    </div>

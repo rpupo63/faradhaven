@@ -78,7 +78,7 @@ export function HPPanel({
 
       {/* Custom Amount Input */}
       <div className="space-y-2">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-center">Damage / Healing</p>
+        <p className="text-micro uppercase tracking-wider text-muted-foreground font-semibold text-center">Damage / Healing</p>
         <div className="flex items-center gap-2">
           <Input
             type="number"
@@ -122,7 +122,7 @@ export function HPPanel({
         <>
           <Separator className="opacity-50" />
           <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-center">Temporary HP</p>
+            <p className="text-micro uppercase tracking-wider text-muted-foreground font-semibold text-center">Temporary HP</p>
             <div className="flex items-center gap-2">
               <Input
                 type="number"

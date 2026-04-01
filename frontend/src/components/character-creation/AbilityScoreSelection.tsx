@@ -333,7 +333,7 @@ export function AbilityScoreSelection({ method, setMethod, scores, setScores, ra
                                 {val}
                             </span>
                             {rollDetails[idx] && (
-                                <span className="text-[10px] text-muted-foreground mt-1 flex flex-col items-center">
+                                <span className="text-micro text-muted-foreground mt-1 flex flex-col items-center">
                                     <span>[{rollDetails[idx].rolls.join(', ')}]</span>
                                     <span className="text-destructive/70 line-through" title="Dropped Die">{rollDetails[idx].dropped}</span>
                                 </span>

@@ -17,7 +17,7 @@ export function SpellComponentIcons({
       {/* V – tiny mouth */}
       <span
         className={cn(
-          'w-5 h-5 flex items-center justify-center rounded border border-ink/30 text-[10px] font-tome-marginalia font-bold',
+          'w-5 h-5 flex items-center justify-center rounded border border-ink/30 text-micro font-tome-marginalia font-bold',
           verbal ? 'bg-ink/10 text-ink' : 'bg-parchment/50 text-muted-foreground'
         )}
         title="Verbal"
@@ -27,7 +27,7 @@ export function SpellComponentIcons({
       {/* S – hand gesture */}
       <span
         className={cn(
-          'w-5 h-5 flex items-center justify-center rounded border border-ink/30 text-[10px] font-tome-marginalia font-bold',
+          'w-5 h-5 flex items-center justify-center rounded border border-ink/30 text-micro font-tome-marginalia font-bold',
           somatic ? 'bg-ink/10 text-ink' : 'bg-parchment/50 text-muted-foreground'
         )}
         title="Somatic"
@@ -37,7 +37,7 @@ export function SpellComponentIcons({
       {/* M – pouch */}
       <span
         className={cn(
-          'w-5 h-5 flex items-center justify-center rounded border border-ink/30 text-[10px] font-tome-marginalia font-bold',
+          'w-5 h-5 flex items-center justify-center rounded border border-ink/30 text-micro font-tome-marginalia font-bold',
           material ? 'bg-ink/10 text-ink' : 'bg-parchment/50 text-muted-foreground'
         )}
         title="Material"

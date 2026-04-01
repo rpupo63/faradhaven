@@ -20,18 +20,18 @@ export function CurrencyDisplay({ cp, className = "" }: { cp: number; className?
       {gp > 0 && (
         <div className="flex items-center gap-1">
           <span className="text-faded-gold font-bold">{gp}</span>
-          <span className="text-muted-foreground text-[10px] uppercase">gp</span>
+          <span className="text-muted-foreground text-micro uppercase">gp</span>
         </div>
       )}
       {sp > 0 && (
         <div className="flex items-center gap-1">
           <span className="text-slate-400 font-bold">{sp}</span>
-          <span className="text-muted-foreground text-[10px] uppercase">sp</span>
+          <span className="text-muted-foreground text-micro uppercase">sp</span>
         </div>
       )}
       <div className="flex items-center gap-1">
         <span className="text-orange-700 font-bold">{remainingCp}</span>
-        <span className="text-muted-foreground text-[10px] uppercase">cp</span>
+        <span className="text-muted-foreground text-micro uppercase">cp</span>
       </div>
     </div>
   );
@@ -136,7 +136,7 @@ export function MoneyPanel({ sheet, onMoneyChange }: MoneyPanelProps) {
               </Button>
             </div>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-2 text-center italic">
+          <p className="text-micro text-muted-foreground mt-2 text-center italic">
             Add or subtract from your total wealth.
           </p>
         </div>

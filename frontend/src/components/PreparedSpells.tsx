@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { LoadingQuill } from '@/components/LoadingQuill';
 import { Sparkles, Wand2, BookOpen, Shield, Zap, Clock, Target, Brain, Heart, Swords, Edit, AlertTriangle, Timer } from 'lucide-react';
@@ -296,26 +295,24 @@ export function PreparedSpells({ characterId, token, characterName }: PreparedSp
       </Card>
 
       <Dialog open={!!editingSpell} onOpenChange={(isOpen) => { if (!isOpen) setEditingSpell(null); }}>
-        <DialogContent className="max-w-7xl w-full h-[90vh] flex flex-col">
+        <DialogContent className="max-w-7xl w-full">
           <DialogHeader>
             <DialogTitle>Edit Spell: {editingSpell?.name}</DialogTitle>
           </DialogHeader>
-          <ScrollArea className="flex-grow pr-6 -mr-6">
-            {editingSpell && sheet && (
-              <CharacterSpellForge
-                spellToEdit={editingSpell}
-                onSaveComplete={() => setEditingSpell(null)}
-                userId={sheet.character.user_id}
-                characterId={characterId}
-                token={token}
-                availableComponents={sheet.class?.components}
-                components={sheet.components}
-                currentStability={getClassResourceValue(sheet.class_resources, 'max_stability')}
-                maxStability={getClassResourceMaxOrValue(sheet.class_resources, 'max_stability')}
-                maxBlueprintSlots={getClassResourceMaxOrValue(sheet.class_resources, 'speed_dial_slots')}
-              />
-            )}
-          </ScrollArea>
+          {editingSpell && sheet && (
+            <CharacterSpellForge
+              spellToEdit={editingSpell}
+              onSaveComplete={() => setEditingSpell(null)}
+              userId={sheet.character.user_id}
+              characterId={characterId}
+              token={token}
+              availableComponents={sheet.class?.components}
+              components={sheet.components}
+              currentStability={getClassResourceValue(sheet.class_resources, 'max_stability')}
+              maxStability={getClassResourceMaxOrValue(sheet.class_resources, 'max_stability')}
+              maxBlueprintSlots={getClassResourceMaxOrValue(sheet.class_resources, 'speed_dial_slots')}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </>
@@ -593,7 +590,7 @@ function ComponentBadge({ component, count, isMissing }: ComponentBadgeProps) {
       <span className="font-mono font-bold">{component.symbol}</span>
       <span className="hidden sm:inline">{component.name}</span>
       {count !== undefined && (
-        <Badge variant="secondary" className="h-4 px-1 text-[10px] min-w-[1.2rem] flex justify-center">
+        <Badge variant="secondary" className="h-4 px-1 text-micro min-w-[1.2rem] flex justify-center">
           {count}
         </Badge>
       )}

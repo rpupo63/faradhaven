@@ -55,7 +55,7 @@ function RaceCard({ raceData }: { raceData: ApiRace }) {
           {raceData.ability_score_bonuses && Object.keys(raceData.ability_score_bonuses).length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-3">
               {Object.entries(raceData.ability_score_bonuses).map(([stat, bonus]) => (
-                <span key={stat} className="bg-primary/15 text-primary px-2 py-0.5 rounded text-[11px] font-mono uppercase font-medium">
+                <span key={stat} className="bg-primary/15 text-primary px-2 py-0.5 rounded text-fine font-mono uppercase font-medium">
                   {stat.slice(0, 3)} +{bonus}
                 </span>
               ))}

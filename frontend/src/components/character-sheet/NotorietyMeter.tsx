@@ -59,15 +59,15 @@ export function NotorietyMeter({ notoriety, sanguine_mp, sanguine_br, onClick, c
         <div className="flex items-center justify-between gap-4 text-center">
           <div>
             <p className="text-lg font-display text-blue-400">{sanguine_mp ?? 0}</p>
-            <p className="text-[10px] font-tome-marginalia text-muted-foreground uppercase">Medical Prodigy</p>
+            <p className="text-micro font-tome-marginalia text-muted-foreground uppercase">Medical Prodigy</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-display text-primary">{notoriety}</p>
-            <p className="text-[10px] font-tome-marginalia text-muted-foreground uppercase">Net Notoriety</p>
+            <p className="text-micro font-tome-marginalia text-muted-foreground uppercase">Net Notoriety</p>
           </div>
           <div>
             <p className="text-lg font-display text-red-400">{sanguine_br ?? 0}</p>
-            <p className="text-[10px] font-tome-marginalia text-muted-foreground uppercase">Blood Rage</p>
+            <p className="text-micro font-tome-marginalia text-muted-foreground uppercase">Blood Rage</p>
           </div>
         </div>
       </CardContent>

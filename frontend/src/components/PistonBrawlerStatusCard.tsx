@@ -38,14 +38,14 @@ export function PistonBrawlerStatusCard({ sheet, onClick, className }: PistonBra
         <div className="flex items-center justify-around text-center">
           <div>
             <p className="text-2xl font-display text-primary">{currentStability}/{maxStability}</p>
-            <p className="text-[10px] font-tome-marginalia text-muted-foreground uppercase">Stability</p>
+            <p className="text-micro font-tome-marginalia text-muted-foreground uppercase">Stability</p>
           </div>
           <div>
             <p className="text-2xl font-display text-orange-400">{overdriveDice}d6</p>
-            <p className="text-[10px] font-tome-marginalia text-muted-foreground uppercase">Overdrive</p>
+            <p className="text-micro font-tome-marginalia text-muted-foreground uppercase">Overdrive</p>
           </div>
         </div>
-        <p className="text-[10px] font-tome-marginalia text-muted-foreground text-center italic mt-2">
+        <p className="text-micro font-tome-marginalia text-muted-foreground text-center italic mt-2">
           Click to manage Piston Core
         </p>
       </CardContent>

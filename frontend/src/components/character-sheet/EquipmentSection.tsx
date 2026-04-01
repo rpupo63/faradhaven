@@ -152,7 +152,7 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
         {/* Weapons */}
         {sortedWeapons.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Weapons</p>
+            <p className="text-micro uppercase tracking-wider text-muted-foreground font-bold">Weapons</p>
             <div className="space-y-2">
               {sortedWeapons.map((cw) => {
                 const isVirtual = cw.character_weapon_id === 'virtual-bite';
@@ -238,7 +238,7 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
         {/* Armor */}
         {armor && armor.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Armor</p>
+            <p className="text-micro uppercase tracking-wider text-muted-foreground font-bold">Armor</p>
             <div className="space-y-2">
               {armor.map((it) => {
                 const isEquipped = sheet.character.equipped_armor_id === it.id;
@@ -250,7 +250,7 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
                           {isEquipped && <ShieldCheck className="h-3 w-3 text-primary shrink-0" />}
                           <span className="break-words">{it.name}</span>
                         </span>
-                        {it.armor_type && <span className="text-[10px] text-muted-foreground">{it.armor_type} Armor</span>}
+                        {it.armor_type && <span className="text-micro text-muted-foreground">{it.armor_type} Armor</span>}
                       </div>
                       <Button size="xs" variant="outline" className="h-6 shrink-0 self-end min-[400px]:ml-2" onClick={() => handleEquipmentChange(it.id, false, !isEquipped, 'armor')} disabled={!!isLoading}>
                         {isLoading === it.id ? '...' : (isEquipped ? 'Unequip' : 'Equip')}
@@ -277,7 +277,7 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
         {/* Shields */}
         {shields && shields.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Shield</p>
+            <p className="text-micro uppercase tracking-wider text-muted-foreground font-bold">Shield</p>
             <div className="space-y-2">
               {shields.map((it) => {
                 const isEquipped = sheet.character.equipped_shield_id === it.id;
@@ -300,7 +300,7 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
                         {isLoading === it.id ? '...' : (isEquipped ? 'Unequip' : 'Equip')}
                       </Button>
                     </div>
-                     {it.effects && <p className="text-[10px] text-muted-foreground mt-1 italic">{it.effects}</p>}
+                     {it.effects && <p className="text-micro text-muted-foreground mt-1 italic">{it.effects}</p>}
                   </div>
                 );
               })}
@@ -311,16 +311,16 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
         {/* Other Items */}
         {otherItems && otherItems.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Items & Gear</p>
+            <p className="text-micro uppercase tracking-wider text-muted-foreground font-bold">Items & Gear</p>
             <div className="space-y-2">
               {otherItems.map((it) => (
                 <div key={it.id} className="text-sm p-2 rounded border border-border/50 bg-muted/10 min-w-0">
                   <div className="flex flex-col gap-1 min-[400px]:flex-row min-[400px]:justify-between min-[400px]:items-start">
                     <span className="font-bold text-primary break-words min-w-0">{it.name}</span>
-                    <span className="text-[10px] text-muted-foreground shrink-0">{it.category}</span>
+                    <span className="text-micro text-muted-foreground shrink-0">{it.category}</span>
                   </div>
                   {it.effects && (
-                    <p className="text-[10px] text-muted-foreground mt-1 italic">{it.effects}</p>
+                    <p className="text-micro text-muted-foreground mt-1 italic">{it.effects}</p>
                   )}
                 </div>
               ))}
@@ -331,7 +331,7 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
         {/* Legacy/Generic Inventory */}
         {character.inventory && character.inventory.length > 0 && (
           <div className="space-y-2 border-t border-border/30 pt-2">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Other Gear</p>
+            <p className="text-micro uppercase tracking-wider text-muted-foreground font-bold">Other Gear</p>
             <ul className="text-xs font-tome-marginalia space-y-1">
               {character.inventory.map((item, idx) => (
                 <li key={idx} className="flex items-center gap-2 text-muted-foreground">

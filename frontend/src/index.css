@@ -106,7 +106,11 @@
     scroll-behavior: smooth;
     width: 100%;
     overflow-x: hidden;
-    font-size: 100%;
+    /* Fluid base: honours the user's browser font-size preference (1rem = their setting).
+       Shrinks to 87.5% on small screens, grows to 112.5% on large screens.
+       rem in this property resolves against the browser/OS default, so user
+       accessibility settings (e.g. "Large Text") are preserved proportionally. */
+    font-size: clamp(0.875rem, 0.4vw + 0.75rem, 1.125rem);
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }

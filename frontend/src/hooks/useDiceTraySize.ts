@@ -20,10 +20,10 @@ export function computeTrayPixelSize(): number {
 
 /** Dice visual scale: smaller tray → slightly smaller dice so they stay in view. */
 export function computeDiceScale(trayPx: number): number {
-  if (trayPx < 400) return 12;
-  if (trayPx < 520) return 16;
-  if (trayPx < 640) return 20;
-  return 24;
+  if (trayPx < 400) return 20;
+  if (trayPx < 520) return 26;
+  if (trayPx < 640) return 30;
+  return 34;
 }
 
 export function useDiceTraySize(): number {

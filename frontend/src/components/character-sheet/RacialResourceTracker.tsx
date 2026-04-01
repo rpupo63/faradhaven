@@ -55,7 +55,7 @@ function TraitResourceRow({
 
   return (
     <div className="flex flex-col items-center gap-1 min-w-[100px]">
-      <p className="text-[10px] font-tome-marginalia text-muted-foreground uppercase text-center leading-tight">
+      <p className="text-micro font-tome-marginalia text-muted-foreground uppercase text-center leading-tight">
         {traitName}
       </p>
       
@@ -64,7 +64,7 @@ function TraitResourceRow({
           onClick={() => current > 0 ? spendMutation.mutate() : gainMutation.mutate()}
           disabled={isPending}
           className={cn(
-            'px-2 py-0.5 rounded text-[10px] font-display transition-colors cursor-pointer border',
+            'px-2 py-0.5 rounded text-micro font-display transition-colors cursor-pointer border',
             current > 0
               ? 'bg-primary/20 text-primary border-primary/50 hover:bg-primary/30'
               : 'bg-muted text-muted-foreground border-border hover:bg-muted/80'
@@ -95,7 +95,7 @@ function TraitResourceRow({
       )}
 
       {resetCondition && (
-        <Badge variant="outline" className="text-[8px] px-1 py-0 h-3 font-tome-marginalia opacity-70">
+        <Badge variant="outline" className="text-nano px-1 py-0 h-3 font-tome-marginalia opacity-70">
           {resetCondition}
         </Badge>
       )}
@@ -130,7 +130,7 @@ function ClockworkDevicesTracker({
 
   return (
     <div className="flex flex-col items-center gap-1 min-w-[100px]">
-      <p className="text-[10px] font-tome-marginalia text-muted-foreground uppercase text-center leading-tight">
+      <p className="text-micro font-tome-marginalia text-muted-foreground uppercase text-center leading-tight">
         Clockwork Devices
       </p>
       <div className="flex items-center gap-2">

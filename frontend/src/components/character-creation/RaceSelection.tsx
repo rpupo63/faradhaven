@@ -73,7 +73,7 @@ export function RaceSelection({ options, selected, onSelect, lineageId, onSelect
                               {opt.ability_score_bonuses && (
                                 <div className="flex gap-1 mt-1">
                                   {Object.entries(opt.ability_score_bonuses).map(([s, b]) => (
-                                    <span key={s} className="text-[10px] bg-muted px-1 rounded uppercase">
+                                    <span key={s} className="text-micro bg-muted px-1 rounded uppercase">
                                       {s.slice(0,3)} +{b}
                                     </span>
                                   ))}

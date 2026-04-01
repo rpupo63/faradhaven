@@ -372,12 +372,12 @@ export function ConstructsSection({ sheet }: ConstructsSectionProps) {
                         <Badge variant="secondary" className="text-xs">{required.length} components</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground mb-1">{template.description}</p>
-                      <div className="flex gap-3 text-[10px] text-muted-foreground">
+                      <div className="flex gap-3 text-micro text-muted-foreground">
                         <span>AC {template.base_ac} | HP {template.base_hp} + 2×Lvl</span>
                         <span>Speed {template.base_speed}ft</span>
                         <span>{template.size}</span>
                       </div>
-                      <div className="flex gap-3 text-[10px] text-muted-foreground mt-0.5">
+                      <div className="flex gap-3 text-micro text-muted-foreground mt-0.5">
                         <span>Duration: {durationMinutes} min</span>
                       </div>
                       {/* Required Components */}
@@ -387,7 +387,7 @@ export function ConstructsSection({ sheet }: ConstructsSectionProps) {
                             <Badge
                               key={name}
                               variant={has ? 'secondary' : 'destructive'}
-                              className="text-[10px]"
+                              className="text-micro"
                             >
                               {name}
                             </Badge>
@@ -395,7 +395,7 @@ export function ConstructsSection({ sheet }: ConstructsSectionProps) {
                         </div>
                       )}
                       {template.actions?.map((action) => (
-                        <div key={action.name} className="text-[10px] text-muted-foreground mt-0.5">
+                        <div key={action.name} className="text-micro text-muted-foreground mt-0.5">
                           {action.name}: {action.damage_dice || ''} {action.damage_type || ''} {action.range ? `(${action.range})` : ''}
                         </div>
                       ))}
@@ -527,7 +527,7 @@ export function ConstructsSection({ sheet }: ConstructsSectionProps) {
             >
               Activate
               {(!hasComponent('Push') || !hasComponent('Zone')) && (
-                <span className="text-[10px] ml-1">(missing)</span>
+                <span className="text-micro ml-1">(missing)</span>
               )}
             </Button>
             <Button variant="outline" className="flex-1" onClick={() => setKineticDialog(false)}>

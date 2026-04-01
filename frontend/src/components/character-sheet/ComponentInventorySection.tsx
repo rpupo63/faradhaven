@@ -80,7 +80,7 @@ export function ComponentInventorySection({ sheet, token }: ComponentInventorySe
             <div key={cat} className="space-y-1.5">
               <div className="flex items-center gap-2 border-b border-border pb-0.5">
                 <div className={cn("w-2 h-2 rounded-full", categoryColors[cat as ComponentCategory]?.bg || 'bg-muted')} />
-                <span className="text-[10px] font-tome-marginalia text-muted-foreground uppercase tracking-wider">
+                <span className="text-micro font-tome-marginalia text-muted-foreground uppercase tracking-wider">
                   {cat}
                 </span>
               </div>
@@ -95,7 +95,7 @@ export function ComponentInventorySection({ sheet, token }: ComponentInventorySe
                         {c.component?.name}
                       </span>
                       {c.component?.element && (
-                        <span className="text-[9px] text-muted-foreground italic truncate">
+                        <span className="text-tiny text-muted-foreground italic truncate">
                           {c.component.element}
                         </span>
                       )}

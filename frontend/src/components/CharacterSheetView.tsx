@@ -40,8 +40,16 @@ import { PowderMageFeaturesCard } from './PowderMageFeaturesCard';
 import { PistonBrawlerStatusCard } from './PistonBrawlerStatusCard';
 import { PistonBrawlerFeaturesCard } from './PistonBrawlerFeaturesCard';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { UserCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { MobileSheetSummaryStrip } from './character-sheet/MobileSheetSummaryStrip';
+import { MobileSheetBottomBar } from './character-sheet/MobileSheetBottomBar';
 
 interface CharacterSheetViewProps {
   sheet: NormalizedCharacterSheet;
@@ -176,8 +184,16 @@ export function CharacterSheetView({
     queryClient.invalidateQueries({ queryKey: ['character-sheet', character.id] });
   };
 
+  const handleMobileHPTap = () => {
+    if (!onHPChange) {
+      alert('Please log in to modify HP');
+      return;
+    }
+    setExpandedPanel(expandedPanel === 'hp' ? null : 'hp');
+  };
+
   return (
-    <div className={cn('space-y-6', className)}>
+    <div className={cn('space-y-6 relative pb-24 md:pb-0', className)}>
       {/* Header */}
       {!hideHeader && (
         <div className="border-b border-border pb-4">
@@ -224,8 +240,172 @@ export function CharacterSheetView({
         </div>
       )}
 
-      {/* Main 4-column layout (responsive): Abilities | Skills | Middle | Features */}
-      <div className="grid grid-cols-1 gap-6 min-w-0 md:grid-cols-[90px_180px_1fr] lg:grid-cols-[100px_200px_1fr_280px]">
+      {/* Mobile: sticky quick stats + accordions + fixed bottom bar (see MobileSheetBottomBar) */}
+      <div className="md:hidden space-y-3">
+        <MobileSheetSummaryStrip
+          sheet={sheet}
+          onHPTap={onHPChange ? handleMobileHPTap : undefined}
+          onInitiativeTap={() => void handleRoll('Initiative', sheet.modifiers.initiative)}
+        />
+        <Accordion
+          type="multiple"
+          defaultValue={['combat', 'abilities']}
+          className="w-full rounded-lg border border-border/60 bg-card/40 px-1 text-sm leading-snug"
+        >
+          <AccordionItem value="combat" className="border-border/50 px-2">
+            <AccordionTrigger className="py-2 text-sm font-tome-subheading text-primary hover:no-underline">
+              Combat & vitals
+            </AccordionTrigger>
+            <AccordionContent className="space-y-3 text-sm leading-snug pb-3">
+              <CombatStats
+                sheet={sheet}
+                expandedPanel={expandedPanel}
+                setExpandedPanel={setExpandedPanel}
+                onHPChange={onHPChange}
+                onUseHitDice={onUseHitDice}
+              />
+              {sheet.character.raceName.includes('Changeling') && (
+                <Card className="arcane-border bg-card">
+                  <CardContent className="py-2 px-3 flex items-center gap-2">
+                    <UserCircle className="h-4 w-4 text-primary shrink-0" />
+                    <span className="text-xs font-tome-marginalia text-muted-foreground uppercase shrink-0">Form:</span>
+                    <Input
+                      placeholder="Current Persona..."
+                      className="h-7 text-xs bg-transparent border-none focus-visible:ring-0 px-0 font-tome-subheading"
+                      defaultValue={localStorage.getItem(`persona_${character.id}`) || ''}
+                      onChange={(e) => localStorage.setItem(`persona_${character.id}`, e.target.value)}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+              {sheet.money !== undefined && (
+                <MoneyPanel sheet={sheet} onMoneyChange={onMoneyChange} />
+              )}
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="abilities" className="border-border/50 px-2">
+            <AccordionTrigger className="py-2 text-sm font-tome-subheading text-primary hover:no-underline">
+              Ability scores
+            </AccordionTrigger>
+            <AccordionContent className="space-y-3 pb-3">
+              <div className="rounded-lg border border-primary/50 bg-primary/5 p-2 text-center">
+                <p className="text-xs font-tome-marginalia text-muted-foreground uppercase tracking-wider">Prof</p>
+                <p className="font-display text-xl text-primary">+{sheet.class_level?.proficiency_bonus ?? 2}</p>
+              </div>
+              <AbilityScores sheet={sheet} />
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="skills" className="border-border/50 px-2">
+            <AccordionTrigger className="py-2 text-sm font-tome-subheading text-primary hover:no-underline">
+              Saves & skills
+            </AccordionTrigger>
+            <AccordionContent className="pb-3">
+              <ProficienciesSection sheet={sheet} onRoll={handleRoll} />
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="resources" className="border-border/50 px-2">
+            <AccordionTrigger className="py-2 text-sm font-tome-subheading text-primary hover:no-underline">
+              Resources & components
+            </AccordionTrigger>
+            <AccordionContent className="space-y-3 pb-3">
+              {sheet.class_resources && sheet.class_resources.length > 0 && token && (
+                <ClassResourceDisplay resources={sheet.class_resources} characterId={character.id} token={token} />
+              )}
+              {token && <ComponentInventorySection sheet={sheet} token={token} />}
+              {token && (
+                <RacialResourceTracker sheet={sheet} characterId={character.id} token={token} />
+              )}
+              {sheet.save_dc && <SaveDCDisplay saveDC={sheet.save_dc} />}
+              {sheet.class.name === 'The Lorewright' && (
+                <>
+                  <HarvestBankSection sheet={sheet} />
+                  <Card
+                    className="arcane-border bg-card cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all"
+                    onClick={() => setClassFeaturesOpen(true)}
+                  >
+                    <CardContent className="flex items-center justify-between py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <Skull className="h-4 w-4 text-red-400" />
+                        <span className="text-sm font-tome-subheading text-primary">Trauma & Madness</span>
+                      </div>
+                      <span className="text-lg font-display text-red-400">{sheet.trauma ?? 0}</span>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+              {sheet.class.name === 'The Ironwright' && <ConstructsSection sheet={sheet} />}
+              {activeEffects && activeEffects.length > 0 && (
+                <ActiveEffectsSection characterId={sheet.character.id} effects={activeEffects} />
+              )}
+              {sheet.class.name === 'The Sanguinist' && (
+                <NotorietyMeter
+                  characterId={sheet.character.id}
+                  notoriety={sheet.character.sanguine_notoriety ?? 0}
+                  sanguine_mp={sheet.character.sanguine_mp ?? 0}
+                  sanguine_br={sheet.character.sanguine_br ?? 0}
+                  onClick={() => setClassFeaturesOpen(true)}
+                />
+              )}
+              {sheet.class.name === 'The Mutagen' && (
+                <MutagenStatusCard sheet={sheet} onClick={() => setClassFeaturesOpen(true)} />
+              )}
+              {sheet.class.name === 'The Powder Mage' && (
+                <PowderMageStatusCard sheet={sheet} onClick={() => setClassFeaturesOpen(true)} />
+              )}
+              {sheet.class.name === 'The Piston Brawler' && (
+                <PistonBrawlerStatusCard sheet={sheet} onClick={() => setClassFeaturesOpen(true)} />
+              )}
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="equipment" className="border-border/50 px-2">
+            <AccordionTrigger className="py-2 text-sm font-tome-subheading text-primary hover:no-underline">
+              Equipment & weapons
+            </AccordionTrigger>
+            <AccordionContent className="pb-3">
+              <EquipmentSection
+                sheet={sheet}
+                onWeaponClick={handleWeaponClick}
+                onGenerateLoot={() => setIsLootModalOpen(true)}
+                onEquipmentChange={handleEquipmentChange}
+                isTwoHanded={isTwoHanded}
+                usedHands={usedHands}
+              />
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="features" className="border-border/50 px-2 border-b-0">
+            <AccordionTrigger className="py-2 text-sm font-tome-subheading text-primary hover:no-underline">
+              Features & notes
+            </AccordionTrigger>
+            <AccordionContent className="space-y-3 pb-3">
+              {token && (
+                <ActiveAbilitiesSection sheet={sheet} characterId={character.id} token={token} />
+              )}
+              <FeaturesSection sheet={sheet} onNotesChange={onNotesChange} />
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </div>
+
+      <MobileSheetBottomBar
+        onShortRest={
+          onShortRest
+            ? async () => {
+                await onShortRest();
+                setExpandedPanel('hitdice');
+              }
+            : undefined
+        }
+        onLongRest={onLongRest}
+        onOpenDice={() => setDieOptionsOpen(true)}
+      />
+
+      {/* Main 4-column layout (desktop): Abilities | Skills | Middle | Features */}
+      <div className="hidden md:grid grid-cols-1 gap-6 min-w-0 md:grid-cols-[90px_180px_1fr] lg:grid-cols-[100px_200px_1fr_280px]">
         
         {/* FAR LEFT COLUMN: Proficiency Bonus + Ability Scores */}
         <div className="order-2 md:order-none space-y-4 min-w-0">
@@ -236,7 +416,7 @@ export function CharacterSheetView({
           <AbilityScores sheet={sheet} />
           <Button
             variant="outline"
-            className="w-full h-auto min-h-12 whitespace-normal text-wrap"
+            className="hidden md:flex w-full h-auto min-h-12 whitespace-normal text-wrap"
             onClick={() => setDieOptionsOpen(true)}
           >
             Roll Any Die
@@ -372,7 +552,7 @@ export function CharacterSheetView({
 
         {/* RIGHT COLUMN: Class Features & Racial Traits */}
         <div className="order-4 md:order-none space-y-4 min-w-0">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="hidden md:grid grid-cols-2 gap-2">
             {onShortRest && (
               <Button
                 variant="outline"
@@ -385,7 +565,7 @@ export function CharacterSheetView({
                 <Moon className="h-5 w-5 shrink-0" />
                 <div className="text-left overflow-hidden">
                   <span className="block text-sm">Short Rest</span>
-                  <span className="text-[10px] text-muted-foreground truncate">Resources</span>
+                  <span className="text-micro text-muted-foreground truncate">Resources</span>
                 </div>
               </Button>
             )}
@@ -398,7 +578,7 @@ export function CharacterSheetView({
                 <Sun className="h-5 w-5 shrink-0" />
                 <div className="text-left overflow-hidden">
                   <span className="block text-sm">Long Rest</span>
-                  <span className="text-[10px] text-muted-foreground truncate">Full restore</span>
+                  <span className="text-micro text-muted-foreground truncate">Full restore</span>
                 </div>
               </Button>
             )}
@@ -485,7 +665,7 @@ export function CharacterSheetView({
           if (!open) dispatchClearDice();
         }}
       >
-        <DialogContent className="max-w-md bg-transparent border-none shadow-none flex flex-col items-center justify-center p-0">
+        <DialogContent className="max-w-md bg-transparent border-none shadow-none flex flex-col items-center justify-center p-0" noPadding>
           <DialogHeader className="sr-only">
             <DialogTitle>Character Death</DialogTitle>
             <DialogDescription>Your character has reached 0 hit points.</DialogDescription>
