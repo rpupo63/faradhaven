@@ -6,6 +6,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { categoryColors, elementIcons } from './ElementTile';
+import { ComponentRpgGlyph } from './ComponentRpgGlyph';
 import type { ApiComponent, ComponentCategory } from '@/types/game';
 import { cn } from '@/lib/utils';
 
@@ -64,9 +65,11 @@ export function ElementDetail({ component, open, onOpenChange }: ElementDetailPr
               {elementIcon && (
                 <span className="text-sm mb-1">{elementIcon}</span>
               )}
-              <span className={cn('text-3xl font-bold font-mono', colors.text)}>
-                {component.symbol}
-              </span>
+              <ComponentRpgGlyph
+                component={component}
+                iconClassName={cn('text-3xl', colors.text)}
+                fallbackClassName={cn('text-3xl font-bold font-mono', colors.text)}
+              />
               <span className="text-xs text-muted-foreground mt-0.5">
                 {component.name}
               </span>

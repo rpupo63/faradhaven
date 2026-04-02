@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Heart, Plus, Minus, Shield } from 'lucide-react';
+import { Plus, Minus } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { cn } from '@/lib/utils';
 
 interface HPTrackerProps {
@@ -67,7 +68,7 @@ export function HPTracker({
     <Card className={cn('arcane-border bg-card', className)}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base font-tome-subheading text-primary">
-          <Heart className="h-4 w-4" />
+          <RaIcon name="health" className="text-sm" />
           Hit Points
         </CardTitle>
       </CardHeader>
@@ -80,7 +81,7 @@ export function HPTracker({
           </div>
           {tempHP > 0 && (
             <div className="flex items-center justify-center gap-1 text-cyan-400 mt-1">
-              <Shield className="h-4 w-4" />
+              <RaIcon name="shield" className="text-sm" />
               <span className="font-medium">+{tempHP} temp</span>
             </div>
           )}
@@ -187,7 +188,7 @@ export function HPTracker({
               disabled={disabled || tempHpInput === ''}
               className="text-cyan-400 hover:text-cyan-300 hover:border-cyan-500/50"
             >
-              <Shield className="h-4 w-4 mr-1" />
+              <RaIcon name="shield" className="text-sm mr-1" />
               Set
             </Button>
           </div>

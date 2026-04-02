@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Zap, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { NormalizedCharacterSheet, DND5E_SKILLS } from '@/types/game';
 import { ApiTrait, ApiLevelFeature, ApiClassResource } from '@/types/game/api';
@@ -45,7 +47,22 @@ function ResourceCostLabel({
   );
 }
 
+/** Light-tinted pill + dark label for class feature action types (readable on dark cards). */
+function featureActionBadgeClass(actionType: string): string {
+  switch (actionType) {
+    case 'Action':
+      return 'border-sky-300/80 bg-sky-200 text-sky-950';
+    case 'Bonus Action':
+      return 'border-violet-300/80 bg-violet-200 text-violet-950';
+    case 'Reaction':
+      return 'border-amber-300/80 bg-amber-200 text-amber-950';
+    default:
+      return 'border-zinc-300/70 bg-zinc-200 text-zinc-900';
+  }
+}
+
 /** Can the character afford this feature's resource costs? */
+
 function canAffordCosts(
   costs: Array<{ key: string; amount: number }>,
   classResources?: ApiClassResource[]
@@ -100,21 +117,21 @@ function TraitAbilityCard({ trait, currentUses, maxUses, characterId, token }: T
 
   return (
     <div className={cn(
-      "rounded-md border p-3 space-y-2 transition-all duration-300",
+      "rounded-md border p-4 space-y-3 transition-all duration-300",
       isActive ? "border-primary/50 bg-primary/5 shadow-[0_0_15px_rgba(var(--primary),0.1)]" : "border-border bg-card/50"
     )}>
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <span className="text-sm font-tome-subheading text-primary truncate">{trait.name}</span>
             <Badge variant={actionTypeBadgeVariant(trait.action_type)} className="text-micro shrink-0">
               {trait.action_type}
             </Badge>
-            {isActive && <Sparkles className="h-3 w-3 text-primary animate-pulse" />}
+            {isActive && <RaIcon name="aura" className="text-xs text-primary animate-pulse" />}
           </div>
           
           {hasUsesTracking && currentUses !== undefined && maxUses !== undefined && maxUses > 1 && (
-            <div className="flex gap-1 mt-1.5">
+            <div className="flex gap-1.5 mt-2">
               {Array.from({ length: maxUses }).map((_, i) => (
                 <div 
                   key={i} 
@@ -128,19 +145,19 @@ function TraitAbilityCard({ trait, currentUses, maxUses, characterId, token }: T
           )}
           
           {hasUsesTracking && currentUses !== undefined && (maxUses === undefined || maxUses <= 1) && (
-            <span className="text-micro text-muted-foreground uppercase font-tome-marginalia mt-1 block">
+            <span className="text-micro text-muted-foreground uppercase font-tome-marginalia mt-2 block">
               {currentUses > 0 ? 'Available' : 'Spent'}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           {maxUses === 1 ? (
             <Button
               size="sm"
               variant={currentUses! > 0 ? "outline" : "ghost"}
               className={cn(
-                "h-7 px-2 text-micro font-display",
+                "h-8 px-3 text-micro font-display",
                 currentUses! > 0 ? "border-primary/30 text-primary hover:bg-primary/10" : "text-muted-foreground"
               )}
               onClick={() => currentUses! > 0 ? mutation.mutate() : restoreMutation.mutate()}
@@ -150,12 +167,12 @@ function TraitAbilityCard({ trait, currentUses, maxUses, characterId, token }: T
                currentUses! > 0 ? (isTransformation ? 'ACTIVATE' : (isPassiveTrigger ? 'MARK USED' : 'USE')) : 'RESTORE'}
             </Button>
           ) : (
-            <div className="flex gap-1">
+            <div className="flex gap-2">
                {currentUses !== undefined && currentUses < (maxUses || 0) && (
                  <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 px-2 text-micro font-display text-muted-foreground hover:text-primary"
+                    className="h-8 px-2.5 text-micro font-display text-muted-foreground hover:text-primary"
                     onClick={() => restoreMutation.mutate()}
                     disabled={restoreMutation.isPending}
                  >
@@ -165,7 +182,7 @@ function TraitAbilityCard({ trait, currentUses, maxUses, characterId, token }: T
                <Button
                 size="sm"
                 variant="outline"
-                className="h-7 px-2 text-xs"
+                className="h-8 px-3 text-xs"
                 onClick={() => mutation.mutate()}
                 disabled={disabled}
               >
@@ -176,22 +193,22 @@ function TraitAbilityCard({ trait, currentUses, maxUses, characterId, token }: T
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 w-7 p-0"
+            className="h-8 w-8 p-0 shrink-0"
             onClick={() => setExpanded(!expanded)}
           >
-            {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </Button>
         </div>
       </div>
       {expanded && (
-        <div className="space-y-2 animate-in fade-in duration-200">
+        <div className="space-y-3 pt-1 animate-in fade-in duration-200">
           <p className="text-xs text-muted-foreground leading-relaxed">
             {trait.description}
           </p>
           
           {trait.name === 'Severed from Dreams' && (
-            <div className="pt-2 border-t border-border/50">
-              <p className="text-micro text-muted-foreground uppercase font-tome-marginalia mb-1">Select Daily Proficiency:</p>
+            <div className="pt-3 border-t border-border/50">
+              <p className="text-micro text-muted-foreground uppercase font-tome-marginalia mb-2">Select Daily Proficiency:</p>
               <Select
                 defaultValue={localStorage.getItem(`kalashtar_skill_${characterId}`) || ''}
                 onValueChange={(val) => {
@@ -241,28 +258,40 @@ function FeatureAbilityCard({ feature, classResources, characterId, token }: Fea
   const disabled = mutation.isPending || !affordable;
 
   return (
-    <div className="rounded-md border border-border bg-card/50 p-3 space-y-2">
-      <div className="flex items-start justify-between gap-2">
+    <div className="rounded-md border border-border bg-card/50 p-4 space-y-3">
+      <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-tome-subheading text-primary truncate">{feature.name}</span>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-sm font-tome-subheading text-primary truncate min-w-0 cursor-default">
+                  {feature.name}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                {feature.name}
+              </TooltipContent>
+            </Tooltip>
             {feature.action_type && (
-              <Badge variant={actionTypeBadgeVariant(feature.action_type)} className="text-micro shrink-0">
+              <Badge
+                variant="outline"
+                className={cn('text-micro shrink-0 border font-medium', featureActionBadgeClass(feature.action_type))}
+              >
                 {feature.action_type}
               </Badge>
             )}
           </div>
           {costs.length > 0 && (
-            <div className="mt-1">
+            <div className="mt-2">
               <ResourceCostLabel costs={costs} classResources={classResources} />
             </div>
           )}
         </div>
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <Button
             size="sm"
             variant="outline"
-            className={cn('h-7 px-2 text-xs', !affordable && 'opacity-50')}
+            className={cn('h-8 px-3 text-xs', !affordable && 'opacity-50')}
             onClick={() => mutation.mutate()}
             disabled={disabled}
           >
@@ -271,15 +300,15 @@ function FeatureAbilityCard({ feature, classResources, characterId, token }: Fea
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 w-7 p-0"
+            className="h-8 w-8 p-0 shrink-0"
             onClick={() => setExpanded(!expanded)}
           >
-            {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </Button>
         </div>
       </div>
       {expanded && (
-        <p className="text-xs text-muted-foreground leading-relaxed">{feature.description}</p>
+        <p className="text-xs text-muted-foreground leading-relaxed pt-1">{feature.description}</p>
       )}
     </div>
   );
@@ -304,15 +333,15 @@ export function ActiveAbilitiesSection({ sheet, characterId, token }: ActiveAbil
 
   return (
     <Card className="arcane-border">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-sm font-tome-subheading text-primary">
-          <Zap className="h-4 w-4" />
+          <RaIcon name="lightning-bolt" className="text-sm" />
           Active Abilities
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         {activeTraits.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <p className="text-xs font-tome-marginalia text-muted-foreground uppercase tracking-wider">
               Race Abilities
             </p>
@@ -330,7 +359,7 @@ export function ActiveAbilitiesSection({ sheet, characterId, token }: ActiveAbil
         )}
 
         {activeFeatures.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <p className="text-xs font-tome-marginalia text-muted-foreground uppercase tracking-wider">
               Class Abilities
             </p>

@@ -43,20 +43,20 @@ export function AbilityScores({ sheet }: AbilityScoresProps) {
           <div
             key={id}
             className={cn(
-              'rounded-md md:rounded-lg border px-1 py-1.5 text-center md:p-2',
+              'rounded-md md:rounded-lg border px-1 py-1 text-center md:p-1.5',
               isPrimary
                 ? 'border-primary/50 bg-primary/5'
                 : 'border-border bg-muted/20'
             )}
           >
-            <p className="text-micro font-tome-marginalia text-muted-foreground uppercase tracking-wide leading-none md:text-xs md:tracking-wider">
+            <p className="text-[10px] font-tome-marginalia text-muted-foreground uppercase tracking-wide leading-none md:text-[11px]">
               {label}
               {isPrimary && <span className="ml-0.5 text-primary">*</span>}
             </p>
             <p className="font-display text-lg leading-tight text-primary md:text-xl">{score}</p>
             <p
               className={cn(
-                'text-fine font-tome-marginalia leading-none md:text-sm',
+                'text-[10px] font-tome-marginalia leading-none md:text-xs',
                 mod >= 0 ? 'text-primary' : 'text-muted-foreground'
               )}
             >

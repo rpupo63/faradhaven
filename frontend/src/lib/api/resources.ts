@@ -1,4 +1,4 @@
-import { getBaseUrl, handleResponse } from './base';
+import { getBaseUrl, handleResponse, apiFetch } from './base';
 import { ApiClassResource } from '@/types/game/api';
 
 export async function spendResource(
@@ -9,7 +9,7 @@ export async function spendResource(
 ): Promise<ApiClassResource> {
   const base = getBaseUrl();
   const url = `${base}/api/characters/${characterId}/resources/${key}/spend`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -28,7 +28,7 @@ export async function gainResource(
 ): Promise<ApiClassResource> {
   const base = getBaseUrl();
   const url = `${base}/api/characters/${characterId}/resources/${key}/gain`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

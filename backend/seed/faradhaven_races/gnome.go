@@ -13,8 +13,7 @@ func Gnome() FaradhavenRaceSeed {
 			"intelligence": 2,
 		},
 		Languages:      []string{"Common", "Gnomish"},
-		Traits:         gnomeTraits(),
-		ComponentNames: []string{"Create", "Vita", "Bind", "Increase", "Arcanum", "Self"},
+		Traits: gnomeTraits(),
 	}
 }
 
@@ -35,11 +34,9 @@ func gnomeTraits() []TraitSeed {
 		},
 		{
 			Name:        "Gnomish Lineage",
-			Description: "You are part of a lineage that grants you supernatural abilities. Choose one of the following options; whichever one you choose, Intelligence, Wisdom, or Charisma is your spellcasting ability for the spells you cast with this trait (choose the ability when you select the lineage).",
+			Description: "Choose forest or rock gnomish heritage.",
 			LevelReq:    1,
 			ActionType:  "Passive",
-			UsesPerRest: "Proficiency Bonus",
-			ResetCondition: "Long Rest",
 			Options:     gnomeLineageOptions(),
 		},
 	}
@@ -49,12 +46,12 @@ func gnomeLineageOptions() []TraitOptionSeed {
 	return []TraitOptionSeed{
 		{
 			Name:                "Forest Gnome",
-			Description:         "You know the Create component (creating illusory images or sounds). You also always have Vita + Bind prepared (communicating with beasts). You can cast it without a spell slot a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest. You can also use any spell slots you have to cast the spell.",
+			Description:         "+1 Dexterity. You are at home among beasts, small illusions, and natural trickery; express such effects through your class’s spell components.",
 			AbilityScoreBonuses: map[string]int{"dexterity": 1},
 		},
 		{
 			Name:                "Rock Gnome",
-			Description:         "You know the Increase component (repairing objects) and Arcanum + Self combination (minor magical tricks). In addition, you can spend 10 minutes using Arcanum + Self to create a Tiny clockwork device (AC 5, 1 HP), such as a toy, fire starter, or music box. When you create the device, you determine its function by choosing one effect from the combination; the device produces that effect whenever you or another creature takes a Bonus Action to activate it with a touch. If the chosen effect has options within it, you choose one of those options for the device when you create it. For example, if you choose the ignite-extinguish effect, you determine whether the device ignites or extinguishes fire; the device doesn't do both. You can have three such devices in existence at a time, and each falls apart 8 hours after its creation or when you dismantle it with a touch as a Utilize action.",
+			Description:         "+1 Constitution. You excel at tinkering, repair, and clever devices; express gadgetry and minor wonders through your class’s spell components.",
 			AbilityScoreBonuses: map[string]int{"constitution": 1},
 		},
 	}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dices, Heart } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { cn } from '@/lib/utils';
 import { rollHitDice } from '@/lib/dice';
 
@@ -68,7 +68,7 @@ export function HitDiceTracker({
     <Card className={cn('arcane-border bg-card', className)}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base font-tome-subheading text-primary">
-          <Dices className="h-4 w-4" />
+          <RaIcon name="perspective-dice-six" className="text-sm" />
           Hit Dice
         </CardTitle>
       </CardHeader>
@@ -120,7 +120,7 @@ export function HitDiceTracker({
           className="w-full gap-2"
           variant="default"
         >
-          <Heart className="h-4 w-4" />
+          <RaIcon name="health" className="text-sm" />
           Use {diceToUse} Hit {diceToUse === 1 ? 'Die' : 'Dice'}
         </Button>
 

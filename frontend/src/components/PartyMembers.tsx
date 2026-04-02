@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { setCharacterParty } from '@/lib/api';
-import { ApiCharacter, ApiCharacterSheet } from '@/types/game/api';
+import { ApiCharacter, ApiCharacterSheet, ApiParty } from '@/types/game/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -17,7 +17,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createPartyAndJoinWithCharacter } from '@/lib/api/party';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { createPartyAndJoinWithCharacter, getPartiesByUserId, addCharacterToParty } from '@/lib/api/party';
 
 interface PartyMembersProps {
   characterId: string;
@@ -31,6 +38,19 @@ export function PartyMembers({ characterId, token, characterSheet }: PartyMember
 
   const [showCreatePartyDialog, setShowCreatePartyDialog] = useState(false);
   const [newPartyName, setNewPartyName] = useState('');
+  const [showJoinPartyDialog, setShowJoinPartyDialog] = useState(false);
+  const [selectedPartyId, setSelectedPartyId] = useState<string>('');
+
+  const currentCharacter = characterSheet?.character;
+  const party = currentCharacter?.party;
+  const members: ApiCharacter[] = party?.members || [];
+  const isPartyOwner = party?.owner_id === currentCharacter?.user_id;
+
+  const { data: userParties, isLoading: isLoadingParties } = useQuery({
+    queryKey: ['user-parties', currentCharacter?.user_id],
+    queryFn: () => currentCharacter?.user_id ? getPartiesByUserId(currentCharacter.user_id, token) : Promise.resolve([]),
+    enabled: !!currentCharacter?.user_id && showJoinPartyDialog,
+  });
 
   const createPartyMutation = useMutation({
     mutationFn: async () => {
@@ -52,6 +72,25 @@ export function PartyMembers({ characterId, token, characterSheet }: PartyMember
     }
   });
 
+  const joinPartyMutation = useMutation({
+    mutationFn: async (partyId: string) => {
+      if (!token) throw new Error("Authentication token not available.");
+      if (!characterId) throw new Error("Character ID not available.");
+
+      await addCharacterToParty(partyId, characterId, token);
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['character-sheet', characterId] });
+      setShowJoinPartyDialog(false);
+      setSelectedPartyId('');
+    },
+    onError: (err) => {
+      console.error("Failed to join party:", err);
+      alert("Failed to join party: " + err.message);
+    }
+  });
+
   const leavePartyMutation = useMutation({
     mutationFn: (partyId: string) => setCharacterParty(characterId, null, token),
     onSuccess: () => {
@@ -64,11 +103,6 @@ export function PartyMembers({ characterId, token, characterSheet }: PartyMember
     }
   });
 
-  const currentCharacter = characterSheet?.character;
-  const party = currentCharacter?.party;
-  const members: ApiCharacter[] = party?.members || [];
-  const isPartyOwner = party?.owner_id === currentCharacter?.user_id;
-
   if (!party) {
     return (
       <>
@@ -77,9 +111,12 @@ export function PartyMembers({ characterId, token, characterSheet }: PartyMember
           <AlertDescription>
             This character is not currently part of any party.
           </AlertDescription>
-          <div className="mt-4">
+          <div className="mt-4 flex gap-2">
             <Button onClick={() => setShowCreatePartyDialog(true)}>
               <Users className="h-4 w-4 mr-2" /> Create New Party
+            </Button>
+            <Button variant="outline" onClick={() => setShowJoinPartyDialog(true)}>
+              <UserPlus className="h-4 w-4 mr-2" /> Join Existing Party
             </Button>
           </div>
         </Alert>
@@ -113,6 +150,49 @@ export function PartyMembers({ characterId, token, characterSheet }: PartyMember
                 disabled={!newPartyName.trim() || createPartyMutation.isPending}
               >
                 {createPartyMutation.isPending ? 'Creating...' : 'Create Party'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showJoinPartyDialog} onOpenChange={setShowJoinPartyDialog}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Join Existing Party</DialogTitle>
+              <DialogDescription>
+                Select one of your existing parties to join with this character.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-1 gap-2">
+                <Label htmlFor="partySelect">Select Party</Label>
+                {isLoadingParties ? (
+                  <p className="text-sm text-muted-foreground italic">Loading your parties...</p>
+                ) : userParties && userParties.length > 0 ? (
+                  <Select value={selectedPartyId} onValueChange={setSelectedPartyId}>
+                    <SelectTrigger id="partySelect">
+                      <SelectValue placeholder="Select a party..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {userParties.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No other parties found. You can create a new one instead.</p>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="submit"
+                onClick={() => joinPartyMutation.mutate(selectedPartyId)}
+                disabled={!selectedPartyId || joinPartyMutation.isPending}
+              >
+                {joinPartyMutation.isPending ? 'Joining...' : 'Join Party'}
               </Button>
             </DialogFooter>
           </DialogContent>

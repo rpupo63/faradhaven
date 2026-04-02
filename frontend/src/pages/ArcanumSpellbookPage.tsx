@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Spellbook } from '@/components/Spellbook';
-import { ElementTable } from '@/components/arcanum/ElementTable';
-import { BookOpen, Atom } from 'lucide-react';
+import { ElementTable } from '@/components/arcanum';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { useQuery } from '@tanstack/react-query';
 import { getComponents } from '@/lib/api';
 import { LoadingQuill } from '@/components/LoadingQuill';
@@ -20,11 +20,11 @@ export default function ArcanumSpellbookPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 md:w-auto min-w-[300px] mb-8">
           <TabsTrigger value="spellbook" className="gap-2 px-3">
-            <BookOpen className="w-4 h-4" />
+            <RaIcon name="book" className="text-sm" />
             <span>Spellbook</span>
           </TabsTrigger>
           <TabsTrigger value="arcanum" className="gap-2 px-3">
-            <Atom className="w-4 h-4" />
+            <RaIcon name="aura" className="text-sm" />
             <span>Arcanum</span>
           </TabsTrigger>
         </TabsList>
@@ -40,7 +40,7 @@ export default function ArcanumSpellbookPage() {
             </div>
           ) : componentsError ? (
             <div className="arcane-border rounded-lg p-8 text-center">
-              <Atom className="w-12 h-12 mx-auto mb-4 text-destructive" />
+              <RaIcon name="aura" className="text-5xl mx-auto mb-4 text-destructive block" />
               <h3 className="font-tome-heading text-lg text-destructive">Failed to Load Arcanum</h3>
               <p className="text-sm text-muted-foreground font-tome-marginalia">
                 {componentsError instanceof Error ? componentsError.message : 'An error occurred'}

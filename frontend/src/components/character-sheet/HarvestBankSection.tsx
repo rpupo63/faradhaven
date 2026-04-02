@@ -7,7 +7,7 @@ import {
   Trash2,
   Loader2,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/select';
 
 import { NormalizedCharacterSheet } from '@/types/game';
-import type { ApiMinion, ApiHarvestMinion } from '@/types/game'; // Import ApiHarvestMinion
+import type { ApiHarvestMinion } from '@/types/game';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getMinions, storeHarvest, deleteMinion } from '@/lib/api/minion';
 import { toast } from 'sonner';
@@ -114,20 +114,20 @@ export function HarvestBankSection({ sheet }: HarvestBankSectionProps) {
   const typeOrder = ['skill', 'attack', 'action', 'recipe'];
 
   return (
-    <Card className="arcane-border bg-card">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between text-base font-tome-subheading text-primary">
-          <span className="flex items-center gap-2">
-            <GraduationCap className="h-4 w-4" />
-            Harvest Bank
-          </span>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" variant="outline" className="h-7 text-xs">
-                <Plus className="h-3 w-3 mr-1" />
-                Add Harvest
-              </Button>
-            </DialogTrigger>
+    <>
+      <Separator />
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-2 text-sm font-tome-subheading text-primary">
+          <GraduationCap className="h-4 w-4" />
+          Harvest Bank
+        </span>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" variant="outline" className="h-7 text-xs">
+              <Plus className="h-3 w-3 mr-1" />
+              Add Harvest
+            </Button>
+          </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Store Harvested Ability</DialogTitle>
@@ -186,9 +186,8 @@ export function HarvestBankSection({ sheet }: HarvestBankSectionProps) {
               </div>
             </DialogContent>
           </Dialog>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+        </div>
+      <div>
         {harvests.length === 0 ? (
           <p className="text-xs text-muted-foreground italic font-tome-marginalia text-center py-2">
             No harvested abilities yet. Perform Visceral Psychometry to harvest from creatures.
@@ -242,8 +241,8 @@ export function HarvestBankSection({ sheet }: HarvestBankSectionProps) {
             })}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </>
   );
 }
 

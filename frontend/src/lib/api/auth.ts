@@ -1,4 +1,4 @@
-import { getBaseUrl, handleResponse } from './base';
+import { getBaseUrl, handleResponse, apiFetch } from './base';
 
 // === Auth Types ===
 export interface LoginRequest {
@@ -44,7 +44,7 @@ export async function updateUserDicePrefs(
   token: string
 ): Promise<ApiUser> {
   const base = getBaseUrl();
-  const res = await fetch(`${base}/api/user/${userId}`, {
+  const res = await apiFetch(`${base}/api/user/${userId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -60,7 +60,7 @@ export async function updateUserDicePrefs(
  */
 export async function login(request: LoginRequest): Promise<AuthResponse> {
   const base = getBaseUrl();
-  const res = await fetch(`${base}/api/auth/login`, {
+  const res = await apiFetch(`${base}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -73,7 +73,7 @@ export async function login(request: LoginRequest): Promise<AuthResponse> {
  */
 export async function register(request: RegisterRequest): Promise<AuthResponse> {
   const base = getBaseUrl();
-  const res = await fetch(`${base}/api/auth/register`, {
+  const res = await apiFetch(`${base}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -86,7 +86,7 @@ export async function register(request: RegisterRequest): Promise<AuthResponse> 
  */
 export async function getUserById(userId: string, token: string): Promise<ApiUser> {
   const base = getBaseUrl();
-  const res = await fetch(`${base}/api/user/${userId}`, {
+  const res = await apiFetch(`${base}/api/user/${userId}`, {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
@@ -104,7 +104,7 @@ export async function setActiveCharacter(
   token: string
 ): Promise<{ message: string; active_character_id: string | null }> {
   const base = getBaseUrl();
-  const res = await fetch(`${base}/api/user/${userId}/active-character`, {
+  const res = await apiFetch(`${base}/api/user/${userId}/active-character`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -117,3 +117,16 @@ export async function setActiveCharacter(
     'Failed to set active character'
   );
 }
+
+/**
+ * Logout the user
+ */
+export async function logoutApi(): Promise<void> {
+  const base = getBaseUrl();
+  await apiFetch(`${base}/api/auth/logout`, {
+    method: 'POST',
+  }).catch(() => {
+    // Ignore errors on logout
+  });
+}
+

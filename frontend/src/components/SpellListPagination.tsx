@@ -1,27 +1,21 @@
-import { useMemo, useState, useEffect } from 'react';
-import { ApiSpell as BaseApiSpell } from '@/types/game';
-import { Sparkles, ChevronDown, Sword, ShieldCheck, Heart, UserSquare, BookOpen } from 'lucide-react';
+import { useMemo } from 'react';
+import { Sparkles, BookOpen, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
-import { LoadingQuill } from './LoadingQuill'; // NEW: Add LoadingQuill import
-
-// The API now returns character info, so we extend the base type.
-type ApiSpell = BaseApiSpell & {
-  character_name?: string;
-  character_class?: string;
-};
+import { LoadingQuill } from './LoadingQuill';
+import type { SpellbookListSpell } from '@/components/spellbook/spellbookTypes';
+import { getSpellComponentCount } from '@/lib/spellUtils';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const POINTS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-const PAGINATION_LIMIT = 10; // Number of spells to display per page
 
 interface SpellListPaginationProps {
-  initialSpells: ApiSpell[] | undefined;
+  initialSpells: SpellbookListSpell[] | undefined;
   isLoading: boolean;
   error: Error | null;
   emptyMessage: string;
   headerTitle: string;
-  showFilters?: boolean; // New prop to control filter visibility
-  renderSpellItem: (spell: ApiSpell) => React.ReactNode; // NEW: Custom render prop for each spell item
+  showFilters?: boolean;
+  renderSpellItem: (spell: SpellbookListSpell) => React.ReactNode;
   
   // NEW: Pagination and Filter Props (controlled by parent)
   pointsFilter: number | 'all';
@@ -41,6 +35,8 @@ const FilterTab: React.FC<{
 }> = ({ points, vertical = false, setPointsFilter, pointsFilter, setCurrentPage }) => (
   <button
     type="button"
+    title={points === 'all' ? 'All spells' : `${points} components`}
+    aria-label={points === 'all' ? 'Show all component counts' : `Filter spells with ${points} components`}
     onClick={() => {
       setPointsFilter(points);
       // Ensure page resets to 1 when filter changes
@@ -56,7 +52,7 @@ const FilterTab: React.FC<{
     style={vertical ? { writingMode: 'vertical-rl', textOrientation: 'mixed' } : {}}
     aria-pressed={pointsFilter === points}
   >
-    {points === 'all' ? 'All' : `${points} Pts`}
+    {points === 'all' ? 'All' : points}
   </button>
 );
 
@@ -77,16 +73,17 @@ export function SpellListPagination({
   // The 'initialSpells' prop now represents the currently displayed page of filtered/paginated spells.
   const displayedSpells = useMemo(() => initialSpells || [], [initialSpells]);
 
-  // Re-group current page's spells by points for display structure
-  const spellsByPointsOnPage = useMemo(() => {
-    const byPoints: Record<number, ApiSpell[]> = {};
+  const spellsByComponentCountOnPage = useMemo(() => {
+    const byCount: Record<number, SpellbookListSpell[]> = {};
     displayedSpells.forEach((s) => {
-      if (!byPoints[s.slot_level]) byPoints[s.slot_level] = [];
-      byPoints[s.slot_level].push(s);
+      const n = getSpellComponentCount(s);
+      const key = n > 0 ? n : 0;
+      if (!byCount[key]) byCount[key] = [];
+      byCount[key].push(s);
     });
-    return Object.entries(byPoints)
-      .map(([pts, list]) => ({ points: Number(pts), spells: list }))
-      .sort((a, b) => a.points - b.points);
+    return Object.entries(byCount)
+      .map(([count, list]) => ({ count: Number(count), spells: list }))
+      .sort((a, b) => a.count - b.count);
   }, [displayedSpells]);
 
   if (isLoading) {
@@ -144,7 +141,8 @@ export function SpellListPagination({
       )}
 
       {/* Spellbook Content */}
-      <div className="flex-1 min-w-0 border border-faded-gold/40 rounded-r-lg rounded-bl-lg sm:rounded-bl-none overflow-hidden bg-card/60">
+      {/* sm:flex-1 only: in flex-col (mobile) plain flex-1 + overflow-hidden can clip tall lists and block main scroll */}
+      <div className="w-full min-w-0 sm:flex-1 border border-faded-gold/40 rounded-r-lg rounded-bl-lg sm:rounded-bl-none overflow-x-clip overflow-y-visible sm:overflow-hidden bg-card/60">
         <div className="p-4 border-b border-faded-gold/20">
           <div className="flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-primary" />
@@ -157,25 +155,44 @@ export function SpellListPagination({
           </div>
         </div>
 
-        {spellsByPointsOnPage.length === 0 ? (
+        {spellsByComponentCountOnPage.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-muted-foreground font-tome-marginalia">
-              No spells with this point cost
+              No spells with this component count
             </p>
           </div>
         ) : (
           <div className="divide-y divide-ink/10">
-            {spellsByPointsOnPage.map(({ points, spells: pointSpells }) => (
-              <section key={points} className="p-4">
+            {spellsByComponentCountOnPage.map(({ count, spells: countSpells }) => (
+              <section key={count} className="p-4">
                 <h2 className="tome-section-heading text-lg mb-3">
-                  {points} Spell Points
+                  {count === 0
+                    ? 'Unknown size'
+                    : `${count} ${count === 1 ? 'component' : 'components'}`}
                 </h2>
                 <div className="space-y-2">
-                  {pointSpells.map((spell) => (
-                    <div key={spell.id}>
-                      {renderSpellItem(spell)}
-                    </div>
-                  ))}
+                  {countSpells.map((spell) => {
+                    const n = getSpellComponentCount(spell);
+                    return (
+                      <Collapsible key={spell.id} defaultOpen={false} className="rounded-lg border border-ink/15 bg-card/30">
+                        <CollapsibleTrigger
+                          className={cn(
+                            'group flex w-full items-center gap-2 px-3 py-2.5 text-left font-tome-item-heading text-sm sm:text-base',
+                            'hover:bg-muted/25 transition-colors data-[state=open]:border-b data-[state=open]:border-ink/10',
+                          )}
+                        >
+                          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                          <span className="min-w-0 flex-1 truncate">{spell.name}</span>
+                          <span className="shrink-0 text-xs text-muted-foreground font-tome-marginalia tabular-nums">
+                            {n > 0 ? `${n} comp.` : '—'}
+                          </span>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="overflow-hidden">
+                          <div className="border-t border-ink/10 p-2 sm:p-3">{renderSpellItem(spell)}</div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    );
+                  })}
                 </div>
               </section>
             ))}

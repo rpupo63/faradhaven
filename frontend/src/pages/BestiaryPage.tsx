@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Skull, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
 import { BestiaryCard } from '@/components/BestiaryCard';
@@ -42,7 +43,7 @@ export function BestiaryTabContent() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-full border-2 border-faded-gold/50 bg-primary/10">
-            <Skull className="w-6 h-6 text-primary" />
+            <RaIcon name="skull" className="text-xl text-primary" />
           </div>
           <div>
             <h1 className="font-tome-heading text-2xl text-primary glow-text">Bestiary</h1>
@@ -86,7 +87,7 @@ export function BestiaryTabContent() {
         </div>
       ) : !showForm && (
         <div className="arcane-border rounded-xl p-12 text-center">
-          <Skull className="w-16 h-16 mx-auto mb-6 text-muted-foreground" />
+          <RaIcon name="skull" className="text-6xl mx-auto mb-6 text-muted-foreground block" />
           <h2 className="font-tome-heading text-2xl text-primary mb-2">No Creatures Yet</h2>
           <p className="text-muted-foreground font-tome-marginalia mb-6">
             {isAuthenticated

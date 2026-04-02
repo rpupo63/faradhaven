@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LogIn, Sparkles, BookOpen, Users, Swords, ArrowRight } from 'lucide-react';
+import { LogIn, Users, ArrowRight } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 
 export default function Index() {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ export default function Index() {
       {/* Hero Section */}
       <div className="text-center space-y-8 animate-in fade-in duration-1000">
         <div className="inline-block p-4 sm:p-5 md:p-6 rounded-full bg-primary/5 border border-primary/20 mb-4 sm:mb-6 shadow-[0_0_15px_rgba(var(--primary-rgb),0.2)]">
-          <Sparkles className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 text-primary animate-pulse" />
+          <RaIcon name="aura" className="text-5xl sm:text-6xl md:text-7xl text-primary animate-pulse" />
         </div>
         <h1 className="font-tome-heading text-4xl sm:text-5xl md:text-7xl text-primary glow-text tracking-wider uppercase leading-tight">
           Welcome to Axiom
@@ -34,7 +35,7 @@ export default function Index() {
             </Button>
           )}
           <Button onClick={() => navigate('/classes')} variant="outline" size="lg" className="w-full sm:w-auto h-auto py-4 px-10 text-xl border-primary/40 hover:bg-primary/5 hover:text-primary hover:border-primary transition-all">
-            <BookOpen className="w-6 h-6 mr-3" />
+            <RaIcon name="book" className="text-2xl mr-3" />
             Consult the Archives
           </Button>
         </div>
@@ -62,14 +63,14 @@ export default function Index() {
               </p>
           </div>
           <div className="arcane-border p-5 sm:p-6 md:p-8 rounded-xl bg-background/50 backdrop-blur-sm hover:bg-primary/5 transition-all duration-300 group h-full">
-              <Swords className="w-10 h-10 text-primary mb-6 group-hover:scale-110 transition-transform" />
+              <RaIcon name="crossed-swords" className="text-4xl text-primary mb-6 group-hover:scale-110 transition-transform block" />
               <h3 className="font-tome-heading text-xl text-primary mb-4 border-b border-primary/20 pb-2">The Law</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
               The <span className="text-foreground font-medium">Blue Coats</span> try their best, but the streets truly belong to the <span className="text-foreground font-medium">Triple P</span>—private mercenaries paid to keep the rich safe and the poor quiet.
               </p>
           </div>
           <div className="arcane-border p-5 sm:p-6 md:p-8 rounded-xl bg-background/50 backdrop-blur-sm hover:bg-primary/5 transition-all duration-300 group h-full">
-              <Sparkles className="w-10 h-10 text-primary mb-6 group-hover:scale-110 transition-transform" />
+              <RaIcon name="aura" className="text-4xl text-primary mb-6 group-hover:scale-110 transition-transform block" />
               <h3 className="font-tome-heading text-xl text-primary mb-4 border-b border-primary/20 pb-2">The Shadows</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
               Below the cobbles lies a hidden society of <span className="text-foreground font-medium">Homunculi</span>. Rejecting the Faradollar, they trade in conductive copper and gold, surviving in the "No-Go" zones where humans dare not tread.

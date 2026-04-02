@@ -13,6 +13,7 @@ import {
   getSkillFocusFromClass,
   getSavingThrowsFromClass,
 } from '@/lib/classLevelData';
+import { resolveSpellPoolComponents } from '@/lib/spellUtils';
 import {
   getCharacterSheet,
   getClassWithLevels,
@@ -28,17 +29,17 @@ import {
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, ChevronUp, ChevronDown, History, FileText, Wand2, BookOpen, Sparkles, Camera, User, FlaskRound, Coins, Type, Users, Recycle, Droplets } from 'lucide-react';
+import { ArrowLeft, History, FileText, Wand2, Sparkles, Camera, User, Users } from 'lucide-react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { LevelUpWizard } from '@/components/LevelUpWizard';
 import { LevelHistory } from '@/components/LevelHistory';
 import { LevelDownConfirmation } from '@/components/LevelDownConfirmation';
-import { HarvestModal } from '@/components/HarvestModal';
 import { LootModal } from '@/components/LootModal';
-import { ScavengeModal } from '@/components/ScavengeModal';
 import { PartyBestiary } from '@/components/PartyBestiary'; // NEW: Import PartyBestiary
 import { PartyMembers } from '@/components/PartyMembers';   // NEW: Import PartyMembers
 import { dispatchClearDice } from '@/lib/dice';
+import { displayClassName } from '@/lib/characterDisplay';
+
 type CharacterTab = 'sheet' | 'spellbook' | 'backstory' | 'bestiary' | 'party'; // NEW: Added bestiary and party
 
 export default function CharacterSheetPage() {
@@ -49,14 +50,13 @@ export default function CharacterSheetPage() {
 
   // Tab state
   const [activeTab, setActiveTab] = useState<CharacterTab>('sheet');
+  const [spellbookSubTab, setSpellbookSubTab] = useState<'spells' | 'forge'>('spells');
 
   // Level-up/down dialog state
   const [showLevelUpWizard, setShowLevelUpWizard] = useState(false);
   const [showLevelHistory, setShowLevelHistory] = useState(false);
   const [showLevelDownConfirm, setShowLevelDownConfirm] = useState(false);
-  const [showHarvestModal, setShowHarvestModal] = useState(false); // New state for HarvestModal
   const [showLootModal, setShowLootModal] = useState(false);
-  const [showScavengeModal, setShowScavengeModal] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -64,6 +64,11 @@ export default function CharacterSheetPage() {
   const { token, setDicePrefsOverride } = useAuth();
 
   const character = state.characters.find((c) => c.id === id);
+
+  const goToSpellForge = () => {
+    setSpellbookSubTab('forge');
+    setActiveTab('spellbook');
+  };
 
   // Ensure this character is set as active when viewing their sheet
   // This allows Spellbook and SpellForge to work correctly via useGame
@@ -155,6 +160,12 @@ export default function CharacterSheetPage() {
     apiSheet?.character?.dice_font_color,
     setDicePrefsOverride,
   ]);
+
+  useEffect(() => {
+    if (activeTab !== 'spellbook') {
+      setSpellbookSubTab('spells');
+    }
+  }, [activeTab]);
 
   // HP Management handlers (only for API-backed characters)
   const handleHPChange = async (delta: number, source?: string) => {
@@ -253,7 +264,7 @@ export default function CharacterSheetPage() {
           <div className="flex items-center gap-4 w-full md:w-auto">
             <Button variant="ghost" onClick={() => navigate('/')} className="gap-2 shrink-0">
               <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Back</span>
+              <span className="hidden sm:inline"></span>
             </Button>
 
             {/* Mobile Character Summary + Avatar */}
@@ -280,8 +291,14 @@ export default function CharacterSheetPage() {
                   {sheet.character.name}
                 </h2>
                 <p className="text-xs text-muted-foreground font-tome-marginalia">
-                  Lvl {sheet.character.level} {sheet.character.className}
+                  Lvl {sheet.character.level} {displayClassName(sheet.character.className)}{' '}
+                  {sheet.character.raceName}
                 </p>
+                {sheet.character.partyName ? (
+                  <p className="text-xs text-muted-foreground/90 font-tome-marginalia truncate">
+                    Party: {sheet.character.partyName}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -323,113 +340,22 @@ export default function CharacterSheetPage() {
 
           {/* Right: Level Controls + Desktop Info */}
           <div className="flex flex-col md:flex-row items-end md:items-center gap-2 md:gap-4 w-full md:w-auto min-w-0">
-            {/* Level Controls */}
-            <div className="flex flex-col items-stretch gap-1.5 w-full md:w-auto min-w-0 md:items-end">
-              <span className="text-xs text-muted-foreground md:hidden uppercase tracking-wider font-semibold text-right">
-                Actions
-              </span>
-              <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2 min-w-0">
-              {sheet.character.className === "The Lorewright" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowHarvestModal(true)}
-                  title="Perform Harvest (Visceral Psychometry)"
-                  className="gap-1 h-8 px-2 shrink-0"
-                >
-                  <FlaskRound className="h-4 w-4" />
-                  <span className="hidden lg:inline">Harvest</span>
-                </Button>
-              )}
-              {(sheet.character.className === "The Lorewright" ||
-                sheet.character.className === "The Ironwright") && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowScavengeModal(true)}
-                  title="Scavenge Components"
-                  className="gap-1 h-8 px-2 shrink-0"
-                >
-                  <Recycle className="h-4 w-4" />
-                  <span className="hidden lg:inline">Scavenge</span>
-                </Button>
-              )}
-              {sheet.character.className === "The Sanguinist" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowScavengeModal(true)}
-                  title="Sanguine Extraction"
-                  className="gap-1 h-8 px-2 shrink-0"
-                >
-                  <Droplets className="h-4 w-4" />
-                  <span className="hidden lg:inline">Extract</span>
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowLootModal(true)}
-                title="Generate Loot"
-                className="gap-1 h-8 px-2 shrink-0"
-              >
-                <Coins className="h-4 w-4" />
-                <span className="hidden lg:inline">Loot</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (!apiSheet || !token) {
-                    alert('Please log in to level your character');
-                    return;
-                  }
-                  if (currentLevel <= 1) {
-                    alert('Character is already at level 1');
-                    return;
-                  }
-                  setShowLevelDownConfirm(true);
-                }}
-                disabled={currentLevel <= 1}
-                title="Level Down"
-                className="gap-1 h-8 px-2 shrink-0"
-              >
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (!apiSheet || !token) {
-                    alert('Please log in to level your character');
-                    return;
-                  }
-                  if (currentLevel >= 20) {
-                    alert('Character is already at max level (20)');
-                    return;
-                  }
-                  setShowLevelUpWizard(true);
-                }}
-                disabled={currentLevel >= 20}
-                title="Level Up"
-                className="gap-1 h-8 px-2 shrink-0"
-              >
-                <ChevronUp className="h-4 w-4" />
-              </Button>
-
-              </div>
-            </div>
 
             {/* Desktop Character Info */}
-            <div className="flex items-center gap-4 md:flex">
+            <div className="hidden md:flex items-center gap-4">
               <div className="text-right">
                 <h2 className="font-display text-xl text-primary glow-text">
                   {sheet.character.name}
                 </h2>
                 <p className="text-sm text-muted-foreground font-tome-marginalia">
-                  Level {sheet.character.level} {sheet.character.raceName} {sheet.character.className}
-                  {sheet.character.archetypeName && ` - ${sheet.character.archetypeName}`}
+                  Lvl {sheet.character.level} {displayClassName(sheet.character.className)}{' '}
+                  {sheet.character.raceName}
                 </p>
+                {sheet.character.partyName ? (
+                  <p className="text-sm text-muted-foreground/90 font-tome-marginalia">
+                    Party: {sheet.character.partyName}
+                  </p>
+                ) : null}
               </div>
 
               <div
@@ -468,6 +394,29 @@ export default function CharacterSheetPage() {
             onUseHitDice={apiSheet && token ? handleUseHitDice : undefined}
             onMoneyChange={apiSheet && token ? handleMoneyChange : undefined}
             onNotesChange={apiSheet && token ? handleNotesChange : undefined}
+            onLevelUp={() => {
+              if (!apiSheet || !token) {
+                alert('Please log in to level your character');
+                return;
+              }
+              if (currentLevel >= 20) {
+                alert('Character is already at max level (20)');
+                return;
+              }
+              setShowLevelUpWizard(true);
+            }}
+            onLevelDown={() => {
+              if (!apiSheet || !token) {
+                alert('Please log in to level your character');
+                return;
+              }
+              if (currentLevel <= 1) {
+                alert('Character is already at level 1');
+                return;
+              }
+              setShowLevelDownConfirm(true);
+            }}
+            onGoToSpellForge={goToSpellForge}
             hideHeader
           />
         </TabsContent>
@@ -476,13 +425,17 @@ export default function CharacterSheetPage() {
 
         <TabsContent value="spellbook" className="mt-6">
           <CharacterSpellbook
-            availableComponents={sheet.available_components || []}
+            availableComponents={resolveSpellPoolComponents(apiSheet) ?? sheet.available_components}
             userId={apiSheet?.character?.user_id}
             characterId={id}
             token={token ?? undefined}
             timerDuration={sheet.class_resources?.find(r => r.key === 'timer_duration')?.value}
             components={sheet.components || []}
             sheet={apiSheet}
+            isPowderMage={sheet.class?.name === 'The Powder Mage'}
+            speedDialSlots={sheet.class_resources?.find((r) => r.key === 'speed_dial_slots')?.value ?? 0}
+            spellbookSubTab={spellbookSubTab}
+            onSpellbookSubTabChange={setSpellbookSubTab}
           />
         </TabsContent>
 
@@ -542,20 +495,6 @@ export default function CharacterSheetPage() {
         isPending={levelDownMutation.isPending}
       />
 
-      {/* Harvest Modal */}
-      {id && token && (
-        <HarvestModal
-          isOpen={showHarvestModal}
-          onClose={() => {
-            setShowHarvestModal(false);
-            dispatchClearDice();
-          }}
-          characterId={id}
-          token={token}
-          onHarvestSuccess={() => queryClient.invalidateQueries({ queryKey: ['character-sheet', id] })}
-        />
-      )}
-
       {/* Loot Modal */}
       {id && token && (
         <LootModal
@@ -569,22 +508,6 @@ export default function CharacterSheetPage() {
         />
       )}
 
-      {/* Scavenge / Extract Modal */}
-      {id && token && sheet && (
-        <ScavengeModal
-          isOpen={showScavengeModal}
-          onClose={() => {
-            setShowScavengeModal(false);
-            dispatchClearDice();
-          }}
-          characterId={id}
-          token={token}
-          className={sheet.character.className}
-          yieldDie={sheet.class_resources?.find(r => r.key === 'yield_die')?.value}
-          characterLevel={currentLevel}
-          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['character-sheet', id] })}
-        />
-      )}
     </div>
   );
 }

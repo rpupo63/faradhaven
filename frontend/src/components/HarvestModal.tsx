@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/api/base';
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -46,7 +47,7 @@ const getHarvestableAbilitiesApi = async (
   beastId: string,
   token: string
 ): Promise<HarvestableAbilitiesResponse> => {
-  const response = await fetch(`/api/beasts/${beastId}/harvestable-abilities?characterID=${characterId}`, {
+  const response = await apiFetch(`/api/beasts/${beastId}/harvestable-abilities?characterID=${characterId}`, {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
@@ -59,7 +60,7 @@ const getHarvestableAbilitiesApi = async (
 };
 
 const confirmHarvestApi = async (data: ConfirmHarvestRequest, token: string): Promise<unknown> => {
-  const response = await fetch(`/api/characters/${data.character_id}/harvest`, {
+  const response = await apiFetch(`/api/characters/${data.character_id}/harvest`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

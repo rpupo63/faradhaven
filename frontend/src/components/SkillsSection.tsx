@@ -10,7 +10,8 @@ import {
 import { rollD20, type RollResult } from '@/lib/dice';
 import { DND5E_SKILLS, DND5E_SAVING_THROWS } from '@/types/game';
 import type { NormalizedCharacterSheet } from '@/types/game';
-import { ChevronDown, ChevronRight, BookOpen, Shield } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 
 interface SkillsSectionProps {
   sheet: NormalizedCharacterSheet;
@@ -50,7 +51,7 @@ export function SkillsSection({
     <Card className={cn('arcane-border bg-card', className)}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base font-tome-subheading text-primary">
-          <BookOpen className="h-4 w-4" />
+          <RaIcon name="book" className="text-sm" />
           Skills & Saving Throws
         </CardTitle>
         <p className="text-xs text-muted-foreground font-tome-marginalia">
@@ -119,7 +120,7 @@ export function SkillsSection({
               className="w-full justify-between font-tome-subheading"
             >
               <span className="flex items-center gap-2">
-                <Shield className="h-4 w-4" />
+                <RaIcon name="shield" className="text-sm" />
                 Saving Throws
               </span>
               {savesOpen ? (

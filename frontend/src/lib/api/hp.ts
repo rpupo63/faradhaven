@@ -1,4 +1,4 @@
-import { getBaseUrl, handleResponse } from './base';
+import { getBaseUrl, handleResponse, apiFetch } from './base';
 
 // === HP Management Types ===
 
@@ -46,7 +46,7 @@ export async function updateHP(
   const url = `${base}/api/character/${characterId}/hp`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'PATCH',
     headers,
     body: JSON.stringify({ delta, source }),
@@ -66,7 +66,7 @@ export async function setTempHP(
   const url = `${base}/api/character/${characterId}/temp-hp`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'PUT',
     headers,
     body: JSON.stringify({ temp_hp: tempHP }),
@@ -86,7 +86,7 @@ export async function spendHitDice(
   const url = `${base}/api/character/${characterId}/hit-dice`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify({ rolls }),
@@ -105,7 +105,7 @@ export async function shortRest(
   const url = `${base}/api/character/${characterId}/rest/short`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { method: 'POST', headers });
+  const res = await apiFetch(url, { method: 'POST', headers });
   return handleResponse<RestResponse>(res, 'Failed to short rest');
 }
 
@@ -120,6 +120,6 @@ export async function longRest(
   const url = `${base}/api/character/${characterId}/rest/long`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { method: 'POST', headers });
+  const res = await apiFetch(url, { method: 'POST', headers });
   return handleResponse<RestResponse>(res, 'Failed to long rest');
 }

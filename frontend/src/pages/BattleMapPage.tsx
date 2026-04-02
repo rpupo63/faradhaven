@@ -155,9 +155,9 @@ const MapView = ({ mapIdOrCode, isRoomCode, token, userId }: { mapIdOrCode: stri
     const isDM = mapData.owner_id === userId;
 
     return (
-        <ResizablePanelGroup direction="horizontal" className="flex h-[calc(100vh-4rem)] overflow-hidden">
+        <ResizablePanelGroup direction="horizontal" className="flex h-[calc(100vh-4rem)]">
             <ResizablePanel defaultSize={isDM ? 75 : 100} minSize={30}>
-                <div className="flex-1 overflow-hidden bg-background relative h-full">
+                <div className="flex-1 bg-background relative h-full">
                     {/* Room Code Overlay for Players */}
                     <div className="absolute top-4 right-4 bg-card/80 p-2 rounded text-xs text-muted-foreground z-10">
                         Room: <span className="font-mono text-foreground">{mapData.room_code}</span>

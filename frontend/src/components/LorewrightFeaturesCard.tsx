@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Skull, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/components/ui/use-toast';
 import { rollMadness, forageComponents } from '@/lib/api';
@@ -92,7 +93,7 @@ export const LorewrightFeaturesCard: React.FC<LorewrightFeaturesCardProps> = ({ 
       <div>
         <h3 className="text-md font-semibold mb-2">Trauma Level</h3>
         <div className="flex items-center gap-2">
-          <Skull className="h-5 w-5 text-red-500" />
+          <RaIcon name="skull" className="text-base text-red-500" />
           <span className="text-lg font-bold">{sheet.trauma ?? 0}</span>
           <p className="text-sm text-muted-foreground">
             (Effects: {sheet.trauma === 1 && 'Disadvantage on Charisma checks.'}

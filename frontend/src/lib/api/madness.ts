@@ -1,3 +1,4 @@
+import { apiFetch } from './base';
 // frontend/src/lib/api/madness.ts
 import { getBaseUrl } from '@/lib/api/base';
 
@@ -10,7 +11,7 @@ export interface MadnessRollResult {
 }
 
 export const rollMadness = async (characterId: string, token: string): Promise<MadnessRollResult> => {
-  const response = await fetch(`${getBaseUrl()}/api/characters/${characterId}/madness/roll`, {
+  const response = await apiFetch(`${getBaseUrl()}/api/characters/${characterId}/madness/roll`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

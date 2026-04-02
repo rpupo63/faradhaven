@@ -13,7 +13,7 @@ type UserRepository interface {
 	FindByID(id uuid.UUID) (*models.User, error)
 	FindByIDWithAllRelations(id uuid.UUID) (*models.User, error)
 	FindByEmail(email string) (*models.User, error)
-	FindByToken(token string) (*models.User, error)
+	FindByRefreshToken(token string) (*models.User, error)
 	Add(user *models.User) error
 	Update(user *models.User) error
 	Delete(id uuid.UUID) error
@@ -69,13 +69,13 @@ func (r *UserRepo) FindByEmail(email string) (*models.User, error) {
 	return &user, nil
 }
 
-// FindByToken returns a user by session token (Bearer token from frontend)
-func (r *UserRepo) FindByToken(token string) (*models.User, error) {
+// FindByRefreshToken returns a user by their refresh token
+func (r *UserRepo) FindByRefreshToken(token string) (*models.User, error) {
 	if token == "" {
 		return nil, gorm.ErrRecordNotFound
 	}
 	var user models.User
-	err := r.db.First(&user, "token = ?", token).Error
+	err := r.db.First(&user, "refresh_token = ?", token).Error
 	if err != nil {
 		return nil, err
 	}

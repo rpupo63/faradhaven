@@ -1,4 +1,4 @@
-import { Swords, Star } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { ApiLevelUpPreview } from '@/types/game';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -25,7 +25,7 @@ export function WeaponSelection({ preview, selectedWeaponId, onSelect }: WeaponS
   return (
     <div className="space-y-4">
       <h3 className="font-tome-subheading text-lg text-primary flex items-center gap-2">
-        <Swords className="h-5 w-5" />
+        <RaIcon name="crossed-swords" className="text-base" />
         Select Your Signature Weapon
       </h3>
       <p className="text-sm text-muted-foreground font-tome-marginalia">
@@ -33,7 +33,7 @@ export function WeaponSelection({ preview, selectedWeaponId, onSelect }: WeaponS
       </p>
       <div className="p-3 rounded border border-primary/30 bg-primary/5">
         <p className="text-xs text-muted-foreground">
-          <Star className="h-3 w-3 inline mr-1" />
+          <RaIcon name="crown" className="text-xs inline mr-1" />
           The <span className="font-semibold text-primary">{modifierName}</span> will be permanently bonded to your chosen weapon.
         </p>
       </div>

@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Sparkles, ArrowLeft, Scroll, Shield } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { LoadingQuill } from '@/components/LoadingQuill';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -144,7 +145,7 @@ function ClassCard({ classData }: { classData: ApiClass }) {
             {hasComponents && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-xs font-tome-subheading text-muted-foreground uppercase tracking-wider">
-                  <Sparkles className="h-3 w-3" />
+                  <RaIcon name="aura" className="text-xs" />
                   <span>Components</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5 max-h-[4.5rem] overflow-hidden relative">
@@ -160,7 +161,7 @@ function ClassCard({ classData }: { classData: ApiClass }) {
             {/* Level 1 Features Section */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs font-tome-subheading text-muted-foreground uppercase tracking-wider">
-                <Scroll className="h-3 w-3" />
+                <RaIcon name="scroll-unfurled" className="text-xs" />
                 <span>Starting Features</span>
               </div>
               {hasFeatures ? (
@@ -182,7 +183,7 @@ function ClassCard({ classData }: { classData: ApiClass }) {
             {classData.proficiencies && (
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-xs font-tome-subheading text-muted-foreground uppercase tracking-wider">
-                  <Shield className="h-3 w-3" />
+                  <RaIcon name="shield" className="text-xs" />
                   <span>Proficiencies</span>
                 </div>
                 <p className="text-xs text-muted-foreground font-tome-marginalia line-clamp-2">
@@ -269,7 +270,7 @@ export function ClassesTabContent({ classId }: { classId?: string }) {
           <ClassBook classData={classWithLevels} />
         ) : (
           <div className="arcane-border rounded-xl p-12 text-center">
-            <BookOpen className="w-16 h-16 mx-auto mb-6 text-muted-foreground" />
+            <RaIcon name="book" className="text-6xl mx-auto mb-6 text-muted-foreground block" />
             <h2 className="font-tome-heading text-2xl text-primary mb-2">
               Class Not Found
             </h2>
@@ -290,7 +291,7 @@ export function ClassesTabContent({ classId }: { classId?: string }) {
       {/* Header */}
       <div className="flex items-center gap-4">
         <div className="p-3 rounded-full border-2 border-faded-gold/50 bg-primary/10">
-          <BookOpen className="w-6 h-6 text-primary" />
+          <RaIcon name="book" className="text-xl text-primary" />
         </div>
         <div>
           <h1 className="font-tome-heading text-3xl text-primary glow-text">
@@ -320,7 +321,7 @@ export function ClassesTabContent({ classId }: { classId?: string }) {
         </>
       ) : (
         <div className="arcane-border rounded-xl p-12 text-center">
-          <BookOpen className="w-16 h-16 mx-auto mb-6 text-muted-foreground" />
+          <RaIcon name="book" className="text-6xl mx-auto mb-6 text-muted-foreground block" />
           <h2 className="font-tome-heading text-2xl text-primary mb-2">
             No Classes Available
           </h2>

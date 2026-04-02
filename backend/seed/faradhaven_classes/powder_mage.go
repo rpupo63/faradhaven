@@ -72,33 +72,35 @@ func PowderMage() FaradhavenClassSeed {
 			{Key: "timer_duration", DisplayName: "Casting Timer", Category: "modifier", Description: "Seconds available for real-time component input", DisplayOrder: 1},
 			{Key: "speed_dial_slots", DisplayName: "Speed Dial Slots", Category: "slot_count", Description: "Pre-saved component strings for instant casting. Click a slot to mark it used; restores on rest.", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 2},
 			{Key: "cascade_bonus", DisplayName: "Cascade Bonus", Category: "pool", Description: "Stacking +1d6 damage bonus from multi-component spells (max 2 stacks). Resets on next cast.", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 3},
+			{Key: "powder_charges", DisplayName: "Powder Charges", Category: "pool", Description: "Plentiful ignition fuel for timed casts and prepared spells. Restores on long rest.", IsTrackable: true, RestoreOnShortRest: false, RestoreOnLongRest: true, DisplayOrder: 4},
 		},
 	}
 }
 
 func powderMageLevelProgression() map[int]ClassLevelSeed {
 	// Powder Mage gains movement speed bonuses and timer/speed dial upgrades
+	// powder_charges: 10 + 2*level (L1=12 … L20=50), plentiful for timed and list casting
 	return map[int]ClassLevelSeed{
-		1:  {Resources: map[string]int{"timer_duration": 2, "speed_dial_slots": 0, "cascade_bonus": 0}},
-		2:  {UnarmoredMovement: 10, Resources: map[string]int{"timer_duration": 2, "speed_dial_slots": 0, "cascade_bonus": 0}},
-		3:  {UnarmoredMovement: 10, Resources: map[string]int{"timer_duration": 2, "speed_dial_slots": 1, "cascade_bonus": 0}},
-		4:  {UnarmoredMovement: 10, Resources: map[string]int{"timer_duration": 2, "speed_dial_slots": 1, "cascade_bonus": 0}},
-		5:  {UnarmoredMovement: 10, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 1, "cascade_bonus": 0}},
-		6:  {UnarmoredMovement: 15, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 1, "cascade_bonus": 0}},
-		7:  {UnarmoredMovement: 15, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 1, "cascade_bonus": 0}},
-		8:  {UnarmoredMovement: 15, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 1, "cascade_bonus": 0}},
-		9:  {UnarmoredMovement: 15, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 2, "cascade_bonus": 0}},
-		10: {UnarmoredMovement: 15, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 2, "cascade_bonus": 2}},
-		11: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 2, "cascade_bonus": 2}},
-		12: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 2, "cascade_bonus": 2}},
-		13: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 2, "cascade_bonus": 2}},
-		14: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 2, "cascade_bonus": 2}},
-		15: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 3, "cascade_bonus": 2}},
-		16: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 3, "cascade_bonus": 2}},
-		17: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 5, "speed_dial_slots": 3, "cascade_bonus": 2}},
-		18: {UnarmoredMovement: 30, Resources: map[string]int{"timer_duration": 5, "speed_dial_slots": 3, "cascade_bonus": 2}},
-		19: {UnarmoredMovement: 30, Resources: map[string]int{"timer_duration": 5, "speed_dial_slots": 3, "cascade_bonus": 2}},
-		20: {UnarmoredMovement: 30, Resources: map[string]int{"timer_duration": 5, "speed_dial_slots": 3, "cascade_bonus": 2}},
+		1:  {Resources: map[string]int{"timer_duration": 2, "speed_dial_slots": 0, "cascade_bonus": 0, "powder_charges": 12}},
+		2:  {UnarmoredMovement: 10, Resources: map[string]int{"timer_duration": 2, "speed_dial_slots": 0, "cascade_bonus": 0, "powder_charges": 14}},
+		3:  {UnarmoredMovement: 10, Resources: map[string]int{"timer_duration": 2, "speed_dial_slots": 1, "cascade_bonus": 0, "powder_charges": 16}},
+		4:  {UnarmoredMovement: 10, Resources: map[string]int{"timer_duration": 2, "speed_dial_slots": 1, "cascade_bonus": 0, "powder_charges": 18}},
+		5:  {UnarmoredMovement: 10, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 1, "cascade_bonus": 0, "powder_charges": 20}},
+		6:  {UnarmoredMovement: 15, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 1, "cascade_bonus": 0, "powder_charges": 22}},
+		7:  {UnarmoredMovement: 15, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 1, "cascade_bonus": 0, "powder_charges": 24}},
+		8:  {UnarmoredMovement: 15, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 1, "cascade_bonus": 0, "powder_charges": 26}},
+		9:  {UnarmoredMovement: 15, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 2, "cascade_bonus": 0, "powder_charges": 28}},
+		10: {UnarmoredMovement: 15, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 2, "cascade_bonus": 2, "powder_charges": 30}},
+		11: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 2, "cascade_bonus": 2, "powder_charges": 32}},
+		12: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 2, "cascade_bonus": 2, "powder_charges": 34}},
+		13: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 2, "cascade_bonus": 2, "powder_charges": 36}},
+		14: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 2, "cascade_bonus": 2, "powder_charges": 38}},
+		15: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 3, "cascade_bonus": 2, "powder_charges": 40}},
+		16: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 3, "cascade_bonus": 2, "powder_charges": 42}},
+		17: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 5, "speed_dial_slots": 3, "cascade_bonus": 2, "powder_charges": 44}},
+		18: {UnarmoredMovement: 30, Resources: map[string]int{"timer_duration": 5, "speed_dial_slots": 3, "cascade_bonus": 2, "powder_charges": 46}},
+		19: {UnarmoredMovement: 30, Resources: map[string]int{"timer_duration": 5, "speed_dial_slots": 3, "cascade_bonus": 2, "powder_charges": 48}},
+		20: {UnarmoredMovement: 30, Resources: map[string]int{"timer_duration": 5, "speed_dial_slots": 3, "cascade_bonus": 2, "powder_charges": 50}},
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -39,6 +40,38 @@ func parsePaginationParams(r *http.Request) (page, limit, levelFilter int, err e
 	}
 
 	levelFilter = 0 // 0 means no filter
+	if levelStr != "" {
+		levelFilter, err = strconv.Atoi(levelStr)
+		if err != nil || levelFilter < 1 {
+			return 0, 0, 0, errs.BadRequest("invalid level parameter")
+		}
+	}
+	return page, limit, levelFilter, nil
+}
+
+// parseSpellbookPaginationParams is like parsePaginationParams but defaults limit to 20.
+func parseSpellbookPaginationParams(r *http.Request) (page, limit, levelFilter int, err error) {
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+	levelStr := r.URL.Query().Get("level")
+
+	page = 1
+	if pageStr != "" {
+		page, err = strconv.Atoi(pageStr)
+		if err != nil || page < 1 {
+			return 0, 0, 0, errs.BadRequest("invalid page parameter")
+		}
+	}
+
+	limit = 20
+	if limitStr != "" {
+		limit, err = strconv.Atoi(limitStr)
+		if err != nil || limit < 1 {
+			return 0, 0, 0, errs.BadRequest("invalid limit parameter")
+		}
+	}
+
+	levelFilter = 0
 	if levelStr != "" {
 		levelFilter, err = strconv.Atoi(levelStr)
 		if err != nil || levelFilter < 1 {
@@ -133,11 +166,12 @@ type SynthesizeRequest struct {
 	ComponentIDs []uuid.UUID `json:"component_ids"`
 }
 
-// CharacterSpellbookResponse is the response for the character spellbook endpoint
-type CharacterSpellbookResponse struct {
-	MySpells        []*models.Spell `json:"my_spells"`
-	AvailableSpells []*models.Spell `json:"available_spells"`
-}
+const (
+	spellbookScopeMine          = "mine"
+	spellbookScopeCastable      = "castable"
+	spellbookScopeMineOrCastable = "mine_or_castable"
+	spellbookScopeAll           = "all"
+)
 
 // isGM checks if the authenticated user is the game master
 func (h *spellHandler) isGM(r *http.Request) (bool, error) {
@@ -181,8 +215,32 @@ func (h *spellHandler) getUncheckedSpells() http.HandlerFunc {
 	}
 }
 
-// getCharacterSpellbook returns all spells available to a character
+// getCharacterSpellbook returns a paginated spell list for a character by scope.
 func (h *spellHandler) getCharacterSpellbook() http.HandlerFunc {
+	type paginatedSpellbookResponse struct {
+		Spells     []SpellResponse `json:"spells"`
+		TotalCount int64           `json:"total_count"`
+		Page       int             `json:"page"`
+		Limit      int             `json:"limit"`
+	}
+
+	respondSpellsPage := func(w http.ResponseWriter, spells []*models.Spell, totalCount int64, page, limit int) {
+		out := make([]SpellResponse, len(spells))
+		for i, spell := range spells {
+			out[i] = SpellResponse{Spell: spell}
+			if spell.Character != nil {
+				out[i].CharacterName = &spell.Character.Name
+				out[i].CharacterClass = &spell.Character.Class.Name
+			}
+		}
+		respondJSON(w, http.StatusOK, paginatedSpellbookResponse{
+			Spells:     out,
+			TotalCount: totalCount,
+			Page:       page,
+			Limit:      limit,
+		})
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		characterIDStr := chi.URLParam(r, "characterID")
 		characterID, err := uuid.Parse(characterIDStr)
@@ -207,67 +265,108 @@ func (h *spellHandler) getCharacterSpellbook() http.HandlerFunc {
 			return
 		}
 
-		// Get all spells with components — unbounded, no artificial limit
-		allSpells, err := h.spellRepo.FindAllWithComponents()
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to get spells")
-			respondError(w, http.StatusInternalServerError, "Failed to get spells")
+		scope := r.URL.Query().Get("scope")
+		if scope == "" {
+			scope = spellbookScopeMineOrCastable
+		}
+		switch scope {
+		case spellbookScopeMine, spellbookScopeCastable, spellbookScopeMineOrCastable, spellbookScopeAll:
+		default:
+			respondError(w, http.StatusBadRequest, "invalid scope parameter")
 			return
 		}
 
-		// Pool from current class + race rows (not character_components)
-		class := &character.Class
-		race := &character.Race
-		unlimitedComponentIDs := SpellPoolAllowlist(class, race)
-
-		// Get character's components with counts
-		characterComponentCounts := make(map[uuid.UUID]int)
-		for _, charComp := range character.Components {
-			characterComponentCounts[charComp.ComponentID] = charComp.Count
+		page, limit, levelFilter, err := parseSpellbookPaginationParams(r)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, err.Error())
+			return
 		}
 
-		mySpells := []*models.Spell{}
-		availableSpells := []*models.Spell{}
+		switch scope {
+		case spellbookScopeMine:
+			spells, totalCount, err := h.spellRepo.FindByUserIDPaginated(character.UserID, page, limit, levelFilter)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to get character spellbook (mine)")
+				respondError(w, http.StatusInternalServerError, "Failed to get spells")
+				return
+			}
+			respondSpellsPage(w, spells, totalCount, page, limit)
 
-		for i := range allSpells {
-			spell := allSpells[i]
-			// My Spells
-			if spell.UserID == character.UserID {
-				mySpells = append(mySpells, spell)
+		case spellbookScopeAll:
+			spells, totalCount, err := h.spellRepo.FindAll(page, limit, levelFilter)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to get character spellbook (all)")
+				respondError(w, http.StatusInternalServerError, "Failed to get spells")
+				return
+			}
+			respondSpellsPage(w, spells, totalCount, page, limit)
+
+		case spellbookScopeCastable, spellbookScopeMineOrCastable:
+			allSpells, err := h.spellRepo.FindAllWithComponents()
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to get spells")
+				respondError(w, http.StatusInternalServerError, "Failed to get spells")
+				return
 			}
 
-			// Available Spells
-			if len(spell.Components) == 0 {
-				availableSpells = append(availableSpells, spell)
-				continue
+			class := &character.Class
+			race := &character.Race
+			unlimitedComponentIDs := SpellPoolAllowlist(class, race)
+
+			characterComponentCounts := make(map[uuid.UUID]int)
+			for _, charComp := range character.Components {
+				characterComponentCounts[charComp.ComponentID] = charComp.Count
 			}
 
-			needByCompID := make(map[uuid.UUID]int)
-			for _, spellComp := range spell.Components {
-				if unlimitedComponentIDs[spellComp.ID] {
-					continue
+			var filtered []*models.Spell
+			if scope == spellbookScopeCastable {
+				for _, sp := range allSpells {
+					if !spellCastableForCharacter(sp, unlimitedComponentIDs, characterComponentCounts) {
+						continue
+					}
+					if levelFilter > 0 && sp.Level != levelFilter {
+						continue
+					}
+					filtered = append(filtered, sp)
 				}
-				needByCompID[spellComp.ID]++
-			}
-			hasAllComponents := true
-			for id, need := range needByCompID {
-				if characterComponentCounts[id] < need {
-					hasAllComponents = false
-					break
+			} else {
+				seen := make(map[uuid.UUID]struct{})
+				for _, sp := range allSpells {
+					mine := sp.UserID == character.UserID
+					cast := spellCastableForCharacter(sp, unlimitedComponentIDs, characterComponentCounts)
+					if !mine && !cast {
+						continue
+					}
+					if levelFilter > 0 && sp.Level != levelFilter {
+						continue
+					}
+					if _, ok := seen[sp.ID]; ok {
+						continue
+					}
+					seen[sp.ID] = struct{}{}
+					filtered = append(filtered, sp)
 				}
 			}
 
-			if hasAllComponents {
-				availableSpells = append(availableSpells, spell)
+			sort.Slice(filtered, func(i, j int) bool {
+				if filtered[i].Level != filtered[j].Level {
+					return filtered[i].Level < filtered[j].Level
+				}
+				return filtered[i].Name < filtered[j].Name
+			})
+
+			totalCount := int64(len(filtered))
+			offset := (page - 1) * limit
+			var pageSpells []*models.Spell
+			if offset < len(filtered) {
+				end := offset + limit
+				if end > len(filtered) {
+					end = len(filtered)
+				}
+				pageSpells = filtered[offset:end]
 			}
+			respondSpellsPage(w, pageSpells, totalCount, page, limit)
 		}
-
-		response := CharacterSpellbookResponse{
-			MySpells:        mySpells,
-			AvailableSpells: availableSpells,
-		}
-
-		respondJSON(w, http.StatusOK, response)
 	}
 }
 
@@ -354,13 +453,13 @@ func (h *spellHandler) getSpellsByUser() http.HandlerFunc {
 			return
 		}
 
-		page, limit, _, err := parsePaginationParams(r)
+		page, limit, levelFilter, err := parsePaginationParams(r)
 		if err != nil {
 			respondError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 
-		spells, totalCount, err := h.spellRepo.FindByUserIDPaginated(userID, page, limit)
+		spells, totalCount, err := h.spellRepo.FindByUserIDPaginated(userID, page, limit, levelFilter)
 		if err != nil {
 			log.Error().Err(err).Str("userID", userIDStr).Msg("Failed to get spells")
 			respondError(w, http.StatusInternalServerError, "Failed to get spells")

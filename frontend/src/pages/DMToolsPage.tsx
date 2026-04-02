@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Layout } from '@/components/Layout';
-import { Hammer, Bone, Swords } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { useLocation } from 'react-router-dom';
 
 // Import the content components for each tab
@@ -35,11 +35,11 @@ export default function DMToolsPage() {
             <div className="order-last md:order-none w-full md:w-auto overflow-x-auto">
               <TabsList className="grid grid-cols-2 w-full md:w-auto min-w-[300px]">
                 <TabsTrigger value="battle-map" className="gap-2 px-3">
-                  <Swords className="h-4 w-4" />
+                  <RaIcon name="crossed-swords" className="text-sm" />
                   <span className="hidden sm:inline">Battle Map</span>
                 </TabsTrigger>
                 <TabsTrigger value="monster-builder" className="gap-2 px-3">
-                  <Hammer className="h-4 w-4" />
+                  <RaIcon name="anvil" className="text-sm" />
                   <span className="hidden sm:inline">Monster Builder</span>
                 </TabsTrigger>
               </TabsList>

@@ -114,10 +114,17 @@ func initializeHandlers(db database.Database, hub *Hub) *routeHandlers {
 	// NEW: Initialize PartyHandler
 	partyHandlerInstance := newPartyHandler(db.PartyRepo(), db.CharacterRepo(), db.BeastRepo())
 
+	savedSpellService := services.NewSavedSpellService(
+		db.DB(),
+		db.SavedSpellRepo(),
+		db.CharacterRepo(),
+		db.ClassRepo(),
+	)
+
 	return &routeHandlers{
 		authHandler:            newAuthHandler(db.UserRepo()),
 		userHandler:            newUserHandler(db.UserRepo()),
-		characterHandler:       newCharacterHandler(db.CharacterRepo(), db.RaceRepo(), db.ClassRepo(), db.CharacterResourceRepo(), db.ItemRepo(), db.WeaponRepo(), db.SpellRepo(), resourceService, notorietyService, s3Service, componentInterpreterService, db.PartyRepo(), db.ComponentRepo(), db.StoreOwnerRepo()),
+		characterHandler:       newCharacterHandler(db.CharacterRepo(), db.RaceRepo(), db.ClassRepo(), db.CharacterResourceRepo(), db.ItemRepo(), db.WeaponRepo(), db.SpellRepo(), resourceService, notorietyService, s3Service, componentInterpreterService, db.PartyRepo(), db.ComponentRepo(), db.StoreOwnerRepo(), savedSpellService),
 		spellHandler:           newSpellHandler(db.SpellRepo(), db.CharacterRepo(), db.ClassRepo(), db.RaceRepo(), db.UserRepo(), synthesisService, componentInterpreterService, spellAIService),
 		beastHandler:           newBeastHandler(db.BeastRepo(), db.AttackRepo()),
 		levelHandler:           levelHandlerInstance, // Use the instance

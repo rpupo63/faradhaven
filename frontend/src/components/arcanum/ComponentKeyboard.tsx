@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { categoryColors } from './ElementTile'; // We'll reuse the colors
+import { ComponentRpgGlyph } from './ComponentRpgGlyph';
 import { categoryOrder } from './ElementTable';
 import type { ApiComponent } from '@/types/game';
 
@@ -170,10 +171,12 @@ export function ComponentKeyboard({
           </span>
         )}
 
-        {/* Component Symbol (Center) */}
-        <span className={cn("text-lg font-bold font-mono mt-1", colors.text)}>
-          {component.symbol}
-        </span>
+        {/* Component icon or symbol (center) */}
+        <ComponentRpgGlyph
+          component={component}
+          iconClassName={cn('text-xl mt-1 leading-none', colors.text)}
+          fallbackClassName={cn('text-lg font-bold font-mono mt-1', colors.text)}
+        />
 
         {/* Component Name (Bottom, truncated) */}
         <span className="text-micro text-center opacity-80 font-medium">

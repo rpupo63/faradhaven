@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-full shrink",
   {
     variants: {
       variant: {
@@ -15,19 +15,19 @@ const badgeVariants = cva(
         "element-heal": "border-transparent bg-element-heal text-background hover:bg-element-heal/80",
         "element-lightning": "border-transparent bg-element-lightning text-background hover:bg-element-lightning/80",
         warning: "border-destructive/30 bg-destructive/10 text-destructive",
-        accent: "border-transparent bg-accent text-accent-foreground hover:bg-accent/80", // New variant
-        success: "border-transparent bg-green-500 text-white hover:bg-green-500/80", // New variant
+        accent: "border-transparent bg-accent text-accent-foreground hover:bg-accent/80",
+        success: "border-transparent bg-green-500 text-white hover:bg-green-500/80",
       },
       size: {
-        default: "px-2.5 py-0.5 text-xs", // The current default size
-        sm: "h-4 px-1 py-0 text-micro", // Common small size
-        tiny: "h-4 px-1.5 py-0 text-tiny", // Even smaller
-        lg: "px-3 py-1 text-lg",
-        xl: "px-4 py-2 text-xl",
-        "xl-compact": "px-3 py-1 text-xl",
-        "h5-sm": "h-5 px-1 py-0 text-micro", // For PreparedSpells.tsx concentration
-        "min-w-sm": "min-w-[3rem] justify-center", // Added default size values to not break it
-        "min-w-xs": "min-w-[1.2rem] flex justify-center", // Added default size values
+        default: "px-2.5 py-0.5 text-xs",
+        sm: "h-4 px-2 py-0 text-micro",
+        tiny: "h-3.5 px-1.5 py-0 text-[0.625rem] leading-none", // Slightly smaller than micro
+        lg: "px-3 py-1 text-base sm:text-lg", // Responsive sizing
+        xl: "px-4 py-2 text-lg sm:text-xl", // Responsive sizing
+        "xl-compact": "px-3 py-1 text-lg sm:text-xl",
+        "h5-sm": "h-5 px-2 py-0 text-micro",
+        "min-w-sm": "min-w-[3rem] justify-center",
+        "min-w-xs": "min-w-[1.2rem] flex justify-center",
       },
       font: {
         tomeMarginalia: "font-tome-marginalia",
@@ -45,7 +45,7 @@ const badgeVariants = cva(
         "muted-subtle-outline": "bg-muted/50 text-muted-foreground border-muted-foreground/30",
         "element-ice-outline": "bg-element-ice/10 text-element-ice border-element-ice/30",
         "element-dark-outline": "bg-element-dark/10 text-element-dark border-element-dark/30",
-        "destructive-outline": "border-destructive text-destructive", // New theme variant
+        "destructive-outline": "border-destructive text-destructive",
         "warning": "bg-amber-500/10 border-amber-500/30 text-amber-500",
         "info": "bg-sky-500/10 border-sky-500/30 text-sky-500",
       }
@@ -61,7 +61,13 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, Varian
 
 const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
   ({ className, variant, size, font, theme, ...props }, ref) => {
-    return <div ref={ref} className={cn(badgeVariants({ variant, size, font, theme }), className)} {...props} />;
+    return (
+      <div 
+        ref={ref} 
+        className={cn(badgeVariants({ variant, size, font, theme }), className)} 
+        {...props} 
+      />
+    );
   }
 );
 Badge.displayName = "Badge";

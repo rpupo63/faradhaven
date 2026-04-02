@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { NormalizedCharacterSheet } from '@/types/game';
-import { ScrollText } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 
 interface ProficienciesSectionProps {
   sheet: NormalizedCharacterSheet;
@@ -22,7 +22,7 @@ export function ProficienciesSection({ sheet, className }: ProficienciesSectionP
     <Card className={cn('arcane-border bg-card', className)}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base font-tome-subheading text-primary">
-          <ScrollText className="h-4 w-4" />
+          <RaIcon name="scroll-unfurled" className="text-sm" />
           Proficiencies
         </CardTitle>
       </CardHeader>

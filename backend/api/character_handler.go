@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -34,6 +35,7 @@ type characterHandler struct {
 	partyRepo             database.PartyRepository
 	componentRepo         *database.ComponentRepo
 	storeOwnerRepo        database.StoreOwnerRepository
+	savedSpellService     *services.SavedSpellService
 }
 
 func newCharacterHandler(
@@ -50,7 +52,8 @@ func newCharacterHandler(
 	componentInterpreter *services.ComponentInterpreterService,
 	partyRepo database.PartyRepository,
 	componentRepo *database.ComponentRepo,
-	storeOwnerRepo database.StoreOwnerRepository) *characterHandler {
+	storeOwnerRepo database.StoreOwnerRepository,
+	savedSpellService *services.SavedSpellService) *characterHandler {
 	return &characterHandler{
 		characterRepo:         characterRepo,
 		raceRepo:              raceRepo,
@@ -66,6 +69,7 @@ func newCharacterHandler(
 		partyRepo:             partyRepo,
 		componentRepo:         componentRepo,
 		storeOwnerRepo:        storeOwnerRepo,
+		savedSpellService:     savedSpellService,
 	}
 }
 
@@ -778,8 +782,10 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 
 		// 0. Handle Spell Components
 		cost := 0
+		var loadedSpell *models.Spell
 		if req.SpellID != nil {
-			spell, err := h.spellRepo.FindByID(*req.SpellID)
+			var err error
+			loadedSpell, err = h.spellRepo.FindByID(*req.SpellID)
 			if err != nil {
 				respondError(w, http.StatusNotFound, "Spell not found")
 				return
@@ -787,7 +793,7 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 
 			// Validate: pool components pass freely; non-pool must meet multiset inventory counts
 			needByCompID := make(map[uuid.UUID]int)
-			for _, comp := range spell.Components {
+			for _, comp := range loadedSpell.Components {
 				if spellPoolIDs[comp.ID] {
 					continue
 				}
@@ -795,7 +801,7 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 			}
 			for compID, need := range needByCompID {
 				name := compID.String()
-				for _, c := range spell.Components {
+				for _, c := range loadedSpell.Components {
 					if c.ID == compID {
 						name = c.Name
 						break
@@ -821,7 +827,7 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 			}
 
 			// Consume only non-pool components from inventory (one decrement per spell component slot)
-			for _, comp := range spell.Components {
+			for _, comp := range loadedSpell.Components {
 				if spellPoolIDs[comp.ID] {
 					continue
 				}
@@ -841,10 +847,10 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 			// Calculate Cost
 			if class.Name == "The Rift Weaver" {
 				// Rift Weaver: Cost is 2 SP per component
-				cost = spell.Level * 2
+				cost = loadedSpell.Level * 2
 			} else if class.Name == "The Piston Brawler" {
 				// Piston Brawler: sum of component tiers (tier 1 +1 stability, tier 2 +2, etc.)
-				for _, comp := range spell.Components {
+				for _, comp := range loadedSpell.Components {
 					t := comp.Tier
 					if t < 1 {
 						t = 1
@@ -855,13 +861,13 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 					if req.SpellLevel > 0 {
 						cost = req.SpellLevel
 					} else {
-						cost = spell.Level
+						cost = loadedSpell.Level
 					}
 				}
 			} else {
 				// Default: Cost is Spell Level (component count)
 				if req.SpellLevel == 0 {
-					cost = spell.Level
+					cost = loadedSpell.Level
 				} else {
 					cost = req.SpellLevel
 				}
@@ -905,13 +911,79 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 		if class.Name == "The Mutagen" {
 			character.MadnessCastCount++
 		} else if class.Name == "The Powder Mage" {
-			spellResult, err := h.componentInterpreter.Interpret(req.Components)
+			var interpretNames []string
+			if len(req.Components) > 0 {
+				interpretNames = req.Components
+			} else if loadedSpell != nil && len(loadedSpell.Components) > 0 {
+				interpretNames = make([]string, len(loadedSpell.Components))
+				for i := range loadedSpell.Components {
+					interpretNames[i] = loadedSpell.Components[i].Name
+				}
+			} else {
+				respondError(w, http.StatusBadRequest, "Powder Mage cast requires spell_id with components, or a components array")
+				return
+			}
+
+			if err := tx.Commit().Error; err != nil {
+				log.Error().Err(err).Msg("Failed to commit Powder Mage cast transaction")
+				respondError(w, http.StatusInternalServerError, "Database commit failed")
+				return
+			}
+
+			skipPowderCharge := false
+			if loadedSpell != nil && h.savedSpellService != nil {
+				savedSpells, err := h.savedSpellService.GetSpeedDial(character.ID)
+				if err != nil {
+					log.Error().Err(err).Msg("Failed to load speed dial for Powder Mage")
+					respondError(w, http.StatusInternalServerError, "Failed to load speed dial")
+					return
+				}
+				skipPowderCharge = powderMageSpellMatchesSavedSpeedDial(loadedSpell, savedSpells)
+			}
+
+			if !skipPowderCharge {
+				if err := h.resourceService.DeductResource(character.ID, "powder_charges", 1); err != nil {
+					log.Error().Err(err).Str("resource_key", "powder_charges").Msg("Failed to deduct powder charges")
+					if strings.Contains(err.Error(), "insufficient") {
+						respondError(w, http.StatusBadRequest, err.Error())
+					} else {
+						respondError(w, http.StatusInternalServerError, "Failed to deduct powder charges")
+					}
+					return
+				}
+			}
+
+			spellResult, err := h.componentInterpreter.Interpret(interpretNames)
 			if err != nil {
+				if !skipPowderCharge {
+					if refundErr := h.characterResourceRepo.UpdateCurrentValue(character.ID, "powder_charges", 1); refundErr != nil {
+						log.Error().Err(refundErr).Msg("Failed to refund powder charge after interpret failure")
+					}
+				}
 				respondError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to interpret components: %v", err))
 				return
 			}
-			tx.Commit()
-			respondJSON(w, http.StatusOK, spellResult)
+
+			payload := map[string]interface{}{
+				"current_spell_points":   character.CurrentSpellPoints,
+				"madness_cast_count":     character.MadnessCastCount,
+				"current_resource_value": h.resourceService.GetResourceValue(character.ID, "powder_charges"),
+			}
+			if skipPowderCharge {
+				payload["speed_dial_free_cast"] = true
+			} else {
+				payload["resource_key"] = "powder_charges"
+			}
+			raw, err := json.Marshal(spellResult)
+			if err != nil {
+				respondError(w, http.StatusInternalServerError, "Failed to encode spell result")
+				return
+			}
+			if err := json.Unmarshal(raw, &payload); err != nil {
+				respondError(w, http.StatusInternalServerError, "Failed to merge spell result")
+				return
+			}
+			respondJSON(w, http.StatusOK, payload)
 			return
 		} else if !skipResourceDeduction && resourceKeyToDeduct != "" {
 			err = h.resourceService.DeductResource(character.ID, resourceKeyToDeduct, finalCost)
@@ -1541,5 +1613,115 @@ character, err := h.characterRepo.FindByID(charID)
 			return
 		}
 		respondJSON(w, http.StatusOK, sheet)
+	}
+}
+
+// getSpeedDial returns all Speed Dial / blueprint slots for a character.
+func (h *characterHandler) getSpeedDial() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		charID, err := uuid.Parse(chi.URLParam(r, "characterID"))
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+		authUserIDStr, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		authUserID, _ := uuid.Parse(authUserIDStr)
+		belongs, err := h.characterRepo.CharacterBelongsToUser(charID, authUserID)
+		if err != nil || !belongs {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+		if h.savedSpellService == nil {
+			respondError(w, http.StatusInternalServerError, "Speed dial unavailable")
+			return
+		}
+		spells, err := h.savedSpellService.GetSpeedDial(charID)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to load speed dial")
+			return
+		}
+		respondJSON(w, http.StatusOK, spells)
+	}
+}
+
+// saveSpeedDialSlot saves the current component string to a slot (Powder Mage Speed Dial, Piston blueprint, etc.).
+func (h *characterHandler) saveSpeedDialSlot() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		charID, err := uuid.Parse(chi.URLParam(r, "characterID"))
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+		slotIndex, err := strconv.Atoi(chi.URLParam(r, "slotIndex"))
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid slot index")
+			return
+		}
+		authUserIDStr, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		authUserID, _ := uuid.Parse(authUserIDStr)
+		belongs, err := h.characterRepo.CharacterBelongsToUser(charID, authUserID)
+		if err != nil || !belongs {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+		if h.savedSpellService == nil {
+			respondError(w, http.StatusInternalServerError, "Speed dial unavailable")
+			return
+		}
+		var req services.SaveSpellRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+		saved, err := h.savedSpellService.SaveSpell(charID, slotIndex, req)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		respondJSON(w, http.StatusOK, saved)
+	}
+}
+
+// clearSpeedDialSlot removes a saved slot entry.
+func (h *characterHandler) clearSpeedDialSlot() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		charID, err := uuid.Parse(chi.URLParam(r, "characterID"))
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+		slotIndex, err := strconv.Atoi(chi.URLParam(r, "slotIndex"))
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid slot index")
+			return
+		}
+		authUserIDStr, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		authUserID, _ := uuid.Parse(authUserIDStr)
+		belongs, err := h.characterRepo.CharacterBelongsToUser(charID, authUserID)
+		if err != nil || !belongs {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+		if h.savedSpellService == nil {
+			respondError(w, http.StatusInternalServerError, "Speed dial unavailable")
+			return
+		}
+		if err := h.savedSpellService.ClearSlot(charID, slotIndex); err != nil {
+			respondError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		respondJSON(w, http.StatusOK, map[string]string{"message": "Slot cleared"})
 	}
 }

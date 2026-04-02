@@ -1,4 +1,4 @@
-import { getBaseUrl, handleResponse } from './base';
+import { getBaseUrl, handleResponse, apiFetch } from './base';
 import type {
   ApiCharacter,
   ApiClassLevel,
@@ -71,7 +71,7 @@ export async function getLevelUpPreview(
   const url = `${base}/api/character/${characterId}/level-up/preview`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<LevelUpPreview>(res, 'Failed to get preview');
 }
 
@@ -87,7 +87,7 @@ export async function levelUpCharacter(
   const url = `${base}/api/character/${characterId}/level-up`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify(request),
@@ -106,7 +106,7 @@ export async function levelDownCharacter(
   const url = `${base}/api/character/${characterId}/level-down`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { method: 'POST', headers });
+  const res = await apiFetch(url, { method: 'POST', headers });
   return handleResponse<LevelUpResponse>(res, 'Level-down failed');
 }
 
@@ -121,6 +121,6 @@ export async function getLevelHistory(
   const url = `${base}/api/character/${characterId}/level-history`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<LevelUpHistoryEntry[]>(res, 'Failed to get history');
 }

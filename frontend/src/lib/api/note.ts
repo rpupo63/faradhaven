@@ -1,8 +1,8 @@
-import { getBaseUrl, handleResponse } from './base';
+import { getBaseUrl, handleResponse, apiFetch } from './base';
 import { SharedNote } from '@/types/note';
 
 export async function getAllNotes(token: string): Promise<SharedNote[]> {
-  const res = await fetch(`${getBaseUrl()}/api/notes`, {
+  const res = await apiFetch(`${getBaseUrl()}/api/notes`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return handleResponse<SharedNote[]>(res, 'Failed to fetch notes');
@@ -29,7 +29,7 @@ export async function createNote(
   if (note.episodeTag) formData.append('episodeTag', note.episodeTag);
   if (pdf) formData.append('pdf', pdf);
 
-  const res = await fetch(`${getBaseUrl()}/api/notes`, {
+  const res = await apiFetch(`${getBaseUrl()}/api/notes`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: formData,

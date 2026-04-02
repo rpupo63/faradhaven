@@ -137,19 +137,21 @@ export const DMSidebar: React.FC<DMSidebarProps> = ({ mapData, token, userId, re
 
       const charDataMap: Record<string, { mod: number, score: number }> = {};
       for (const c of charsRes.characters) {
-        const dexMod = Math.floor((c.dexterity - 10) / 2);
+        const score = c.dexterity ?? 10;
+        const dexMod = Math.floor((score - 10) / 2);
         let bonus = 0;
         // Jack of All Trades (Bard Level 2+)
         if (c.class?.name === 'The Bard' && c.level >= 2) {
             const prof = Math.floor((c.level - 1) / 4) + 2;
             bonus += Math.floor(prof / 2);
         }
-        charDataMap[c.id] = { mod: dexMod + bonus, score: c.dexterity };
+        charDataMap[c.id] = { mod: dexMod + bonus, score: score };
       }
 
       const monsterDataMap: Record<string, { mod: number, score: number }> = {};
       for (const m of monstersRes) {
-        monsterDataMap[m.id] = { mod: Math.floor((m.dexterity - 10) / 2), score: m.dexterity };
+        const score = m.dexterity ?? 10;
+        monsterDataMap[m.id] = { mod: Math.floor((score - 10) / 2), score: score };
       }
 
       // Roll initiative for all tokens synchronously — showing one 3D die per
@@ -251,7 +253,7 @@ export const DMSidebar: React.FC<DMSidebarProps> = ({ mapData, token, userId, re
 
   return (
     <div className="w-64 bg-sidebar border-l border-sidebar-border h-full text-sidebar-foreground flex flex-col">
-      <div className="p-4 space-y-6 flex-grow overflow-y-auto">
+      <div className="p-4 space-y-6 flex-grow">
       <div>
         <h3 className="text-lg font-bold text-sidebar-primary mb-2">DM Controls</h3>
         <p className="text-xs text-sidebar-foreground mb-4">Room Code: <span className="font-mono text-sidebar-foreground select-all">{mapData.room_code}</span></p>

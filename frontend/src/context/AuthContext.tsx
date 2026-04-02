@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { login as apiLogin, register as apiRegister, getUserById, setActiveCharacter as apiSetActiveCharacter, updateUserDicePrefs, type ApiUser, type DicePrefs } from '@/lib/api';
+import { login as apiLogin, register as apiRegister, logoutApi, getUserById, setActiveCharacter as apiSetActiveCharacter, updateUserDicePrefs, type ApiUser, type DicePrefs } from '@/lib/api';
 
 export const DICE_THEME_DEFAULT = 'default';
 export const DICE_THEME_COLOR_DEFAULT = '#7A201C';
@@ -110,6 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    logoutApi(); // fire and forget
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_ID_KEY);
     setToken(null);

@@ -1,16 +1,16 @@
 import { cn } from '@/lib/utils';
+import { displayClassName } from '@/lib/characterDisplay';
 import { Character } from '@/types/game';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { useNavigate } from 'react-router-dom';
 import {
   Trash2,
-  BookOpen,
   User,
-  GraduationCap,
   ChevronRight,
   Star,
 } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 
 interface CharacterCardProps {
   character: Character;
@@ -22,7 +22,6 @@ interface CharacterCardProps {
 
 export function CharacterCard({ character, isActive, onSelect, onDelete, onSetActive }: CharacterCardProps) {
   const navigate = useNavigate();
-  const ClassIcon = GraduationCap;
 
   const handleCardClick = () => {
     onSelect();
@@ -32,7 +31,7 @@ export function CharacterCard({ character, isActive, onSelect, onDelete, onSetAc
   return (
     <div
       className={cn(
-        'arcane-border rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden flex flex-col',
+        'arcane-border rounded-lg cursor-pointer transition-all duration-300 group flex flex-col',
         isActive
           ? 'ring-2 ring-primary shadow-glow'
           : 'hover:ring-1 hover:ring-primary/50 hover:shadow-lg'
@@ -41,7 +40,7 @@ export function CharacterCard({ character, isActive, onSelect, onDelete, onSetAc
     >
       {/* Character Image Header */}
       {character.image_url && (
-        <div className="relative w-full h-40 overflow-hidden border-b border-border/50">
+        <div className="relative w-full h-40 overflow-hidden rounded-t-lg border-b border-border/50">
           <img 
             src={character.image_url} 
             alt={character.name} 
@@ -64,13 +63,14 @@ export function CharacterCard({ character, isActive, onSelect, onDelete, onSetAc
                 <h3 className="font-display text-lg text-primary glow-text leading-tight">{character.name}</h3>
                 {isActive && (
                   <Badge theme="primary-light-outline" size="sm">
-                    <Star className="w-2.5 h-2.5 mr-0.5 fill-current" />
+                    <Star className="w-3 h-3 mr-0.5 fill-current" />
                     Active
                   </Badge>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Level {character.level} {character.race} {character.class || 'Unknown'}
+              <p className="text-xs text-muted-foreground font-tome-marginalia mt-0.5">
+                Lvl {character.level} {displayClassName(character.class) || 'Unknown'}{' '}
+                {character.race}
               </p>
             </div>
           </div>
@@ -87,12 +87,9 @@ export function CharacterCard({ character, isActive, onSelect, onDelete, onSetAc
                 )}
                 title={isActive ? "Active Character" : "Set as Active Character"}
               >
-                <Star className={cn("w-4 h-4", isActive && "fill-current")} />
+                <Star className={cn('w-4 h-4', isActive && 'fill-primary text-primary')} />
               </button>
             )}
-            <span className="flex items-center justify-center w-6 h-6 text-primary">
-              <ClassIcon className="w-5 h-5" />
-            </span>
             <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
           </div>
         </div>
@@ -100,7 +97,7 @@ export function CharacterCard({ character, isActive, onSelect, onDelete, onSetAc
         <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/50">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1 text-muted-foreground text-xs">
-              <BookOpen className="w-3.5 h-3.5" />
+              <RaIcon name="book" className="text-xs" />
               <span>{character.spellbook.length} spells</span>
             </span>
           </div>

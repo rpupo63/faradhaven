@@ -1,4 +1,5 @@
-import { Moon, Sun, Dices } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -58,7 +59,7 @@ export function MobileSheetBottomBar({
           className="h-11 flex-1 min-w-0 flex-col gap-0 py-1.5 px-1"
           onClick={onOpenDice}
         >
-          <Dices className="h-4 w-4 shrink-0" />
+          <RaIcon name="perspective-dice-six" className="text-sm shrink-0" />
           <span className="text-micro font-tome-marginalia leading-tight">Dice</span>
         </Button>
       </div>

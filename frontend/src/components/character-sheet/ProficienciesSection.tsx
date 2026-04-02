@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, BookOpen, Zap, Dices } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -25,7 +25,7 @@ export function ProficienciesSection({ sheet, onRoll }: ProficienciesSectionProp
       <Card className="arcane-border bg-card">
         <CardHeader className="pb-2 px-3 pt-3">
           <CardTitle className="flex items-center gap-2 text-sm font-tome-subheading text-primary">
-            <Shield className="h-4 w-4" />
+            <RaIcon name="shield" className="text-sm" />
             Saving Throws
           </CardTitle>
         </CardHeader>
@@ -65,7 +65,7 @@ export function ProficienciesSection({ sheet, onRoll }: ProficienciesSectionProp
       <Card className="arcane-border bg-card">
         <CardHeader className="pb-2 px-3 pt-3">
           <CardTitle className="flex items-center gap-2 text-sm font-tome-subheading text-primary">
-            <BookOpen className="h-4 w-4" />
+            <RaIcon name="book" className="text-sm" />
             Skills
           </CardTitle>
         </CardHeader>

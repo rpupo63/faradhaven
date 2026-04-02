@@ -51,3 +51,28 @@ func MergeSpellPoolComponents(class *models.Class, race *models.Race) []models.C
 	})
 	return out
 }
+
+// spellCastableForCharacter reports whether the character can cast the spell given
+// class/race pool (unlimited) components and inventory counts. Matches spellbook
+// "available" eligibility (spells with no components are always castable).
+func spellCastableForCharacter(spell *models.Spell, unlimitedComponentIDs map[uuid.UUID]bool, characterComponentCounts map[uuid.UUID]int) bool {
+	if spell == nil {
+		return false
+	}
+	if len(spell.Components) == 0 {
+		return true
+	}
+	needByCompID := make(map[uuid.UUID]int)
+	for _, spellComp := range spell.Components {
+		if unlimitedComponentIDs[spellComp.ID] {
+			continue
+		}
+		needByCompID[spellComp.ID]++
+	}
+	for id, need := range needByCompID {
+		if characterComponentCounts[id] < need {
+			return false
+		}
+	}
+	return true
+}

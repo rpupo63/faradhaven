@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { type NormalizedCharacterSheet, type ApiCharacterWeapon } from '@/types/game';
-import { ChevronUp, ChevronDown, Sun, Moon, Skull } from 'lucide-react';
+import { ChevronUp, ChevronDown, Sun, Moon } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { LootModal } from '@/components/LootModal';
@@ -19,25 +20,13 @@ import { HPPanel } from './character-sheet/HPPanel';
 import { HitDicePanel } from './character-sheet/HitDicePanel';
 import { ClassResourceDisplay } from './character-sheet/ClassResourceDisplay';
 import { ComponentInventorySection } from './character-sheet/ComponentInventorySection';
-import { RacialResourceTracker } from './character-sheet/RacialResourceTracker';
-import { HarvestBankSection } from './character-sheet/HarvestBankSection';
 import { ActiveEffectsSection } from './character-sheet/ActiveEffectsSection';
-import { ConstructsSection } from './character-sheet/ConstructsSection';
-import { NotorietyMeter } from './character-sheet/NotorietyMeter';
 import { EquipmentSection } from './character-sheet/EquipmentSection';
 import { FeaturesSection } from './character-sheet/FeaturesSection';
 import { ActiveAbilitiesSection } from './character-sheet/ActiveAbilitiesSection';
 import { MoneyPanel } from './character-sheet/MoneyPanel';
 import { WeaponAttackDialog } from './character-sheet/WeaponAttackDialog';
 import { DieOptions } from './character-sheet/DieOptions';
-import { SanguinistFeaturesCard } from './SanguinistFeaturesCard';
-import { LorewrightFeaturesCard } from './LorewrightFeaturesCard';
-import { MutagenStatusCard } from './MutagenStatusCard';
-import { MutagenFeaturesCard } from './MutagenFeaturesCard';
-import { PowderMageStatusCard } from './PowderMageStatusCard';
-import { PowderMageFeaturesCard } from './PowderMageFeaturesCard';
-import { PistonBrawlerStatusCard } from './PistonBrawlerStatusCard';
-import { PistonBrawlerFeaturesCard } from './PistonBrawlerFeaturesCard';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Accordion,
@@ -61,6 +50,8 @@ interface CharacterSheetViewProps {
   onLevelDown?: () => void;
   onMoneyChange?: (newTotal: number) => void | Promise<void>;
   onNotesChange?: (notes: string) => void | Promise<void>;
+  /** Switch to Spellbook and focus Spell Forge (e.g. Powder Mage Speed Dial). */
+  onGoToSpellForge?: () => void;
   hideHeader?: boolean;
   className?: string;
 }
@@ -80,6 +71,7 @@ export function CharacterSheetView({
   onLevelDown,
   onMoneyChange,
   onNotesChange,
+  onGoToSpellForge,
   hideHeader = false,
   className,
 }: CharacterSheetViewProps) {
@@ -138,7 +130,6 @@ export function CharacterSheetView({
 
   // Expanded panel state
   const [expandedPanel, setExpandedPanel] = useState<'hp' | 'hitdice' | null>(null);
-  const [classFeaturesOpen, setClassFeaturesOpen] = useState(false);
   const [dieOptionsOpen, setDieOptionsOpen] = useState(false);
 
   // Weapon attack state
@@ -192,49 +183,20 @@ export function CharacterSheetView({
   };
 
   return (
-    <div className={cn('space-y-6 relative pb-24 md:pb-0', className)}>
+    <div className={cn('space-y-4 relative pb-0', className)}>
       {/* Header */}
       {!hideHeader && (
-        <div className="border-b border-border pb-4">
+        <div className="border-b border-border pb-2">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-display text-2xl text-primary glow-text">
+              <h2 className="font-display text-xl md:text-2xl text-primary glow-text">
                 {character.name}
               </h2>
-              <p className="text-muted-foreground font-tome-marginalia">
+              <p className="text-muted-foreground font-tome-marginalia text-xs md:text-sm">
                 Level {character.level} {character.lineageName || character.raceName} {character.className}
                 {character.archetypeName && ` - ${character.archetypeName}`}
               </p>
             </div>
-            {/* Level Controls */}
-            {(onLevelUp || onLevelDown) && (
-              <div className="flex items-center gap-2">
-                {onLevelDown && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onLevelDown}
-                    disabled={character.level <= 1}
-                    className="gap-1"
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                    Level Down
-                  </Button>
-                )}
-                {onLevelUp && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onLevelUp}
-                    disabled={character.level >= 20}
-                    className="gap-1"
-                  >
-                    <ChevronUp className="h-4 w-4" />
-                    Level Up
-                  </Button>
-                )}
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -246,6 +208,43 @@ export function CharacterSheetView({
           onHPTap={onHPChange ? handleMobileHPTap : undefined}
           onInitiativeTap={() => void handleRoll('Initiative', sheet.modifiers.initiative)}
         />
+
+        {/* Mobile Action Buttons */}
+        <div className="flex gap-2 px-1">
+             <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsLootModalOpen(true)}
+                title="Generate Loot"
+                className="flex-1 gap-2 h-10 px-2 shrink-0"
+              >
+                <RaIcon name="gold-bar" className="text-sm" />
+                <span>Loot</span>
+              </Button>
+              <div className="flex gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onLevelDown}
+                  disabled={character.level <= 1 || !onLevelDown}
+                  title="Level Down"
+                  className="gap-1 h-10 px-3"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onLevelUp}
+                  disabled={character.level >= 20 || !onLevelUp}
+                  title="Level Up"
+                  className="gap-1 h-10 px-3"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </Button>
+              </div>
+        </div>
+
         <Accordion
           type="multiple"
           defaultValue={['combat', 'abilities']}
@@ -308,50 +307,17 @@ export function CharacterSheetView({
             </AccordionTrigger>
             <AccordionContent className="space-y-3 pb-3">
               {sheet.class_resources && sheet.class_resources.length > 0 && token && (
-                <ClassResourceDisplay resources={sheet.class_resources} characterId={character.id} token={token} />
-              )}
-              {token && <ComponentInventorySection sheet={sheet} token={token} />}
-              {token && (
-                <RacialResourceTracker sheet={sheet} characterId={character.id} token={token} />
-              )}
-              {sheet.class.name === 'The Lorewright' && (
-                <>
-                  <HarvestBankSection sheet={sheet} />
-                  <Card
-                    className="arcane-border bg-card cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all"
-                    onClick={() => setClassFeaturesOpen(true)}
-                  >
-                    <CardContent className="flex items-center justify-between py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <Skull className="h-4 w-4 text-red-400" />
-                        <span className="text-sm font-tome-subheading text-primary">Trauma & Madness</span>
-                      </div>
-                      <span className="text-lg font-display text-red-400">{sheet.trauma ?? 0}</span>
-                    </CardContent>
-                  </Card>
-                </>
-              )}
-              {sheet.class.name === 'The Ironwright' && <ConstructsSection sheet={sheet} />}
-              {activeEffects && activeEffects.length > 0 && (
-                <ActiveEffectsSection characterId={sheet.character.id} effects={activeEffects} />
-              )}
-              {sheet.class.name === 'The Sanguinist' && (
-                <NotorietyMeter
-                  characterId={sheet.character.id}
-                  notoriety={sheet.character.sanguine_notoriety ?? 0}
-                  sanguine_mp={sheet.character.sanguine_mp ?? 0}
-                  sanguine_br={sheet.character.sanguine_br ?? 0}
-                  onClick={() => setClassFeaturesOpen(true)}
+                <ClassResourceDisplay
+                  resources={sheet.class_resources}
+                  characterId={character.id}
+                  token={token}
+                  sheet={sheet}
+                  onGoToSpellForge={onGoToSpellForge}
                 />
               )}
-              {sheet.class.name === 'The Mutagen' && (
-                <MutagenStatusCard sheet={sheet} onClick={() => setClassFeaturesOpen(true)} />
-              )}
-              {sheet.class.name === 'The Powder Mage' && (
-                <PowderMageStatusCard sheet={sheet} onClick={() => setClassFeaturesOpen(true)} />
-              )}
-              {sheet.class.name === 'The Piston Brawler' && (
-                <PistonBrawlerStatusCard sheet={sheet} onClick={() => setClassFeaturesOpen(true)} />
+              {token && <ComponentInventorySection sheet={sheet} token={token} />}
+              {activeEffects && activeEffects.length > 0 && (
+                <ActiveEffectsSection characterId={sheet.character.id} effects={activeEffects} />
               )}
             </AccordionContent>
           </AccordionItem>
@@ -386,24 +352,47 @@ export function CharacterSheetView({
         </Accordion>
       </div>
 
-      <MobileSheetBottomBar
-        onShortRest={
-          onShortRest
-            ? async () => {
-                await onShortRest();
-                setExpandedPanel('hitdice');
-              }
-            : undefined
-        }
-        onLongRest={onLongRest}
-        onOpenDice={() => setDieOptionsOpen(true)}
-      />
-
       {/* Main 4-column layout (desktop): Abilities | Skills | Middle | Features */}
-      <div className="hidden md:grid grid-cols-1 gap-6 min-w-0 md:grid-cols-[90px_180px_1fr] lg:grid-cols-[100px_200px_1fr_280px]">
+      <div className="hidden md:grid grid-cols-1 gap-4 min-w-0 md:grid-cols-[90px_180px_1fr] lg:grid-cols-[100px_200px_1fr_280px]">
         
         {/* FAR LEFT COLUMN: Ability Scores */}
         <div className="order-2 md:order-none space-y-4 min-w-0">
+          {/* Action Buttons */}
+          <div className="flex flex-col gap-2">
+             <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsLootModalOpen(true)}
+                title="Generate Loot"
+                className="w-full gap-2 h-10 px-2 shrink-0"
+              >
+                <RaIcon name="gold-bar" className="text-sm" />
+                <span>Loot</span>
+              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onLevelDown}
+                  disabled={character.level <= 1 || !onLevelDown}
+                  title="Level Down"
+                  className="gap-1 h-10 px-2 shrink-0"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onLevelUp}
+                  disabled={character.level >= 20 || !onLevelUp}
+                  title="Level Up"
+                  className="gap-1 h-10 px-2 shrink-0"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </Button>
+              </div>
+          </div>
+
           <AbilityScores sheet={sheet} />
           <Button
             variant="outline"
@@ -453,9 +442,15 @@ export function CharacterSheetView({
             <MoneyPanel sheet={sheet} onMoneyChange={onMoneyChange} />
           )}
 
-          {/* Generic Class Resources */}
+          {/* Class Resources */}
           {sheet.class_resources && sheet.class_resources.length > 0 && token && (
-            <ClassResourceDisplay resources={sheet.class_resources} characterId={character.id} token={token} />
+            <ClassResourceDisplay
+              resources={sheet.class_resources}
+              characterId={character.id}
+              token={token}
+              sheet={sheet}
+              onGoToSpellForge={onGoToSpellForge}
+            />
           )}
 
           {/* Component Inventory */}
@@ -463,67 +458,12 @@ export function CharacterSheetView({
             <ComponentInventorySection sheet={sheet} token={token} />
           )}
 
-          {/* Racial Resources */}
-          {token && (
-            <RacialResourceTracker sheet={sheet} characterId={character.id} token={token} />
-          )}
-
-          {/* Harvest Bank (Lorewright only) */}
-          {sheet.class.name === 'The Lorewright' && (
-            <>
-              <HarvestBankSection sheet={sheet} />
-              <Card 
-                className="arcane-border bg-card cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all"
-                onClick={() => setClassFeaturesOpen(true)}
-              >
-                <CardContent className="flex items-center justify-between py-3 px-4">
-                  <div className="flex items-center gap-2">
-                    <Skull className="h-4 w-4 text-red-400" />
-                    <span className="text-sm font-tome-subheading text-primary">Trauma & Madness</span>
-                  </div>
-                  <span className="text-lg font-display text-red-400">{sheet.trauma ?? 0}</span>
-                </CardContent>
-              </Card>
-            </>
-          )}
-
-          {/* Constructs Section (Ironwright only) */}
-          {sheet.class.name === 'The Ironwright' && (
-            <ConstructsSection sheet={sheet} />
-          )}
-
           {/* Active Effects */}
           {activeEffects && activeEffects.length > 0 && (
-            <ActiveEffectsSection 
-              characterId={sheet.character.id} 
-              effects={activeEffects} 
-            />
-          )}
-
-          {/* Notoriety Meter (Sanguinist only) - click to open moral seesaw controls */}
-          {sheet.class.name === 'The Sanguinist' && (
-            <NotorietyMeter
+            <ActiveEffectsSection
               characterId={sheet.character.id}
-              notoriety={sheet.character.sanguine_notoriety ?? 0}
-              sanguine_mp={sheet.character.sanguine_mp ?? 0}
-              sanguine_br={sheet.character.sanguine_br ?? 0}
-              onClick={() => setClassFeaturesOpen(true)}
+              effects={activeEffects}
             />
-          )}
-
-          {/* Mutagen State (Mutagen only) - click to open feral mechanics */}
-          {sheet.class.name === 'The Mutagen' && (
-            <MutagenStatusCard sheet={sheet} onClick={() => setClassFeaturesOpen(true)} />
-          )}
-
-          {/* Powder Mage — Casting Window */}
-          {sheet.class.name === 'The Powder Mage' && (
-            <PowderMageStatusCard sheet={sheet} onClick={() => setClassFeaturesOpen(true)} />
-          )}
-
-          {/* Piston Brawler — Piston Core */}
-          {sheet.class.name === 'The Piston Brawler' && (
-            <PistonBrawlerStatusCard sheet={sheet} onClick={() => setClassFeaturesOpen(true)} />
           )}
 
           {/* Detailed Equipment Section */}
@@ -665,47 +605,6 @@ export function CharacterSheetView({
           <h2 className="text-3xl font-display text-white glow-text mt-4">YOU DIED</h2>
         </DialogContent>
       </Dialog>
-
-      {/* Class Features Dialog (Sanguinist moral seesaw, Lorewright tools, etc.) */}
-      {token && (
-        <Dialog 
-          open={classFeaturesOpen} 
-          onOpenChange={(open) => {
-            setClassFeaturesOpen(open);
-            if (!open) dispatchClearDice();
-          }}
-        >
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-center text-primary font-display">
-                {sheet.class.name === 'The Sanguinist' && 'The Moral Seesaw'}
-                {sheet.class.name === 'The Lorewright' && 'Lorewright Tools'}
-                {sheet.class.name === 'The Mutagen' && 'Feral Mechanics'}
-                {sheet.class.name === 'The Powder Mage' && 'Continuous Ignition'}
-                {sheet.class.name === 'The Piston Brawler' && 'Piston Core'}
-              </DialogTitle>
-              <DialogDescription className="sr-only">
-                Class-specific feature controls.
-              </DialogDescription>
-            </DialogHeader>
-            {sheet.class.name === 'The Sanguinist' && (
-              <SanguinistFeaturesCard sheet={sheet} token={token} />
-            )}
-            {sheet.class.name === 'The Lorewright' && (
-              <LorewrightFeaturesCard sheet={sheet} token={token} />
-            )}
-            {sheet.class.name === 'The Mutagen' && (
-              <MutagenFeaturesCard sheet={sheet} token={token} />
-            )}
-            {sheet.class.name === 'The Powder Mage' && (
-              <PowderMageFeaturesCard sheet={sheet} token={token} />
-            )}
-            {sheet.class.name === 'The Piston Brawler' && (
-              <PistonBrawlerFeaturesCard sheet={sheet} token={token} />
-            )}
-          </DialogContent>
-        </Dialog>
-      )}
 
       {/* Loot Modal */}
       {token && (

@@ -15,7 +15,8 @@ import {
   type RollType,
 } from '@/lib/dice';
 import type { NormalizedCharacterSheet } from '@/types/game';
-import { Dices, Sparkles, Swords, Crosshair, Activity } from 'lucide-react';
+import { Activity } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 
 const ABILITIES = [
   { id: 'strength', label: 'Strength', short: 'STR' },
@@ -78,7 +79,7 @@ export function DiceRollSection({ sheet, className }: DiceRollSectionProps) {
     <Card className={cn('arcane-border bg-card', className)}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base font-tome-subheading text-primary">
-          <Dices className="h-4 w-4" />
+          <RaIcon name="perspective-dice-six" className="text-sm" />
           Dice Rolls
         </CardTitle>
         <p className="text-sm text-muted-foreground font-tome-marginalia">
@@ -120,7 +121,7 @@ export function DiceRollSection({ sheet, className }: DiceRollSectionProps) {
               )
             }
           >
-            <Swords className="h-4 w-4 shrink-0" />
+            <RaIcon name="crossed-swords" className="text-sm shrink-0" />
             <span className="text-left">
               Melee Attack
               <span className="block text-xs text-muted-foreground">
@@ -140,7 +141,7 @@ export function DiceRollSection({ sheet, className }: DiceRollSectionProps) {
               )
             }
           >
-            <Crosshair className="h-4 w-4 shrink-0" />
+            <RaIcon name="on-target" className="text-sm shrink-0" />
             <span className="text-left">
               Ranged Attack
               <span className="block text-xs text-muted-foreground">

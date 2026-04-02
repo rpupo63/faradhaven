@@ -1,4 +1,4 @@
-import { getBaseUrl, handleResponse } from './base';
+import { getBaseUrl, handleResponse, apiFetch } from './base';
 import { ApiCharacterLink } from '@/types/game';
 
 export async function getCharacterLinks(characterId: string, token?: string): Promise<ApiCharacterLink[]> {
@@ -6,6 +6,6 @@ export async function getCharacterLinks(characterId: string, token?: string): Pr
     const url = `${base}/api/character/${characterId}/links`;
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    const res = await fetch(url, { headers });
+    const res = await apiFetch(url, { headers });
     return handleResponse<ApiCharacterLink[]>(res, 'Failed to get links');
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BookOpen, Sparkles, Zap, Skull } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 
 import { BestiaryTabContent } from './BestiaryPage';
 import { ClassesTabContent } from './ClassesPage';
@@ -35,31 +35,31 @@ export default function GameRulesPage() {
   return (
     <div className="w-full space-y-12">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 arcane-border bg-card">
+        <TabsList className="mb-6 grid w-full grid-cols-4 arcane-border bg-card">
           <TabsTrigger value="classes">
-            <BookOpen className="w-4 h-4 mr-2" /> Classes
+            <RaIcon name="book" className="text-sm mr-2" /> Classes
           </TabsTrigger>
           <TabsTrigger value="races">
-            <Sparkles className="w-4 h-4 mr-2" /> Races
+            <RaIcon name="aura" className="text-sm mr-2" /> Races
           </TabsTrigger>
           <TabsTrigger value="effects">
-            <Zap className="w-4 h-4 mr-2" /> Effects
+            <RaIcon name="lightning-bolt" className="text-sm mr-2" /> Effects
           </TabsTrigger>
           <TabsTrigger value="bestiary">
-            <Skull className="w-4 h-4 mr-2" /> Bestiary
+            <RaIcon name="skull" className="text-sm mr-2" /> Bestiary
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="classes">
+        <TabsContent value="classes" className="mt-0">
           <ClassesTabContent classId={activeTab === 'classes' ? resourceId : undefined} />
         </TabsContent>
-        <TabsContent value="races">
+        <TabsContent value="races" className="mt-0">
           <RacesTabContent raceId={activeTab === 'races' ? resourceId : undefined} />
         </TabsContent>
-        <TabsContent value="effects">
+        <TabsContent value="effects" className="mt-0">
           <EffectsTabContent />
         </TabsContent>
-        <TabsContent value="bestiary">
+        <TabsContent value="bestiary" className="mt-0">
           <BestiaryTabContent />
         </TabsContent>
       </Tabs>

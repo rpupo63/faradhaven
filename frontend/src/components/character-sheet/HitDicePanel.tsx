@@ -1,4 +1,4 @@
-import { Heart } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { NormalizedCharacterSheet } from '@/types/game';
@@ -79,7 +79,7 @@ export function HitDicePanel({ sheet, onUseHitDice }: HitDicePanelProps) {
         className="w-full gap-2"
         variant="default"
       >
-        <Heart className="h-4 w-4" />
+        <RaIcon name="health" className="text-sm" />
         Roll {hitDiceToUse} Hit {hitDiceToUse === 1 ? 'Die' : 'Dice'}
       </Button>
 

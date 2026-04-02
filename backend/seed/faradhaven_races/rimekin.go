@@ -10,8 +10,7 @@ func Rimekin() FaradhavenRaceSeed {
 		Size:           "Medium (about 4–7 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
 		BaseSpeed:      30,
 		Languages:      []string{"Common", "Primordial"},
-		Traits:         rimekinTraits(),
-		ComponentNames: []string{"Decrease", "Beam", "Aqua", "Projectile", "Create"},
+		Traits: rimekinTraits(),
 	}
 }
 
@@ -29,32 +28,6 @@ func rimekinTraits() []TraitSeed {
 			Description: "You have resistance to Cold damage.",
 			LevelReq:    1,
 			ActionType:  "Passive",
-		},
-		{
-			Name:           "Cold Fire Magic",
-			Description:    "You know the Decrease + Beam component combination (a ray of freezing cold). When you reach character levels 3 and 5, you learn Aqua + Decrease + Projectile (an exploding shard of ice) and Decrease + Create (a blade of frigid cold), respectively. You always have those component combinations prepared. You can cast each once without a spell slot, and you regain the ability to cast these spells in this way when you finish a Long Rest. You can also cast the spells using any spell slots you have of the appropriate level. Intelligence, Wisdom, or Charisma is your spellcasting ability for these spells (choose the ability when you select this species).",
-			LevelReq:       1,
-			ActionType:     "Passive",
-			UsesPerRest:    "1 per spell",
-			ResetCondition: "Long Rest",
-			Options:        rimekinSpellcastingOptions(),
-		},
-	}
-}
-
-func rimekinSpellcastingOptions() []TraitOptionSeed {
-	return []TraitOptionSeed{
-		{
-			Name:        "Intelligence",
-			Description: "Intelligence is your spellcasting ability for Decrease + Beam, Aqua + Decrease + Projectile, and Decrease + Create when you cast them with this trait.",
-		},
-		{
-			Name:        "Wisdom",
-			Description: "Wisdom is your spellcasting ability for Decrease + Beam, Aqua + Decrease + Projectile, and Decrease + Create when you cast them with this trait.",
-		},
-		{
-			Name:        "Charisma",
-			Description: "Charisma is your spellcasting ability for Decrease + Beam, Aqua + Decrease + Projectile, and Decrease + Create when you cast them with this trait.",
 		},
 	}
 }

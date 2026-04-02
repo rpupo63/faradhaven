@@ -18,13 +18,14 @@ func SeedFaradhavenComponents(tx *gorm.DB) error {
 	for _, cs := range componentSeeds {
 		componentID := uuids.ComponentUUID(cs.Name)
 		components = append(components, models.Component{
-			ID:          componentID,
-			Name:        cs.Name,
-			Symbol:      cs.Symbol,
-			Category:    cs.Category,
-			Description: cs.Description,
-			Element:     cs.Element,
-			Tier:        cs.Tier,
+			ID:             componentID,
+			Name:           cs.Name,
+			Symbol:         cs.Symbol,
+			RpgAwesomeIcon: cs.RpgAwesomeIcon,
+			Category:       cs.Category,
+			Description:    cs.Description,
+			Element:        cs.Element,
+			Tier:           cs.Tier,
 		})
 	}
 

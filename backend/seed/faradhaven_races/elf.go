@@ -13,8 +13,7 @@ func Elf() FaradhavenRaceSeed {
 			"dexterity": 2,
 		},
 		Languages:      []string{"Common", "Elvish"},
-		Traits:         elfTraits(),
-		ComponentNames: []string{"Lux", "Create", "Zone", "Umbra", "Arcanum", "Self", "Spatium", "Vita", "Increase", "Pull", "Projectile", "Sonus", "Decrease", "Mortis", "Extreme"},
+		Traits: elfTraits(),
 	}
 }
 
@@ -29,11 +28,9 @@ func elfTraits() []TraitSeed {
 		},
 		{
 			Name:        "Elven Lineage",
-			Description: "You are part of a lineage that grants you supernatural abilities. Choose a lineage from the Elven Lineages table. You gain the level 1 benefit of that lineage. When you reach character levels 3 and 5, you learn a higher-level spell, as shown on the table. You always have that spell prepared. You can cast it once without a spell slot, and you regain the ability to cast it in that way when you finish a Long Rest. You can also cast the spell using any spell slots you have of the appropriate level. Intelligence, Wisdom, or Charisma is your spellcasting ability for the spells you cast with this trait (choose the ability when you select the lineage).",
+			Description: "Choose a lineage reflecting your culture and environment. You gain the level 1 benefit of that lineage. Higher-level magical effects use your class’s spell components.",
 			LevelReq:    1,
 			ActionType:  "Passive",
-			UsesPerRest: "1 per spell",
-			ResetCondition: "Long Rest",
 			Options:     elfLineageOptions(),
 		},
 		{
@@ -62,27 +59,27 @@ func elfLineageOptions() []TraitOptionSeed {
 	return []TraitOptionSeed{
 		{
 			Name:                "Drow",
-			Description:         "Level 1: The range of your Darkvision increases to 120 feet. You also know the Lux + Create component combination (dancing motes of light). Level 3: Lux + Zone (revealing light that outlines creatures). Level 5: Umbra + Zone (an area of magical darkness).",
+			Description:         "The range of your Darkvision increases to 120 feet. +1 Charisma.",
 			AbilityScoreBonuses: map[string]int{"charisma": 1},
 		},
 		{
 			Name:                "High Elf",
-			Description:         "Level 1: You know the Arcanum + Self component combination (minor magical tricks). Whenever you finish a Long Rest, you can replace it with a different cantrip-tier component combination from the Wizard spell list. Level 3: Arcanum + Strong (detecting magical auras). Level 5: Spatium (short-range displacement through mist).",
+			Description:         "+1 Intelligence. You favor arcane study; express wizardly flourishes through your class’s spell components.",
 			AbilityScoreBonuses: map[string]int{"intelligence": 1},
 		},
 		{
 			Name:                "Wood Elf",
-			Description:         "Level 1: Your Speed increases to 35 feet. You also know the Vita + Self component combination (minor nature magic). Level 3: Increase + Self (enhanced movement speed). Level 5: Umbra + Zone (you and nearby allies leave no trace of passage).",
+			Description:         "Your Speed increases to 35 feet. +1 Wisdom.",
 			AbilityScoreBonuses: map[string]int{"wisdom": 1},
 		},
 		{
 			Name:                "Lorwyn Elf",
-			Description:         "Level 1: You know the Vita + Pull + Projectile component combination (a thorny vine that pulls targets toward you). Whenever you finish a Long Rest, you can replace it with a different cantrip-tier component combination from the Druid spell list. Level 3: Arcanum + Strong (forcing a single action). Level 5: Sonus + Decrease + Zone (an area where sound cannot exist).",
+			Description:         "+1 Wisdom. You are attuned to Lorwyn’s wilds; primal effects use your class’s spell components.",
 			AbilityScoreBonuses: map[string]int{"wisdom": 1},
 		},
 		{
 			Name:                "Shadowmoor Elf",
-			Description:         "Level 1: The range of your Darkvision increases to 120 feet. You also know the Lux + Projectile component combination (a mote of starlight). Level 3: Increase + Self (bolstering courage and vitality). Level 5: Mortis + Decrease + Extreme (preserving the dead from decay).",
+			Description:         "The range of your Darkvision increases to 120 feet. +1 Charisma.",
 			AbilityScoreBonuses: map[string]int{"charisma": 1},
 		},
 	}

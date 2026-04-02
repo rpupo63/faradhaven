@@ -1,4 +1,4 @@
-import { getBaseUrl, handleResponse } from './base';
+import { getBaseUrl, handleResponse, apiFetch } from './base';
 import { gainResource } from './resources';
 
 export interface UseTraitAbilityResponse {
@@ -19,7 +19,7 @@ export async function callTraitAbility(
 ): Promise<UseTraitAbilityResponse> {
   const base = getBaseUrl();
   const url = `${base}/api/characters/${characterId}/traits/${traitId}/use`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}` },
   });
@@ -41,7 +41,7 @@ export async function callFeatureAbility(
 ): Promise<UseFeatureAbilityResponse> {
   const base = getBaseUrl();
   const url = `${base}/api/characters/${characterId}/features/${featureId}/use`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}` },
   });

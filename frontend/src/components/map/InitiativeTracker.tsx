@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Swords, ChevronRight, RotateCcw } from 'lucide-react';
+import { ChevronRight, RotateCcw } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -99,7 +100,7 @@ export function InitiativeTracker({ mapId, isDM }: InitiativeTrackerProps) {
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-base font-tome-subheading text-primary">
           <div className="flex items-center gap-2">
-            <Swords className="h-4 w-4" />
+            <RaIcon name="crossed-swords" className="text-sm" />
             Initiative
           </div>
           <div className="flex items-center gap-1">

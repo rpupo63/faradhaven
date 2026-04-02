@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { Wrench, Plus, Minus, Trash2, Shield, Heart, Loader2, Dices, Recycle, Bug, ShieldAlert, Zap } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -248,19 +248,17 @@ export function ConstructsSection({ sheet }: ConstructsSectionProps) {
 
   return (
     <>
-      <Card className="arcane-border bg-card">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center justify-between text-base font-tome-subheading text-primary">
-            <div className="flex items-center gap-2">
-              <Wrench className="h-4 w-4" />
-              Constructs
-            </div>
-            <Badge variant="outline" className="text-xs">
-              {activeConstructs.length} / {concurrencyLimit}
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <Separator />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Wrench className="h-4 w-4 text-primary" />
+          <span className="text-sm font-tome-subheading text-primary">Constructs</span>
+        </div>
+        <Badge variant="outline" className="text-xs">
+          {activeConstructs.length} / {concurrencyLimit}
+        </Badge>
+      </div>
+      <div className="space-y-3">
           {/* Active Constructs List */}
           {activeConstructs.length === 0 ? (
             <p className="text-xs text-muted-foreground italic font-tome-marginalia text-center py-2">
@@ -343,8 +341,7 @@ export function ConstructsSection({ sheet }: ConstructsSectionProps) {
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Summon Construct Dialog */}
       <Dialog open={summonDialogOpen} onOpenChange={setSummonDialogOpen}>

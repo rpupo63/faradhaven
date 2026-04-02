@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
-import { Sparkles } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 
 interface SpellPointBarProps {
   current: number;
@@ -25,7 +25,7 @@ export function SpellPointBar({
       {showLabel && (
         <div className="flex items-center justify-between text-sm">
           <span className="flex items-center gap-1.5 font-tome-subheading text-primary">
-            <Sparkles className="h-4 w-4 text-primary" />
+            <RaIcon name="aura" className="text-sm text-primary" />
             Spell Points
           </span>
           <span className="font-tome-marginalia text-muted-foreground">

@@ -255,24 +255,16 @@ export function DiceAnimation() {
         </AnimatePresence>
       </div>
 
-      {/*
-        Bounded dice tray — centered on screen.
-        dice-box creates a canvas sized to this element; physics walls
-        are placed at its edges, so dice stay within this area.
-      */}
-      <div
-        id="dice-box"
-        style={{
-          position: 'fixed',
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: trayPx,
-          height: trayPx,
-          zIndex: 10000,
-          pointerEvents: 'none',
-        }}
-      />
+      {/* Centered dice tray wrapper — ensures physical dice land in screen center */}
+      <div className="fixed inset-0 z-[10000] pointer-events-none flex items-center justify-center">
+        <div
+          id="dice-box"
+          style={{
+            width: `${trayPx}px`,
+            height: `${trayPx}px`,
+          }}
+        />
+      </div>
     </>
   );
 }

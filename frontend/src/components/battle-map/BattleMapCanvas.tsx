@@ -283,7 +283,7 @@ export const BattleMapCanvas: React.FC<BattleMapCanvasProps> = ({
   return (
     <div
         ref={containerRef}
-        className="border border-border rounded overflow-hidden bg-card shadow-xl w-full h-full relative"
+        className="border border-border rounded bg-card shadow-xl w-full h-full relative"
         style={{ cursor: placementModeActive ? (isDragging ? 'grabbing' : 'crosshair') : (isPanning ? 'grabbing' : 'default') }}
     >
       {containerWidth > 0 && containerHeight > 0 && (
@@ -404,27 +404,6 @@ export const BattleMapCanvas: React.FC<BattleMapCanvasProps> = ({
         />
       )}
 
-      {/* Initiative Order Tracker */}
-      {(() => {
-        const initiativeOrder = [...mapData.tokens]
-          .filter(t => t.initiative_order != null)
-          .sort((a, b) => (a.initiative_order ?? 0) - (b.initiative_order ?? 0));
-        if (initiativeOrder.length === 0) return null;
-        return (
-          <div className="absolute top-4 left-4 bg-card/90 border border-border rounded-md shadow-lg p-2 z-10 min-w-36 max-w-48">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Initiative</p>
-            <div className="space-y-1">
-              {initiativeOrder.map((t, i) => (
-                <div key={t.id} className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-muted-foreground w-4 shrink-0">{i + 1}.</span>
-                  <div className="w-2.5 h-2.5 rounded-full shrink-0 border border-border/50" style={{ backgroundColor: t.color }} />
-                  <span className="text-xs truncate text-foreground">{t.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 };

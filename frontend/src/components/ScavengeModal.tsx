@@ -10,7 +10,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Recycle, Droplets, Package } from 'lucide-react';
+import { Loader2, Package } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { forageComponents } from '@/lib/api';
 
 interface ScavengeModalProps {
@@ -29,14 +30,14 @@ function getClassConfig(className: string, yieldDie: number | undefined, level: 
     case 'The Ironwright':
       return {
         title: 'Scavenge Components',
-        icon: <Recycle className="h-5 w-5" />,
+        icon: <RaIcon name="regeneration" className="text-base" />,
         description: `As an action, harvest exotic components from your environment. You roll 1d${yieldDie ?? 4} to determine how many distinct components you receive.`,
         actionLabel: 'Scavenge',
       };
     case 'The Sanguinist':
       return {
         title: 'Sanguine Extraction',
-        icon: <Droplets className="h-5 w-5 text-red-400" />,
+        icon: <RaIcon name="water-drop" className="text-base text-red-400" />,
         description: `After using your Bite attack, extract unstable components from your prey. You gain ${level >= 11 ? 3 : level >= 5 ? 2 : 1} component${(level >= 11 ? 3 : level >= 5 ? 2 : 1) > 1 ? 's' : ''} at your current level.`,
         actionLabel: 'Extract',
       };
@@ -50,7 +51,7 @@ function getClassConfig(className: string, yieldDie: number | undefined, level: 
     default:
       return {
         title: 'Scavenge Components',
-        icon: <Recycle className="h-5 w-5" />,
+        icon: <RaIcon name="regeneration" className="text-base" />,
         description: 'Gather components from the environment.',
         actionLabel: 'Scavenge',
       };

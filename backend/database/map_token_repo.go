@@ -1,6 +1,8 @@
 package database
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/rpupo63/unified-personal-site-backend/models"
 	"gorm.io/gorm"
@@ -58,18 +60,24 @@ func (r *MapTokenRepo) BulkSetInitiativeOrder(entries []InitiativeEntry) error {
 		return nil
 	}
 
-	ids := make([]string, len(entries))
-	orders := make([]int, len(entries))
+	idsStr := "{"
+	ordersStr := "{"
 	for i, e := range entries {
-		ids[i] = e.TokenID.String()
-		orders[i] = e.Order
+		if i > 0 {
+			idsStr += ","
+			ordersStr += ","
+		}
+		idsStr += e.TokenID.String()
+		ordersStr += fmt.Sprintf("%d", e.Order)
 	}
+	idsStr += "}"
+	ordersStr += "}"
 
 	return r.db.Exec(`
 		UPDATE map_tokens SET initiative_order = v.ord
 		FROM (SELECT unnest(?::uuid[]) AS id, unnest(?::int[]) AS ord) v
 		WHERE map_tokens.id = v.id
-	`, ids, orders).Error
+	`, idsStr, ordersStr).Error
 }
 
 // ClearInitiativeByMapID sets initiative_order to NULL for all tokens on a map in one query.

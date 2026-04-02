@@ -14,8 +14,7 @@ func Aasimar() FaradhavenRaceSeed {
 			"wisdom":   1,
 		},
 		Languages:      []string{"Common", "Celestial"},
-		Traits:         aasimarTraits(),
-		ComponentNames: []string{"Lux", "Self", "Nova", "Umbra", "Fear", "Increase"},
+		Traits: aasimarTraits(),
 	}
 }
 
@@ -44,7 +43,7 @@ func aasimarTraits() []TraitSeed {
 		},
 		{
 			Name:        "Light Bearer",
-			Description: "You innately know the Lux + Self component combination, allowing you to cause your body to shed bright light. Charisma is your spellcasting ability for it.",
+			Description: "You can cause your body to shed bright light (as a minor innate effect). When you need spell-shaped expressions of radiance or shadow, use your class’s spell components.",
 			LevelReq:    1,
 			ActionType:  "Passive",
 		},
@@ -68,11 +67,11 @@ func aasimarRevelationOptions() []TraitOptionSeed {
 		},
 		{
 			Name:        "Inner Radiance",
-			Description: "Searing light temporarily radiates from your eyes and mouth, manifesting as Lux + Nova. For the duration, you shed Bright Light in a 10-foot radius and Dim Light for an additional 10 feet, and at the end of each of your turns, each creature within 10 feet of you takes Radiant damage equal to your Proficiency Bonus.",
+			Description: "Searing light temporarily radiates from your eyes and mouth. For the duration, you shed Bright Light in a 10-foot radius and Dim Light for an additional 10 feet, and at the end of each of your turns, each creature within 10 feet of you takes Radiant damage equal to your Proficiency Bonus.",
 		},
 		{
 			Name:        "Necrotic Shroud",
-			Description: "Your eyes briefly become pools of darkness, manifesting as Umbra + Fear + Nova, and flightless wings sprout from your back temporarily. Creatures other than your allies within 10 feet of you must succeed on a Charisma saving throw (DC 8 plus your Charisma modifier and Proficiency Bonus) or have the Frightened condition until the end of your next turn.",
+			Description: "Your eyes briefly become pools of darkness, and flightless wings sprout from your back temporarily. Creatures other than your allies within 10 feet of you must succeed on a Charisma saving throw (DC 8 plus your Charisma modifier and Proficiency Bonus) or have the Frightened condition until the end of your next turn.",
 		},
 	}
 }

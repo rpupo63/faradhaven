@@ -9,6 +9,7 @@ import {
 import { ApiItem, ApiWeapon, ApiStoreOwner } from '@/types/game';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { LoadingQuill } from '@/components/LoadingQuill';
 import { RefreshIndicator } from '@/components/ui/refresh-indicator';
 import { LoadingButton } from '@/components/ui/loading-button';
@@ -26,10 +27,12 @@ import {
   Store,
   MapPin,
   Users,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -92,7 +95,7 @@ function CurrencyDisplay({ cp }: { cp: number }) {
   const remainingCp = cp % 10;
 
   return (
-    <div className="flex items-center gap-3 font-tome-marginalia text-sm">
+    <div className="flex flex-wrap items-center gap-2 font-tome-marginalia text-sm">
       {gp > 0 && (
         <div className="flex items-center gap-1">
           <span className="text-faded-gold font-bold">{gp}</span>
@@ -119,8 +122,8 @@ function CurrencyDisplay({ cp }: { cp: number }) {
 
 function DamageDisplay({ damage }: { damage: ApiWeaponDamage }) {
   return (
-    <div className="flex items-center gap-1.5 text-xs">
-      <Badge variant="secondary" font="mono" size="sm">
+    <div className="flex items-center gap-1.5 text-xs flex-wrap">
+      <Badge variant="secondary" font="mono" size="sm" className="shrink-0">
         {damage.damage_dice}
       </Badge>
       <span className="text-muted-foreground">{damage.damage_type}</span>
@@ -336,6 +339,18 @@ export default function ShopPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const scrollAmount = 320;
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
+    }
+  };
+
   const {
     data: items,
     isLoading: isLoadingItems,
@@ -548,40 +563,39 @@ export default function ShopPage() {
   };
 
   return (
-    <div className="w-full space-y-12 relative">
+    <div className="w-full space-y-12 relative min-w-0">
       <RefreshIndicator isFetching={isFetching && !isLoading} />
 
       {/* Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="p-3 rounded-full border-2 border-faded-gold/50 bg-primary/10">
+      <div className="space-y-5">
+        <div className="flex items-start gap-4 min-w-0">
+          <div className="p-3 rounded-full border-2 border-faded-gold/50 bg-primary/10 shrink-0">
             <Store className="w-6 h-6 text-primary" />
           </div>
-          <div>
-            <h1 className="font-tome-heading text-3xl text-primary glow-text">
+          <div className="min-w-0">
+            <h1 className="font-tome-heading text-3xl text-primary glow-text truncate">
               Faradhaven Market
             </h1>
-            <div className="flex items-center gap-4 mt-1">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1">
               <p className="text-muted-foreground text-sm font-tome-marginalia">
                 Browse goods, gear, and weaponry from across the realm.
               </p>
               {sheet && (
-                <>
-                  <span className="text-muted-foreground/30">•</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground uppercase tracking-widest font-tome-marginalia">
-                      Wallet:
-                    </span>
-                    <CurrencyDisplay cp={sheet.money} />
-                  </div>
-                </>
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <span className="text-muted-foreground/30 hidden sm:inline">•</span>
+                  <span className="text-xs text-muted-foreground uppercase tracking-widest font-tome-marginalia">
+                    Wallet:
+                  </span>
+                  <CurrencyDisplay cp={sheet.money} />
+                </div>
               )}
             </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative w-full md:w-64">
+        <div className="pt-2 border-t border-border/60">
+          <div className="flex flex-wrap items-center gap-3">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search items..."
@@ -641,105 +655,143 @@ export default function ShopPage() {
               <SelectItem value="price-desc">Price (High-Low)</SelectItem>
             </SelectContent>
           </Select>
+          </div>
         </div>
       </div>
 
-      {/* Vendors */}
+      {/* Vendors Section */}
       {storeOwners && storeOwners.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <h2 className="font-tome-heading text-lg text-primary flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Shopkeepers
-            </h2>
+        <div className="space-y-6 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+            <div className="space-y-1">
+              <h2 className="font-tome-heading text-2xl text-primary flex items-center gap-2">
+                <Users className="w-6 h-6" />
+                Local Shopkeepers
+              </h2>
+              <p className="text-xs text-muted-foreground font-tome-marginalia">
+                Select a vendor to see their unique inventory.
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => setSelectedVendorId(null)}
               className={cn(
-                'text-sm font-tome-marginalia px-3 py-1.5 rounded-md border transition-colors',
+                'text-xs font-tome-marginalia px-4 py-2 rounded-md border transition-all uppercase tracking-wider shrink-0',
                 selectedVendorId === null
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border text-muted-foreground hover:border-primary/40'
+                  ? 'border-primary bg-primary/15 text-primary shadow-seal'
+                  : 'border-faded-gold/30 text-muted-foreground hover:border-primary/40 hover:bg-primary/5'
               )}
             >
-              All vendors
+              Show All Wares
             </button>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
-            {storeOwners.map(owner => {
-              const selected = selectedVendorId === owner.id;
-              return (
-                <button
-                  key={owner.id}
-                  type="button"
-                  onClick={() => setSelectedVendorId(owner.id)}
-                  className={cn(
-                    'flex-shrink-0 w-[min(100%,280px)] text-left arcane-border rounded-xl p-4 transition-all',
-                    selected
-                      ? 'bg-primary/10 border-primary shadow-md shadow-primary/10'
-                      : 'bg-background/50 hover:bg-primary/5'
-                  )}
-                >
-                  <p className="font-tome-heading text-base text-primary leading-tight">
-                    {owner.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground font-tome-marginalia mt-1 flex items-start gap-1">
-                    <MapPin className="w-3 h-3 shrink-0 mt-0.5" />
-                    <span className="line-clamp-2">{owner.location}</span>
-                  </p>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    <Badge
-                      variant="outline"
-                      className="text-micro font-tome-marginalia"
+
+          <div className="relative group px-1">
+            {/* Navigation Arrows - Always visible for clarity */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="absolute -left-5 top-1/2 -translate-y-1/2 z-20 h-10 w-10 rounded-full bg-background/95 backdrop-blur-sm border-primary/40 text-primary flex items-center justify-center transition-all hover:bg-primary hover:text-primary-foreground shadow-xl ring-1 ring-primary/20"
+              onClick={() => scroll('left')}
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="absolute -right-5 top-1/2 -translate-y-1/2 z-20 h-10 w-10 rounded-full bg-background/95 backdrop-blur-sm border-primary/40 text-primary flex items-center justify-center transition-all hover:bg-primary hover:text-primary-foreground shadow-xl ring-1 ring-primary/20"
+              onClick={() => scroll('right')}
+            >
+              <ChevronRight className="h-6 w-6" />
+            </Button>
+
+            {/* Themed container for the scrollable list */}
+            <div className="arcane-border bg-card/30 backdrop-blur-sm rounded-2xl p-6 shadow-inner-glow">
+              <div 
+                ref={scrollRef}
+                className="flex gap-5 overflow-x-auto pb-2 scrollbar-none snap-x"
+              >
+                {storeOwners.map(owner => {
+                  const selected = selectedVendorId === owner.id;
+                  return (
+                    <button
+                      key={owner.id}
+                      type="button"
+                      onClick={() => setSelectedVendorId(owner.id)}
+                      className={cn(
+                        'flex-shrink-0 w-72 text-left transition-all snap-start rounded-xl p-4 border-2 relative overflow-hidden group/vendor',
+                        selected
+                          ? 'bg-primary/15 border-primary shadow-lg shadow-primary/10'
+                          : 'bg-background/40 border-faded-gold/20 hover:border-primary/40 hover:bg-primary/5'
+                      )}
                     >
-                      Buy ×{owner.exchange_rate.toFixed(2)}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className="text-micro font-tome-marginalia border-muted-foreground/30"
-                    >
-                      Sell ×{owner.willingness_to_purchase.toFixed(2)}
-                    </Badge>
-                  </div>
-                </button>
-              );
-            })}
+                      {/* Decorative corner for selected state */}
+                      {selected && (
+                        <div className="absolute top-0 right-0 w-8 h-8 bg-primary/10 rotate-45 translate-x-4 -translate-y-4 border-b-2 border-primary" />
+                      )}
+                      
+                      <p className="font-tome-heading text-lg text-primary leading-tight truncate group-hover/vendor:glow-text">
+                        {owner.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground font-tome-marginalia mt-2 flex items-start gap-1.5 opacity-80">
+                        <MapPin className="w-3 h-3 shrink-0 mt-0.5 text-primary/60" />
+                        <span className="line-clamp-1">{owner.location}</span>
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            
+            {/* Subtle fade indicators for scroll */}
+            <div className="absolute left-6 top-6 bottom-8 w-12 bg-gradient-to-r from-card/40 to-transparent pointer-events-none rounded-l-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute right-6 top-6 bottom-8 w-12 bg-gradient-to-l from-card/40 to-transparent pointer-events-none rounded-r-xl opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
+
           {selectedVendor && (
-            <div className="arcane-border rounded-xl p-5 bg-muted/10 space-y-3">
-              <div>
-                <p className="text-xs uppercase tracking-widest text-muted-foreground font-tome-marginalia mb-1">
-                  At the counter
-                </p>
-                <p className="text-sm text-foreground leading-relaxed font-tome-marginalia">
-                  {selectedVendor.personality}
+            <div className="arcane-border rounded-xl p-6 bg-primary/5 border-primary/20 space-y-4 shadow-seal relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-3 opacity-10">
+                <Store className="w-16 h-16" />
+              </div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="h-px w-8 bg-primary/30" />
+                  <p className="text-xs uppercase tracking-[0.2em] text-primary/70 font-tome-marginalia font-bold">
+                    Vendor Profile
+                  </p>
+                </div>
+                <p className="text-base text-foreground/90 leading-relaxed font-tome-marginalia italic pl-2 border-l-2 border-primary/20">
+                  &ldquo;{selectedVendor.personality}&rdquo;
                 </p>
               </div>
-              <p className="text-xs text-muted-foreground font-tome-marginalia flex items-start gap-2">
-                <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                {selectedVendor.location}
-              </p>
-              {(selectedVendor.categories_obtained?.length ?? 0) > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  <span className="text-micro uppercase text-muted-foreground font-tome-marginalia w-full">
-                    Seeks / sources
-                  </span>
-                  {selectedVendor.categories_obtained!.map(cat => (
-                    <Badge
-                      key={cat}
-                      variant="secondary"
-                      className="text-micro font-tome-marginalia"
-                    >
-                      {cat}
-                    </Badge>
-                  ))}
+
+              <div className="grid sm:grid-cols-2 gap-4 pt-2">
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] uppercase text-muted-foreground font-tome-marginalia">Location</p>
+                    <p className="text-sm font-tome-marginalia text-foreground/80">{selectedVendor.location}</p>
+                  </div>
                 </div>
-              )}
-              <p className="text-xs text-muted-foreground font-tome-marginalia border-t border-border/50 pt-3">
-                Listed prices are adjusted by this vendor&apos;s exchange rate (
-                {selectedVendor.exchange_rate.toFixed(2)}×). Purchases use the
-                vendor price shown on each card.
-              </p>
+
+                {(selectedVendor.categories_obtained?.length ?? 0) > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] uppercase text-muted-foreground font-tome-marginalia">Trading Specialities</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedVendor.categories_obtained!.map(cat => (
+                        <Badge
+                          key={cat}
+                          variant="secondary"
+                          className="text-micro font-tome-marginalia bg-primary/10 text-primary border-primary/20"
+                        >
+                          {cat}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -764,7 +816,7 @@ export default function ShopPage() {
         <LoadingQuill label="Loading wares from the market..." />
       ) : filteredAndSortedItems.length > 0 ? (
         <>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {paginatedShopItems.map(item => {
               const listCp = parseCost(item.cost);
               const vendorCp = selectedVendor

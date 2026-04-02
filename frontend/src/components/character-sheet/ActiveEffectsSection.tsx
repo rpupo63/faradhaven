@@ -1,4 +1,5 @@
-import { Trash2, AlertTriangle, Skull } from 'lucide-react';
+import { Trash2, AlertTriangle } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,7 +49,7 @@ export function ActiveEffectsSection({ characterId, effects }: ActiveEffectsSect
               <div className="flex items-center gap-2">
                 <span className="font-bold text-primary text-sm flex items-center gap-1.5">
                   {effect.category.includes('Feral') || effect.category.includes('Madness') ? (
-                    <Skull className="h-3 w-3 text-red-500" />
+                    <RaIcon name="skull" className="text-xs text-red-500" />
                   ) : null}
                   {effect.name}
                 </span>

@@ -1,4 +1,4 @@
-import { getBaseUrl, handleResponse } from './base';
+import { getBaseUrl, handleResponse, apiFetch } from './base';
 import type { ApiCorpse, CreatureSize, CreatureType, HarvestResult } from '@/types/game';
 
 export async function getCorpses(
@@ -10,7 +10,7 @@ export async function getCorpses(
   const url = `${base}/api/corpses${params}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<ApiCorpse[]>(res, 'Failed to load corpses');
 }
 
@@ -36,7 +36,7 @@ export async function createCorpse(
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`,
   };
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify(data),
@@ -55,7 +55,7 @@ export async function harvestCorpse(
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`,
   };
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify({ character_id: characterId }),
@@ -74,7 +74,7 @@ export async function consumeCorpse(
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`,
   };
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify({ character_id: characterId }),
@@ -92,6 +92,6 @@ export async function deleteCorpse(
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`,
   };
-  const res = await fetch(url, { method: 'DELETE', headers });
+  const res = await apiFetch(url, { method: 'DELETE', headers });
   return handleResponse<{ status: string }>(res, 'Failed to delete corpse');
 }

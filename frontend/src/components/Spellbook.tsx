@@ -1,38 +1,34 @@
-import { useMemo, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getSpells } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { ApiSpell as BaseApiSpell } from '@/types/game';
-import { LoadingQuill } from './LoadingQuill';
-import { SpellListPagination } from './SpellListPagination'; // NEW: Import SpellListPagination
-import { SpellItem } from './SpellItem'; // NEW: Import SpellItem
+import { SpellListPagination } from '@/components/SpellListPagination';
+import { SpellItem } from '@/components/SpellItem';
+import {
+  REALM_SPELLBOOK_PAGE_SIZE,
+  useSpellbookListState,
+  type SpellbookListSpell,
+} from '@/components/spellbook';
 
-// The API now returns character info, so we extend the base type.
-type ApiSpell = BaseApiSpell & {
-  character_name?: string;
-  character_class?: string;
-};
-
-const PAGINATION_LIMIT = 10; // Number of spells to display per page
-
+/** Realm-wide spell catalog (not per-character). Character pools use `CharacterSpellbook` + `resolveSpellPoolComponents`. */
 export function Spellbook() {
   const { token } = useAuth();
-  const [pointsFilter, setPointsFilter] = useState<number | 'all'>('all'); // NEW: pointsFilter state
-  const [currentPage, setCurrentPage] = useState(1); // NEW: currentPage state
+  const { pointsFilter, setPointsFilter, currentPage, setCurrentPage } = useSpellbookListState();
 
   const { data: paginatedSpells, isLoading, error } = useQuery({
-    queryKey: ['spells', { page: currentPage, limit: PAGINATION_LIMIT, pointsFilter }],
-    queryFn: () => getSpells(token ?? undefined, { page: currentPage, limit: PAGINATION_LIMIT, slot_level: pointsFilter }),
+    queryKey: ['spells', { page: currentPage, limit: REALM_SPELLBOOK_PAGE_SIZE, pointsFilter }],
+    queryFn: () =>
+      getSpells(token ?? undefined, {
+        page: currentPage,
+        limit: REALM_SPELLBOOK_PAGE_SIZE,
+        slot_level: pointsFilter,
+      }),
   });
 
   const spells = paginatedSpells?.spells;
   const totalCount = paginatedSpells?.total_count || 0;
-  const totalPages = Math.ceil(totalCount / PAGINATION_LIMIT);
+  const totalPages = Math.ceil(totalCount / REALM_SPELLBOOK_PAGE_SIZE);
 
-  // NEW: Define renderSpellItem function
-  const renderSpellItem = (spell: ApiSpell) => (
-    <SpellItem spell={spell} />
-  );
+  const renderSpellItem = (spell: SpellbookListSpell) => <SpellItem spell={spell} />;
 
   return (
     <SpellListPagination
@@ -47,8 +43,7 @@ export function Spellbook() {
       currentPage={currentPage}
       setCurrentPage={setCurrentPage}
       totalPages={totalPages}
-      renderSpellItem={renderSpellItem} // NEW: Pass renderSpellItem prop
+      renderSpellItem={renderSpellItem}
     />
   );
 }
-

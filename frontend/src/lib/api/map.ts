@@ -1,4 +1,4 @@
-import { getBaseUrl, handleResponse } from './base';
+import { getBaseUrl, handleResponse, apiFetch } from './base';
 import type {
   GameMap,
   CreateMapRequest,
@@ -22,7 +22,7 @@ export async function createMap(
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
   };
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify(data),
@@ -38,7 +38,7 @@ export async function getMap(
   const url = `${base}/api/map/${mapId}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<GameMap>(res, 'Failed to load map');
 }
 
@@ -50,7 +50,7 @@ export async function getMapByRoom(
   const url = `${base}/api/map/room/${roomCode}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<GameMap>(res, 'Failed to load map');
 }
 
@@ -64,7 +64,7 @@ export async function getUserMaps(
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
   };
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<GameMap[]>(res, 'Failed to load maps');
 }
 
@@ -79,7 +79,7 @@ export async function updateMap(
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
   };
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'PUT',
     headers,
     body: JSON.stringify(data),
@@ -97,7 +97,7 @@ export async function deleteMap(
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
   };
-  const res = await fetch(url, { method: 'DELETE', headers });
+  const res = await apiFetch(url, { method: 'DELETE', headers });
   return handleResponse<{ message: string }>(res, 'Failed to delete map');
 }
 
@@ -112,7 +112,7 @@ export async function addToken(
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
   };
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify(data),
@@ -132,7 +132,7 @@ export async function updateToken(
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
   };
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'PUT',
     headers,
     body: JSON.stringify(data),
@@ -151,7 +151,7 @@ export async function deleteToken(
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
   };
-  const res = await fetch(url, { method: 'DELETE', headers });
+  const res = await apiFetch(url, { method: 'DELETE', headers });
   return handleResponse<{ message: string }>(res, 'Failed to delete token');
 }
 
@@ -166,7 +166,7 @@ export async function createMapElement(
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
   };
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify(data),
@@ -186,7 +186,7 @@ export async function updateMapElement(
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
   };
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'PUT',
     headers,
     body: JSON.stringify(data),
@@ -205,7 +205,7 @@ export async function deleteMapElement(
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
   };
-  const res = await fetch(url, { method: 'DELETE', headers });
+  const res = await apiFetch(url, { method: 'DELETE', headers });
   return handleResponse<{ message: string }>(res, 'Failed to delete map element');
 }
 
@@ -217,7 +217,7 @@ export async function getInitiative(
   const url = `${base}/api/map/${mapId}/initiative`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<MapToken[]>(res, 'Failed to load initiative order');
 }
 
@@ -232,7 +232,7 @@ export async function setInitiative(
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`,
   };
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'PUT',
     headers,
     body: JSON.stringify({ entries }),
@@ -250,6 +250,6 @@ export async function clearInitiative(
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`,
   };
-  const res = await fetch(url, { method: 'DELETE', headers });
+  const res = await apiFetch(url, { method: 'DELETE', headers });
   return handleResponse<{ status: string }>(res, 'Failed to clear initiative');
 }

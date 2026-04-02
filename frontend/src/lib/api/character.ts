@@ -1,4 +1,4 @@
-import { getBaseUrl, handleResponse } from './base';
+import { getBaseUrl, handleResponse, apiFetch } from './base';
 import type {
   ApiCharacterSheet,
   ApiClass,
@@ -15,6 +15,7 @@ import type {
   ApiEffect,
   PaginatedCharactersResponse,
   CastSpellResponse,
+  ApiSavedSpell,
   ApiStoreOwner
 } from '@/types/game';
 
@@ -41,7 +42,7 @@ export async function getRaces(token?: string): Promise<ApiRace[]> {
   const url = `${base}/api/races`;
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<ApiRace[]>(res, 'Failed to load races');
 }
 
@@ -56,7 +57,7 @@ export async function getRaceWithTraits(
   const url = `${base}/api/races/${raceId}`;
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<ApiRaceWithTraits>(res, 'Failed to load race');
 }
 
@@ -68,7 +69,7 @@ export async function getClasses(token?: string): Promise<ApiClass[]> {
   const url = `${base}/api/classes`;
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<ApiClass[]>(res, 'Failed to load classes');
 }
 
@@ -83,7 +84,7 @@ export async function getClassWithLevels(
   const url = `${base}/api/classes/${classId}`;
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<ApiClassWithLevels>(res, 'Failed to load class');
 }
 
@@ -95,7 +96,7 @@ export async function getItems(token?: string): Promise<ApiItem[]> {
   const url = `${base}/api/items`;
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<ApiItem[]>(res, 'Failed to load items');
 }
 
@@ -107,7 +108,7 @@ export async function getEffects(token?: string): Promise<ApiEffect[]> {
   const url = `${base}/api/effects`;
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<ApiEffect[]>(res, 'Failed to load effects');
 }
 
@@ -119,7 +120,7 @@ export async function getWeapons(token?: string): Promise<ApiWeapon[]> {
   const url = `${base}/api/weapons`;
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<ApiWeapon[]>(res, 'Failed to load weapons');
 }
 
@@ -131,7 +132,7 @@ export async function getStoreOwners(token?: string): Promise<ApiStoreOwner[]> {
   const url = `${base}/api/store-owners`;
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<ApiStoreOwner[]>(res, 'Failed to load store owners');
 }
 
@@ -143,7 +144,7 @@ export async function getWeaponById(weaponId: string, token?: string): Promise<A
   const url = `${base}/api/weapons/${weaponId}`;
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<ApiWeapon>(res, `Failed to load weapon with ID ${weaponId}`);
 }
 
@@ -153,7 +154,7 @@ export async function getWeaponById(weaponId: string, token?: string): Promise<A
 export async function getComponents(): Promise<ApiComponent[]> {
   const base = getBaseUrl();
   const url = `${base}/api/components`;
-  const res = await fetch(url);
+  const res = await apiFetch(url);
   return handleResponse<ApiComponent[]>(res, 'Failed to load components');
 }
 
@@ -166,11 +167,13 @@ export async function getSpells(token?: string, options?: PaginationOptions): Pr
   if (options) {
     if (options.page) url.searchParams.append('page', options.page.toString());
     if (options.limit) url.searchParams.append('limit', options.limit.toString());
-    if (options.slot_level && options.slot_level !== 'all') url.searchParams.append('slot_level', options.slot_level.toString());
+    if (options.slot_level && options.slot_level !== 'all') {
+      url.searchParams.append('level', options.slot_level.toString());
+    }
   }
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url.toString(), { headers });
+  const res = await apiFetch(url.toString(), { headers });
   return handleResponse<PaginatedSpellsResponse>(res, 'Failed to load spells');
 }
 
@@ -206,7 +209,7 @@ export async function createSpell(
   const url = `${base}/api/spell`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify(request),
@@ -225,7 +228,7 @@ export async function synthesizeSpell(
   const url = `${base}/api/spell/synthesize`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify({ component_ids: componentIds }),
@@ -249,7 +252,7 @@ export async function updateSpell(
   const url = `${base}/api/spell/${request.id}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'PUT',
     headers,
     body: JSON.stringify(request),
@@ -263,7 +266,7 @@ export async function updateSpell(
 export async function getUncheckedSpells(token: string): Promise<ApiSpell[]> {
   const base = getBaseUrl();
   const url = `${base}/api/gm/spells/unchecked`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return handleResponse<ApiSpell[]>(res, 'Failed to load unchecked spells');
@@ -279,7 +282,7 @@ export async function gmUpdateSpell(
 ): Promise<ApiSpell> {
   const base = getBaseUrl();
   const url = `${base}/api/spell/${spellId}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(updates),
@@ -295,7 +298,7 @@ export async function getCreationOptions(token?: string): Promise<ApiCreationOpt
   const url = `${base}/api/characters/options`;
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<ApiCreationOptions>(res, 'Failed to load options');
 }
 
@@ -310,7 +313,7 @@ export async function createCharacter(
   const url = `${base}/api/character`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify(request),
@@ -330,7 +333,7 @@ export async function getAllCharacters(token?: string, options?: PaginationOptio
   }
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url.toString(), { headers });
+  const res = await apiFetch(url.toString(), { headers });
   return handleResponse<PaginatedCharactersResponse>(res, 'Failed to load characters');
 }
 
@@ -345,7 +348,7 @@ export async function getCharactersByUserId(
   const url = `${base}/api/user/${userId}/characters`;
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<PaginatedCharactersResponse>(res, 'Failed to load characters');
 }
 
@@ -361,7 +364,7 @@ export async function getCharacterSheet(
   const url = `${base}/api/character/${characterId}/sheet`;
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<ApiCharacterSheet>(res, 'Failed to load sheet');
 }
 
@@ -376,7 +379,7 @@ export async function restSpellPoints(
   const url = `${base}/api/character/${characterId}/rest`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { method: 'POST', headers });
+  const res = await apiFetch(url, { method: 'POST', headers });
   return handleResponse<{ current_spell_points: number; max_spell_points: number }>(res, 'Failed to rest');
 }
 
@@ -393,12 +396,59 @@ export async function castSpell(
   const url = `${base}/api/character/${characterId}/cast`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify({ spell_level: spellLevel, spell_id: spellId }),
   });
   return handleResponse(res, 'Failed to cast spell');
+}
+
+export interface SaveSpeedDialRequest {
+  name: string;
+  component_ids: string[];
+}
+
+/** Loads Speed Dial / blueprint slots for a character. */
+export async function getSpeedDial(characterId: string, token?: string): Promise<ApiSavedSpell[]> {
+  const base = getBaseUrl();
+  const url = `${base}/api/character/${characterId}/speed-dial`;
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await apiFetch(url, { headers });
+  return handleResponse<ApiSavedSpell[]>(res, 'Failed to load speed dial');
+}
+
+/** Saves the current component sequence to a slot (Powder Mage Speed Dial, Piston blueprint, etc.). */
+export async function saveSpeedDialSlot(
+  characterId: string,
+  slotIndex: number,
+  body: SaveSpeedDialRequest,
+  token?: string,
+): Promise<ApiSavedSpell> {
+  const base = getBaseUrl();
+  const url = `${base}/api/character/${characterId}/speed-dial/${slotIndex}`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await apiFetch(url, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(body),
+  });
+  return handleResponse<ApiSavedSpell>(res, 'Failed to save speed dial slot');
+}
+
+export async function clearSpeedDialSlot(
+  characterId: string,
+  slotIndex: number,
+  token?: string,
+): Promise<{ message: string }> {
+  const base = getBaseUrl();
+  const url = `${base}/api/character/${characterId}/speed-dial/${slotIndex}`;
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await apiFetch(url, { method: 'DELETE', headers });
+  return handleResponse<{ message: string }>(res, 'Failed to clear speed dial slot');
 }
 
 /**
@@ -413,7 +463,7 @@ export async function consumeComponent(
   const url = `${base}/api/character/${characterId}/component/${componentId}/consume`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
   });
@@ -432,7 +482,7 @@ export async function gainComponent(
   const url = `${base}/api/character/${characterId}/component/${componentId}/gain`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
   });
@@ -450,7 +500,7 @@ export async function getBackstory(
   const url = `${base}/api/character/${characterId}/backstory`;
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<{ backstory: string; backstory_hex_color?: string }>(res, 'Failed to load backstory');
 }
 
@@ -467,7 +517,7 @@ export async function updateBackstory(
   const url = `${base}/api/character/${characterId}/backstory`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'PUT',
     headers,
     body: JSON.stringify({ backstory, backstory_hex_color }),
@@ -488,11 +538,13 @@ export async function getCharacterSpells(
   if (options) {
     if (options.page) url.searchParams.append('page', options.page.toString());
     if (options.limit) url.searchParams.append('limit', options.limit.toString());
-    if (options.slot_level && options.slot_level !== 'all') url.searchParams.append('slot_level', options.slot_level.toString());
+    if (options.slot_level && options.slot_level !== 'all') {
+      url.searchParams.append('level', options.slot_level.toString());
+    }
   }
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url.toString(), { headers });
+  const res = await apiFetch(url.toString(), { headers });
   return handleResponse<PaginatedSpellsResponse>(res, 'Failed to load character spells');
 }
 
@@ -507,7 +559,7 @@ export async function deleteCharacter(
   const url = `${base}/api/character/${characterId}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'DELETE',
     headers,
   });
@@ -526,7 +578,7 @@ export async function updateCharacter(
   const url = `${base}/api/character/${characterId}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'PUT',
     headers,
     body: JSON.stringify(updates),
@@ -555,7 +607,7 @@ export async function purchaseItem(
   if (storeOwnerId) {
     body.store_owner_id = storeOwnerId;
   }
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify(body),
@@ -579,7 +631,7 @@ export async function uploadCharacterImage(
   const formData = new FormData();
   formData.append('image', file);
 
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers, // Do NOT set Content-Type for FormData, browser sets it with boundary
     body: formData,
@@ -599,7 +651,7 @@ export async function updateNotoriety(
   const url = `${base}/api/character/${characterId}/notoriety`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify({ delta }),
@@ -619,7 +671,7 @@ export async function updateSanguineNotoriety(
   const url = `${base}/api/character/${characterId}/sanguine-notoriety`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify({ mp_change: mpChange, br_change: brChange }),
@@ -647,7 +699,7 @@ export async function updateEquipment(
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify(request),
@@ -668,7 +720,7 @@ export async function setCharacterParty(
   const url = `${base}/api/characters/${characterId}/party`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'PUT',
     headers,
     body: JSON.stringify({ party_id: partyId }),
@@ -690,28 +742,41 @@ export async function forageComponents(
   const base = getBaseUrl();
   const url = `${base}/api/character/${characterId}/forage-components`;
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-  const res = await fetch(url, { method: 'POST', headers });
+  const res = await apiFetch(url, { method: 'POST', headers });
   return handleResponse(res, 'Failed to forage components');
 }
 
-export interface CharacterSpellbookResponse {
-  my_spells: ApiSpell[];
-  available_spells: ApiSpell[];
+export type CharacterSpellbookScope = 'mine' | 'castable' | 'mine_or_castable' | 'all';
+
+export interface GetCharacterSpellbookParams {
+  scope: CharacterSpellbookScope;
+  page?: number;
+  /** Default on server is 20 for this endpoint */
+  limit?: number;
+  /** Spell level (points); omit or use only when filtering by tier */
+  level?: number;
 }
 
 /**
- * Fetches all spells available to a character, separated by user-owned and available.
+ * Fetches a paginated spell list for a character spellbook by scope.
  */
 export async function getCharacterSpellbook(
   characterId: string,
-  token?: string
-): Promise<CharacterSpellbookResponse> {
+  token: string | undefined,
+  params: GetCharacterSpellbookParams
+): Promise<PaginatedSpellsResponse> {
   const base = getBaseUrl();
-  const url = `${base}/api/character/${characterId}/spellbook`;
+  const url = new URL(`${base}/api/character/${characterId}/spellbook`);
+  url.searchParams.set('scope', params.scope);
+  if (params.page != null) url.searchParams.set('page', String(params.page));
+  if (params.limit != null) url.searchParams.set('limit', String(params.limit));
+  if (params.level != null && params.level >= 1) {
+    url.searchParams.set('level', String(params.level));
+  }
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url.toString(), { headers });
-  return handleResponse<CharacterSpellbookResponse>(res, 'Failed to load character spellbook');
+  const res = await apiFetch(url.toString(), { headers });
+  return handleResponse<PaginatedSpellsResponse>(res, 'Failed to load character spellbook');
 }
 
 /**
@@ -723,7 +788,7 @@ export async function getSpellAIReview(
 ): Promise<{ description_opinion: string; damage_opinion: string; effect_opinion: string; overall_verdict: string }> {
   const base = getBaseUrl();
   const url = `${base}/api/spell/${spellId}/opinion`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
   });
   return handleResponse(res, 'Failed to get AI opinion');

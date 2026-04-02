@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Target, Swords, Flame, Zap, Star } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -286,8 +286,8 @@ export function WeaponAttackDialog({ open, onOpenChange, selectedWeapon, sheet, 
           <div className="py-2">
             <DialogHeader>
               <DialogTitle className="text-center font-tome-subheading text-primary flex items-center justify-center gap-2">
-                {selectedWeapon.is_primary && <Star className="h-4 w-4 fill-primary" />}
-                <Swords className="h-5 w-5" />
+                {selectedWeapon.is_primary && <RaIcon name="crown" className="text-sm text-primary" />}
+                <RaIcon name="crossed-swords" className="text-base" />
                 {effectiveWeapon?.name || selectedWeapon.custom_name || selectedWeapon.weapon.name}
               </DialogTitle>
               <DialogDescription className="sr-only">
@@ -305,7 +305,7 @@ export function WeaponAttackDialog({ open, onOpenChange, selectedWeapon, sheet, 
                         m.is_active ? "bg-primary/80" : "opacity-60"
                       )}
                     >
-                      <Zap className="h-3 w-3" />
+                      <RaIcon name="lightning-bolt" className="text-xs" />
                       {MODIFIER_DISPLAY_NAMES[m.modifier_type] || m.modifier_type}
                     </Badge>
                   ))}
@@ -455,7 +455,7 @@ export function WeaponAttackDialog({ open, onOpenChange, selectedWeapon, sheet, 
                   </div>
                 ) : (
                   <Button onClick={handleAttackRoll} className="w-full gap-2" variant="default">
-                    <Target className="h-4 w-4" />
+                    <RaIcon name="archery-target" className="text-sm" />
                     Roll Attack
                   </Button>
                 )}
@@ -482,7 +482,7 @@ export function WeaponAttackDialog({ open, onOpenChange, selectedWeapon, sheet, 
                     variant="default"
                     disabled={phase !== 'damage'}
                   >
-                    <Flame className="h-4 w-4" />
+                    <RaIcon name="fire" className="text-sm" />
                     Roll Damage
                   </Button>
                 )}

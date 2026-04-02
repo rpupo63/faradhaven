@@ -5,6 +5,7 @@ export const RESOURCE_KEY_LABELS: Record<string, string> = {
   max_stability: 'Stab',
   spell_points: 'SP',
   shadow_points: 'SP',
+  powder_charges: 'Powder',
 };
 
 /**
@@ -34,10 +35,6 @@ export function buildCastToast(
 
   if (className === 'The Ironwright' || className === 'The Lorewright') {
     return `Cast ${spellName}! Components consumed.`;
-  }
-
-  if (className === 'The Powder Mage') {
-    return `Cast ${spellName}!`;
   }
 
   return `Cast ${spellName}!`;

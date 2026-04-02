@@ -58,13 +58,28 @@ func (s *SavedSpellService) SaveSpell(characterID uuid.UUID, slotIndex int, req 
 		return nil, fmt.Errorf("could not load class level resources: %w", err)
 	}
 
+	classRow, err := s.classRepo.FindByID(character.ClassID)
+	if err != nil {
+		return nil, fmt.Errorf("could not load class: %w", err)
+	}
+
 	maxSlots := resourceMap["speed_dial_slots"]
 	if maxSlots == 0 {
-		maxSlots = 1 // Default to 1 slot if not set
+		// Piston Brawler: blueprint slots are 0 in seed until high level; service historically defaulted to 1.
+		if classRow.Name == "The Piston Brawler" {
+			maxSlots = 1
+		}
+	}
+	if maxSlots == 0 {
+		return nil, errors.New("no speed dial / blueprint slots available at your level")
 	}
 
 	if slotIndex < 0 || slotIndex >= maxSlots {
 		return nil, fmt.Errorf("invalid slot index (must be 0-%d)", maxSlots-1)
+	}
+
+	if classRow.Name == "The Powder Mage" && len(req.ComponentIDs) > 3 {
+		return nil, errors.New("Speed Dial stores at most 3 components")
 	}
 
 	// Calculate tier-based cost from component data

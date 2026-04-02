@@ -10,6 +10,7 @@ import type {
   ApiWeapon,
   ApiWeaponDamage,
 } from '@/types/game';
+import { resolveSpellPoolComponents } from '@/lib/spellUtils';
 import { DND5E_SKILLS, DND5E_SAVING_THROWS } from '@/types/game';
 import type { Class, ClassLevel } from '@/types/game';
 
@@ -324,6 +325,7 @@ export function normalizeApiSheet(api: ApiCharacterSheet): NormalizedCharacterSh
       image_url: c.image_url,
       equipped_armor_id: c.equipped_armor_id,
       equipped_shield_id: c.equipped_shield_id,
+      partyName: c.party?.name?.trim() || undefined,
     },
     class_level: {
       proficiency_bonus: prof,
@@ -347,7 +349,7 @@ export function normalizeApiSheet(api: ApiCharacterSheet): NormalizedCharacterSh
     race_traits: combinedTraits,
     lineage: api.lineage,
     speed,
-    available_components: api.available_components,
+    available_components: resolveSpellPoolComponents(api),
     inventory_weapons: (function() {
       const weapons = [...(api.inventory_weapons || [])];
       // Inject virtual Bite weapon for Sanguinists if not already present

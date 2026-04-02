@@ -13,9 +13,10 @@ type SpellRepository interface {
 	FindAllWithComponents() ([]*models.Spell, error)
 	FindByID(id uuid.UUID) (*models.Spell, error)
 	FindByUserID(userID uuid.UUID) ([]*models.Spell, error)
-	FindByUserIDPaginated(userID uuid.UUID, page, limit int) ([]*models.Spell, int64, error)
+	FindByUserIDPaginated(userID uuid.UUID, page, limit, levelFilter int) ([]*models.Spell, int64, error)
 	FindByCharacterID(characterID uuid.UUID, page, limit, levelFilter int) ([]*models.Spell, int64, error)
 	FindUnchecked() ([]*models.Spell, error)
+	FindByFingerprint(fingerprint string) ([]*models.Spell, error)
 	Add(spell *models.Spell, componentIDs []uuid.UUID) error
 	Update(spell *models.Spell) error
 	UpdateFields(id uuid.UUID, fields map[string]interface{}) error
@@ -106,11 +107,15 @@ func (r *SpellRepo) FindByUserID(userID uuid.UUID) ([]*models.Spell, error) {
 }
 
 // FindByUserIDPaginated returns all spells for a user with components preloaded and pagination
-func (r *SpellRepo) FindByUserIDPaginated(userID uuid.UUID, page, limit int) ([]*models.Spell, int64, error) {
+func (r *SpellRepo) FindByUserIDPaginated(userID uuid.UUID, page, limit, levelFilter int) ([]*models.Spell, int64, error) {
 	var spells []*models.Spell
 	var totalCount int64
 
 	query := r.db.Model(&models.Spell{}).Preload("ComponentLinks", preloadSpellComponentLinks).Preload("ComponentLinks.Component").Where("user_id = ?", userID)
+
+	if levelFilter > 0 {
+		query = query.Where("level = ?", levelFilter)
+	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, 0, err
@@ -162,6 +167,45 @@ func (r *SpellRepo) FindUnchecked() ([]*models.Spell, error) {
 	return spells, err
 }
 
+// FindByFingerprint returns all spells matching the given component fingerprint.
+func (r *SpellRepo) FindByFingerprint(fingerprint string) ([]*models.Spell, error) {
+	var spells []*models.Spell
+	err := r.db.
+		Preload("ComponentLinks", preloadSpellComponentLinks).
+		Preload("ComponentLinks.Component").
+		Where("component_fingerprint = ?", fingerprint).
+		Find(&spells).Error
+	if err != nil {
+		return nil, err
+	}
+	hydrateSpellsComponents(spells)
+	return spells, nil
+}
+
+// computeAndStoreFingerprint fetches component categories, computes the canonical
+// fingerprint for the given ordered componentIDs, and writes it to the spell row.
+// db may be r.db or a transaction handle (following the replaceComponentsTx pattern).
+func (r *SpellRepo) computeAndStoreFingerprint(db *gorm.DB, spellID uuid.UUID, componentIDs []uuid.UUID) error {
+	var comps []models.Component
+	if err := db.Select("id, category").Where("id IN ?", componentIDs).Find(&comps).Error; err != nil {
+		return err
+	}
+	compMap := make(map[uuid.UUID]models.ComponentCategory, len(comps))
+	for _, c := range comps {
+		compMap[c.ID] = c.Category
+	}
+	links := make([]models.SpellComponent, len(componentIDs))
+	for i, id := range componentIDs {
+		links[i] = models.SpellComponent{
+			SortOrder:   i,
+			ComponentID: id,
+			Component:   models.Component{ID: id, Category: compMap[id]},
+		}
+	}
+	fp := models.ComponentFingerprint(links)
+	return db.Model(&models.Spell{}).Where("id = ?", spellID).Update("component_fingerprint", fp).Error
+}
+
 // Add inserts a new spell and links it to the given components
 func (r *SpellRepo) Add(spell *models.Spell, componentIDs []uuid.UUID) error {
 	now := time.Now()
@@ -171,9 +215,11 @@ func (r *SpellRepo) Add(spell *models.Spell, componentIDs []uuid.UUID) error {
 		return err
 	}
 	if len(componentIDs) > 0 {
-		return replaceComponentsTx(r.db, spell.ID, componentIDs)
+		if err := replaceComponentsTx(r.db, spell.ID, componentIDs); err != nil {
+			return err
+		}
 	}
-	return nil
+	return r.computeAndStoreFingerprint(r.db, spell.ID, componentIDs)
 }
 
 // ReplaceComponents removes existing spell-component links and creates new ones
@@ -182,10 +228,12 @@ func (r *SpellRepo) ReplaceComponents(spellID uuid.UUID, componentIDs []uuid.UUI
 		if err := tx.Where("spell_id = ?", spellID).Delete(&models.SpellComponent{}).Error; err != nil {
 			return err
 		}
-		if len(componentIDs) == 0 {
-			return nil
+		if len(componentIDs) > 0 {
+			if err := replaceComponentsTx(tx, spellID, componentIDs); err != nil {
+				return err
+			}
 		}
-		return replaceComponentsTx(tx, spellID, componentIDs)
+		return r.computeAndStoreFingerprint(tx, spellID, componentIDs)
 	})
 }
 

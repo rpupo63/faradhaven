@@ -12,7 +12,8 @@ type FaradhavenRaceSeed struct {
 	Languages           []string // Languages known by default (e.g., ["Common", "Elvish"])
 	BonusLanguageCount  int      // Number of additional languages the player may choose
 	Traits              []TraitSeed
-	ComponentNames      []string // Names of spell components this race grants access to
+	// ComponentNames is deprecated: species-wide spell components are merged into each class pool at seed time (see faradhaven_classes.HeritageSpeciesComponents). Leave empty.
+	ComponentNames []string
 }
 
 // TraitSeed defines a race trait for seeding

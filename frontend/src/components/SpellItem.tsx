@@ -1,26 +1,25 @@
 import React from 'react';
-import { ApiSpell as BaseApiSpell } from '@/types/game';
-import { Sparkles, Sword, ShieldCheck, Heart, UserSquare } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { cn } from '@/lib/utils';
 import { formatSpellRangeFeet, formatSpellDamageDice } from '@/lib/spellMechanics';
-
-type ApiSpell = BaseApiSpell & {
-  character_name?: string;
-  character_class?: string;
-};
+import type { SpellbookListSpell } from '@/components/spellbook/spellbookTypes';
+import { getSpellComponentCount } from '@/lib/spellUtils';
 
 interface SpellItemProps {
-  spell: ApiSpell;
+  spell: SpellbookListSpell;
 }
 
 export const SpellItem: React.FC<SpellItemProps> = ({ spell }) => {
+  const compCount = getSpellComponentCount(spell);
   return (
     <div className="arcane-scroll-box bg-card/50 text-card-foreground rounded-lg p-2 mb-2">
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-2">
-          <Sparkles className="w-5 h-5 text-purple-400" />
+          <RaIcon name="aura" className="text-base text-purple-400" />
           <span className="font-tome-item-heading text-lg">{spell.name}</span>
-          <span className="text-sm text-muted-foreground">({spell.slot_level} SP)</span>
+          <span className="text-sm text-muted-foreground">
+            ({compCount > 0 ? `${compCount} comp.` : '—'})
+          </span>
         </div>
       </div>
 
@@ -30,39 +29,39 @@ export const SpellItem: React.FC<SpellItemProps> = ({ spell }) => {
         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm font-tome-marginalia">
           {spell.type && (
             <div className="flex items-center gap-1">
-              <Sparkles className="w-4 h-4 text-gray-500" /> Type: {spell.type}
+              <RaIcon name="aura" className="text-sm text-gray-500" /> Type: {spell.type}
             </div>
           )}
           {typeof spell.range === 'number' && (
             <div className="flex items-center gap-1">
-              <UserSquare className="w-4 h-4 text-gray-500" /> Range: {formatSpellRangeFeet(spell.range)}
+              <RaIcon name="archery-target" className="text-sm text-gray-500" /> Range: {formatSpellRangeFeet(spell.range)}
             </div>
           )}
           {spell.duration && (
             <div className="flex items-center gap-1">
-              <Heart className="w-4 h-4 text-gray-500" /> Duration: {spell.duration}
+              <RaIcon name="stopwatch" className="text-sm text-gray-500" /> Duration: {spell.duration}
             </div>
           )}
           {spell.concentration && (
             <div className="flex items-center gap-1">
-              <ShieldCheck className="w-4 h-4 text-gray-500" /> Concentration
+              <RaIcon name="bolt-shield" className="text-sm text-gray-500" /> Concentration
             </div>
           )}
           {spell.save_attr && (
             <div className="flex items-center gap-1">
-              <Sword className="w-4 h-4 text-gray-500" /> Save: {spell.save_attr}
+              <RaIcon name="sword" className="text-sm text-gray-500" /> Save: {spell.save_attr}
             </div>
           )}
           {typeof spell.damage_dice_count === 'number' &&
             typeof spell.damage_die_size === 'number' && (
             <div className="flex items-center gap-1">
-              <Sword className="w-4 h-4 text-gray-500" /> Damage:{' '}
+              <RaIcon name="sword" className="text-sm text-gray-500" /> Damage:{' '}
               {formatSpellDamageDice(spell.damage_dice_count, spell.damage_die_size)} {spell.damage_type}
             </div>
           )}
           {spell.character_name && (
             <div className="flex items-center gap-1 col-span-2">
-              <UserSquare className="w-4 h-4 text-green-400" /> From: {spell.character_name} ({spell.character_class})
+              <RaIcon name="player" className="text-sm text-green-400" /> From: {spell.character_name} ({spell.character_class})
             </div>
           )}
         </div>

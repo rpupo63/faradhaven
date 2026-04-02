@@ -33,13 +33,15 @@ interface DialogContentProps extends React.ComponentPropsWithoutRef<typeof Dialo
   tome?: boolean;
   /** Skip inner scroll padding (full-bleed modals: command palette, level-up wizard, etc.). */
   noPadding?: boolean;
+  /** Hide the default top-right close control (use explicit footer actions instead). */
+  hideCloseButton?: boolean;
   children?: React.ReactNode;
 }
 
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
->(({ className, children, overlayVariant = 'default', tome = false, noPadding = false, ...props }, ref) => (
+>(({ className, children, overlayVariant = 'default', tome = false, noPadding = false, hideCloseButton = false, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay variant={tome ? 'vellum' : overlayVariant} />
     <DialogPrimitive.Content
@@ -53,19 +55,21 @@ const DialogContent = React.forwardRef<
       )}
       {...props}
     >
-      <div className="sticky top-0 z-20 flex shrink-0 items-center justify-end border-b border-border/60 bg-background/95 px-3 py-2 backdrop-blur-sm sm:px-4">
-        <DialogPrimitive.Close
-          className={cn(
-            "rounded-md opacity-90 ring-offset-background transition-opacity",
-            "hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-            "flex h-11 min-h-[44px] w-11 min-w-[44px] touch-manipulation items-center justify-center",
-            "data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
-          )}
-        >
-          <X className="h-5 w-5" />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
-      </div>
+      {!hideCloseButton && (
+        <div className="sticky top-0 z-20 flex shrink-0 items-center justify-end border-b border-border/60 bg-background/95 px-3 py-2 backdrop-blur-sm sm:px-4">
+          <DialogPrimitive.Close
+            className={cn(
+              "rounded-md opacity-90 ring-offset-background transition-opacity",
+              "hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+              "flex h-11 min-h-[44px] w-11 min-w-[44px] touch-manipulation items-center justify-center",
+              "data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
+            )}
+          >
+            <X className="h-5 w-5" />
+            <span className="sr-only">Close</span>
+          </DialogPrimitive.Close>
+        </div>
+      )}
       <div
         className={cn(
           "min-h-0 flex-1 overflow-y-auto overscroll-contain",

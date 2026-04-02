@@ -98,6 +98,8 @@ export interface NormalizedCharacterSheet {
     image_url?: string;
     equipped_armor_id?: string;
     equipped_shield_id?: string;
+    /** Set when the API returns an affiliated party for this character. */
+    partyName?: string;
   };
   class: {
     name: string;

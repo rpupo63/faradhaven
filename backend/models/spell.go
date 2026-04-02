@@ -29,7 +29,8 @@ type Spell struct {
 	SuggestedDamageDieSize   *int        `json:"suggested_damage_die_size,omitempty" gorm:"type:integer"`
 	AddModifier         bool        `json:"add_modifier" gorm:"default:false"`                // Add spellcasting mod to damage/healing
 
-	Checked bool `json:"checked" gorm:"type:boolean;not null;default:false"` // GM has reviewed and approved this spell
+	Checked              bool    `json:"checked" gorm:"type:boolean;not null;default:false"` // GM has reviewed and approved this spell
+	ComponentFingerprint *string `json:"component_fingerprint,omitempty" gorm:"type:text;index"`
 
 	// AI Review Opinions
 	AIDescriptionOpinion *string `json:"ai_description_opinion,omitempty" gorm:"column:ai_description_opinion;type:text"`

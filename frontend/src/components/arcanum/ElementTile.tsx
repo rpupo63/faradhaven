@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import type { ApiComponent, ComponentCategory } from '@/types/game';
+import { ComponentRpgGlyph } from './ComponentRpgGlyph';
 
 // Category color mapping for periodic table visual distinction
 const categoryColors: Record<ComponentCategory, { bg: string; border: string; text: string }> = {
@@ -132,16 +133,16 @@ export function ElementTile({
         </span>
       )}
 
-      {/* Symbol - large centered text */}
-      <span
-        className={cn(
+      {/* RPG Awesome icon or alchemical symbol */}
+      <ComponentRpgGlyph
+        component={component}
+        iconClassName={cn('leading-none', colors.text, symbolSizes[size])}
+        fallbackClassName={cn(
           'font-bold font-mono leading-none',
           colors.text,
           symbolSizes[size]
         )}
-      >
-        {component.symbol}
-      </span>
+      />
 
       {/* Name - small text below */}
       <span

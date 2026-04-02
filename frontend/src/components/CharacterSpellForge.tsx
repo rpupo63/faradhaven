@@ -1,28 +1,54 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getComponents, createSpell, updateSpell, synthesizeSpell } from '@/lib/api';
-import { ElementTable, ComponentKeyboard } from '@/components/arcanum';
+import { getComponents, createSpell, updateSpell, synthesizeSpell, getCharacterSpells } from '@/lib/api';
+import { ElementTable, ComponentKeyboard, ComponentRpgGlyph, ComponentRpgChip } from '@/components/arcanum';
 import { Button } from '@/components/ui/button';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { LoadingQuill } from '@/components/LoadingQuill';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Atom, Sparkles, X, Save, Timer, RotateCcw, Keyboard, Layers, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react';
+import { X, Save, Timer, RotateCcw, Keyboard, Layers, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import type { ApiComponent, ApiCharacterComponent, ApiSpell, SpellSynthesis } from '@/types/game';
+import { toast } from 'sonner';
 import { DAMAGE_TYPES } from '@/types/game/state';
-import { isValidSpellDuration, isValidSpellDamageDicePair, STANDARD_SPELL_DIE_SIZES } from '@/lib/spellMechanics';
+import {
+  isValidSpellDuration,
+  isValidSpellDamageDicePair,
+  STANDARD_SPELL_DIE_SIZES,
+  formatSpellRangeFeet,
+  formatSpellDamageDice,
+} from '@/lib/spellMechanics';
 import { LogicConnector, logicVariantFromName } from '@/components/spell-logic/LogicConnector';
-import { splitSpellSequenceByLogica, spellChainHasLogica } from '@/lib/spellLogicPhases';
+import {
+  splitSpellSequenceByLogica,
+  spellChainHasLogica,
+  bucketSequenceByComponentId,
+  bucketIndexedPhase,
+} from '@/lib/spellLogicPhases';
+import { findMatchingPreparedSpell } from '@/lib/powderMageSpellMatch';
 
 interface CharacterSpellForgeProps {
   availableComponents?: ApiComponent[];
   userId?: string;
   characterId?: string;
   token?: string;
+  /** When true, after the casting timer ends on the keyboard, resolve the spell name or prompt to create. */
+  isPowderMage?: boolean;
+  /** Powder Mage: number of Speed Dial slots (from class resources). */
+  speedDialSlots?: number;
   timerDuration?: number;
   /** Character's component inventory (counts shown for non-pool components) */
   components?: ApiCharacterComponent[];
@@ -35,6 +61,8 @@ interface CharacterSpellForgeProps {
 }
 
 const ABILITIES = ["STR", "DEX", "CON", "INT", "WIS", "CHA"] as const;
+
+const EMPTY_PREPARED_SPELLS: ApiSpell[] = [];
 
 export function CharacterSpellForge({
   availableComponents,
@@ -49,12 +77,15 @@ export function CharacterSpellForge({
   spellToEdit,
   onSaveComplete,
   onClose,
+  isPowderMage = false,
+  speedDialSlots = 0,
 }: CharacterSpellForgeProps) {
   const queryClient = useQueryClient();
   const isEditMode = !!spellToEdit;
 
   /** Ordered spell chain (narrative order; duplicate components allowed). */
   const [componentSequence, setComponentSequence] = useState<ApiComponent[]>([]);
+  const selectedComponents = componentSequence;
 
   // Spell metadata state
   const [spellName, setSpellName] = useState('');
@@ -92,7 +123,21 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
   // View mode state
   const [viewMode, setViewMode] = useState<'table' | 'keyboard'>('table');
 
-  const selectedComponents = componentSequence;
+  /** Powder Mage: timer finished → matched prepared spell or prompt to forge */
+  const [lastCastResolution, setLastCastResolution] = useState<
+    { kind: 'matched'; spell: ApiSpell } | { kind: 'unmatched' } | null
+  >(null);
+  const prevTimerRunningRef = useRef(false);
+  const spellNameInputRef = useRef<HTMLInputElement>(null);
+  const castConfirmNameRef = useRef<HTMLInputElement>(null);
+
+  const { data: characterSpellsData } = useQuery({
+    queryKey: ['character-spells', characterId, 'powder-forge'],
+    queryFn: () => getCharacterSpells(characterId!, token, { page: 1, limit: 500 }),
+    enabled: !!isPowderMage && !!characterId && !!token,
+    staleTime: 30_000,
+  });
+  const preparedSpellsForMatch = characterSpellsData?.spells ?? EMPTY_PREPARED_SPELLS;
 
   const clearForm = useCallback(() => {
     setComponentSequence([]);
@@ -109,6 +154,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
     setAddModifier(false);
     setOverrides(new Set());
     setSynthesis(null);
+    setLastCastResolution(null);
   }, []);
 
   // Timer effects
@@ -122,6 +168,42 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
       if (synthesisTimerRef.current) clearTimeout(synthesisTimerRef.current);
     };
   }, []);
+
+  // Powder Mage: when the main casting timer expires naturally, match prepared spells or prompt creation
+  useEffect(() => {
+    if (!isPowderMage || !timerDuration) {
+      prevTimerRunningRef.current = isTimerRunning;
+      return;
+    }
+    const finishedNaturally =
+      prevTimerRunningRef.current &&
+      !isTimerRunning &&
+      !isCountingDown &&
+      timeLeft <= 0.05 &&
+      componentSequence.length > 0;
+
+    if (finishedNaturally) {
+      const matched = findMatchingPreparedSpell(componentSequence, preparedSpellsForMatch);
+      if (matched) setLastCastResolution({ kind: 'matched', spell: matched });
+      else setLastCastResolution({ kind: 'unmatched' });
+    }
+    prevTimerRunningRef.current = isTimerRunning;
+  }, [
+    isPowderMage,
+    timerDuration,
+    isTimerRunning,
+    isCountingDown,
+    timeLeft,
+    componentSequence,
+    preparedSpellsForMatch,
+  ]);
+
+  useEffect(() => {
+    if (lastCastResolution?.kind === 'unmatched') {
+      const t = window.setTimeout(() => castConfirmNameRef.current?.focus(), 100);
+      return () => window.clearTimeout(t);
+    }
+  }, [lastCastResolution]);
 
   const { data: allComponents, isLoading, error } = useQuery({
     queryKey: ['components'],
@@ -219,7 +301,16 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
   const handleStartTimer = () => {
     if (!timerDuration) return;
     if (timerRef.current) clearInterval(timerRef.current);
-    
+    if (synthesisTimerRef.current) {
+      clearTimeout(synthesisTimerRef.current);
+      synthesisTimerRef.current = null;
+    }
+    setComponentSequence([]);
+    setSynthesis(null);
+    setIsSynthesizing(false);
+    setOverrides(new Set());
+    setLastCastResolution(null);
+
     setIsCountingDown(true);
     setCountdownValue(COUNTDOWN_SECONDS);
     setIsTimerRunning(false); // Ensure main timer is not running yet
@@ -255,6 +346,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
     setIsCountingDown(false);
     setCountdownValue(COUNTDOWN_SECONDS);
     setTimeLeft(timerDuration || 0);
+    setLastCastResolution(null);
   };
 
   const level = useMemo(() => synthesis?.level || Math.max(1, selectedComponents.length), [synthesis, selectedComponents]);
@@ -284,6 +376,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
       queryClient.invalidateQueries({ queryKey: ['spells'] });
       if (characterId) {
         queryClient.invalidateQueries({ queryKey: ['character-spells', characterId] });
+        queryClient.invalidateQueries({ queryKey: ['characterSpellbook', characterId] });
         queryClient.invalidateQueries({ queryKey: ['character-sheet', characterId] });
       }
       if (onSaveComplete) onSaveComplete();
@@ -329,7 +422,8 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
   };
 
   const availableComponentIds = useMemo(() => {
-    if (!availableComponents) return undefined;
+    // Empty array means pool not loaded — treat like undefined (no restriction). Non-empty = allowlist.
+    if (!availableComponents?.length) return undefined;
     return new Set(availableComponents.map((c) => c.id));
   }, [availableComponents]);
 
@@ -372,7 +466,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
   if (error || !allComponents || allComponents.length === 0) {
     return (
       <div className="min-h-[40vh] flex flex-col items-center justify-center gap-4">
-        <Atom className="h-16 w-16 text-muted-foreground" />
+        <RaIcon name="aura" className="text-6xl text-muted-foreground" />
         <h2 className="text-xl font-tome-heading text-primary">
           {error ? 'The Forge is Cold' : 'Empty Forge'}
         </h2>
@@ -407,6 +501,10 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
   const mutationInProgress = createSpellMutation.isPending || updateSpellMutation.isPending;
   const currentMutationError = isEditMode ? updateSpellMutation.error : createSpellMutation.error;
 
+  const showCastConfirmDialog =
+    isPowderMage && timerDuration !== undefined && lastCastResolution !== null;
+  const castConfirmUnmatched = lastCastResolution?.kind === 'unmatched';
+
   return (
     <div className="w-full min-w-0">
       <div className="grid gap-6 lg:grid-cols-[1fr_340px] min-w-0">
@@ -416,7 +514,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
             <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 min-w-0">
               <div className="flex items-center bg-muted/30 p-1 rounded-md border border-border shrink-0">
                 <Button variant={viewMode === 'table' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('table')} className="gap-2 h-8">
-                  <Atom className="h-4 w-4" /> Table
+                  <RaIcon name="aura" className="text-sm" /> Table
                 </Button>
                 <Button variant={viewMode === 'keyboard' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('keyboard')} className="gap-2 h-8">
                   <Keyboard className="h-4 w-4" /> Keyboard
@@ -441,20 +539,22 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
               characterComponents={components}
             />
           ) : (
-            <ComponentKeyboard
-              availableComponents={availableComponents || allComponents}
-              selectedComponents={selectedComponents}
-              onComponentSelect={handleComponentSelect}
-              isTimerActive={isTimerRunning}
-            />
+            <>
+              <ComponentKeyboard
+                availableComponents={availableComponents || allComponents}
+                selectedComponents={selectedComponents}
+                onComponentSelect={handleComponentSelect}
+                isTimerActive={isTimerRunning}
+              />
+            </>
           )}
         </div>
 
-        {/* Right: Spell Creation Panel */}
-        <div className="space-y-4 min-w-0">
+        {/* Right: Spell Creation Panel — lg: crucible scrolls inside column; left table scrolls with page */}
+        <div className="flex flex-col gap-4 min-w-0 lg:max-h-[calc(100dvh-8rem)] lg:min-h-0 lg:overflow-hidden">
           {/* Timer Card */}
           {timerDuration !== undefined && (
-            <Card className="arcane-border bg-card sticky top-4 z-10">
+            <Card className="arcane-border bg-card shrink-0 sticky top-4 z-10 lg:static">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg font-tome-heading text-primary">
                   <Timer className="h-5 w-5" /> Casting Timer
@@ -488,11 +588,16 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
             </Card>
           )}
 
-          <Card className={`arcane-border bg-card ${timerDuration === undefined ? 'sticky top-4' : ''}`}>
-            <CardHeader className="pb-3">
+
+          <Card
+            className={`arcane-border bg-card flex min-h-0 flex-1 flex-col overflow-hidden lg:min-h-0 ${
+              timerDuration === undefined ? 'max-lg:sticky max-lg:top-4' : ''
+            }`}
+          >
+            <CardHeader className="shrink-0 pb-3">
               <CardTitle className="flex items-center justify-between gap-2 text-lg font-tome-heading text-primary">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5" />
+                  <RaIcon name="aura" className="text-base" />
                   <span>{isEditMode ? 'Edit Spell' : 'Spell Crucible'}</span>
                 </div>
                 {onClose && (
@@ -502,7 +607,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                 )}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain">
               {/* Validation Errors */}
               {hasValidationErrors && (
                 <div className="p-2 rounded-md bg-red-500/10 border border-red-500/30 space-y-1">
@@ -554,7 +659,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                         variant="secondary"
                         className="text-tiny font-normal font-tome-marginalia shrink-0 border border-border/60"
                       >
-                        {spellChainHasLogica(selectedComponents) ? 'Multi-phase' : 'Single phase · default'}
+                        {spellChainHasLogica(selectedComponents) ? 'Multi-phase' : 'Single phase · buckets'}
                       </Badge>
                     )}
                   </div>
@@ -566,10 +671,10 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                 </div>
                 <div className="text-micro text-muted-foreground font-tome-marginalia space-y-1.5">
                   <p>
-                    <strong className="text-foreground/90">Default — single phase:</strong> add components in cast order. Table clicks append; arrows reorder; click a chip to remove. No If/Then/Therefore needed for normal spells.
+                    <strong className="text-foreground/90">Default — single phase:</strong> components are shown in <strong>buckets</strong> (same symbol grouped with a count). Order does not matter unless you add Logica. Click a chip to remove one copy.
                   </p>
                   <p>
-                    <strong className="text-foreground/90">Optional — multi-phase:</strong> place <strong>If</strong>, <strong>Then</strong>, or <strong>Therefore</strong> between narrative beats (e.g. puddle, then freeze). Everything before the first link is phase 1, after it phase 2, and so on. Removing all logic links returns you to the default single-phase strip.
+                    <strong className="text-foreground/90">Optional — multi-phase:</strong> place <strong>If</strong>, <strong>Then</strong>, or <strong>Therefore</strong> between beats. Connector placement defines phases; within each phase, non-Logica components are bucketed the same way. Removing all logic links returns you to single-phase buckets.
                   </p>
                 </div>
 
@@ -581,7 +686,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                   <div className="flex flex-col gap-3">
                     <p className="text-tiny text-muted-foreground font-tome-marginalia rounded-md bg-muted/40 border border-border/60 px-2 py-1.5">
                       <span className="font-medium text-foreground/85">Multi-phase layout.</span>{' '}
-                      Phases are split by your logic links. Delete those connectors to collapse back to the default single-phase view.
+                      Phases are split by your logic links; only those connectors are ordered. Delete them to collapse back to single-phase buckets.
                     </p>
                     {splitSpellSequenceByLogica(selectedComponents).map((seg, segKey) => {
                       if (seg.kind === 'logic') {
@@ -649,51 +754,37 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                               Phase {seg.phaseNumber}
                             </span>
                             <span className="text-tiny text-muted-foreground font-tome-marginalia">
-                              Order within this phase matters
+                              Bucketed — order ignored here
                             </span>
                           </div>
                           <div className="flex flex-wrap gap-2 items-stretch">
-                            {seg.items.map(({ comp, index: idx }) => (
-                              <div
-                                key={`${comp.id}-${idx}`}
-                                className="inline-flex items-center gap-1 rounded-md border border-border bg-background/90 px-1 py-0.5"
-                              >
-                                <div className="flex flex-col gap-0 border-r border-border/60 pr-1">
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-5 w-5"
-                                    disabled={idx === 0}
-                                    onClick={() => moveSequence(idx, -1)}
-                                    aria-label="Move earlier"
-                                  >
-                                    <ChevronUp className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-5 w-5"
-                                    disabled={idx >= selectedComponents.length - 1}
-                                    onClick={() => moveSequence(idx, 1)}
-                                    aria-label="Move later"
-                                  >
-                                    <ChevronDown className="h-3 w-3" />
-                                  </Button>
-                                </div>
+                            {bucketIndexedPhase(seg.items).map((bucket) => {
+                              const n = bucket.indices.length;
+                              const removeOne = () =>
+                                removeSequenceAt(bucket.indices[bucket.indices.length - 1]);
+                              return (
                                 <button
+                                  key={bucket.comp.id}
                                   type="button"
                                   className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-primary/15 text-primary border border-primary/25 hover:bg-primary/25"
-                                  onClick={() => removeSequenceAt(idx)}
-                                  title={`${comp.name} (Tier ${comp.tier}) — remove`}
+                                  onClick={removeOne}
+                                  title={`${bucket.comp.name} (Tier ${bucket.comp.tier}) — remove one`}
                                 >
-                                  <span className="font-mono font-bold">{comp.symbol}</span>
-                                  <span className="hidden sm:inline">{comp.name}</span>
+                                  <ComponentRpgGlyph
+                                    component={bucket.comp}
+                                    iconClassName="text-sm"
+                                    fallbackClassName="font-mono font-bold text-xs"
+                                  />
+                                  <span className="hidden sm:inline">{bucket.comp.name}</span>
+                                  {n > 1 && (
+                                    <Badge variant="outline" className="h-4 px-1 text-[10px] font-mono">
+                                      ×{n}
+                                    </Badge>
+                                  )}
                                   <X className="h-3 w-3" />
                                 </button>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       );
@@ -706,51 +797,37 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                         Single phase
                       </span>
                       <span className="text-tiny text-muted-foreground font-tome-marginalia">
-                        Standard — one ordered chain
+                        Bucketed — order ignored
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-2 items-stretch">
-                      {selectedComponents.map((comp, idx) => (
-                        <div
-                          key={`${comp.id}-${idx}`}
-                          className="inline-flex items-center gap-1 rounded-md border border-border bg-background/80 px-1 py-0.5"
-                        >
-                          <div className="flex flex-col gap-0 border-r border-border/60 pr-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-5 w-5"
-                              disabled={idx === 0}
-                              onClick={() => moveSequence(idx, -1)}
-                              aria-label="Move earlier"
-                            >
-                              <ChevronUp className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-5 w-5"
-                              disabled={idx >= selectedComponents.length - 1}
-                              onClick={() => moveSequence(idx, 1)}
-                              aria-label="Move later"
-                            >
-                              <ChevronDown className="h-3 w-3" />
-                            </Button>
-                          </div>
+                      {bucketSequenceByComponentId(selectedComponents).map((bucket) => {
+                        const n = bucket.indices.length;
+                        const removeOne = () =>
+                          removeSequenceAt(bucket.indices[bucket.indices.length - 1]);
+                        return (
                           <button
+                            key={bucket.comp.id}
                             type="button"
                             className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-primary/15 text-primary border border-primary/25 hover:bg-primary/25"
-                            onClick={() => removeSequenceAt(idx)}
-                            title={`${comp.name} (Tier ${comp.tier}) — remove`}
+                            onClick={removeOne}
+                            title={`${bucket.comp.name} (Tier ${bucket.comp.tier}) — remove one`}
                           >
-                            <span className="font-mono font-bold">{comp.symbol}</span>
-                            <span className="hidden sm:inline">{comp.name}</span>
+                            <ComponentRpgGlyph
+                              component={bucket.comp}
+                              iconClassName="text-sm"
+                              fallbackClassName="font-mono font-bold text-xs"
+                            />
+                            <span className="hidden sm:inline">{bucket.comp.name}</span>
+                            {n > 1 && (
+                              <Badge variant="outline" className="h-4 px-1 text-[10px] font-mono">
+                                ×{n}
+                              </Badge>
+                            )}
                             <X className="h-3 w-3" />
                           </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -759,7 +836,13 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
               {/* Spell Name */}
               <div>
                 <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Spell Name</Label>
-                <Input value={spellName} onChange={(e) => setSpellName(e.target.value)} placeholder="Enter spell name..." className="bg-background" />
+                <Input
+                  ref={spellNameInputRef}
+                  value={spellName}
+                  onChange={(e) => setSpellName(e.target.value)}
+                  placeholder="Enter spell name..."
+                  className="bg-background"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -962,6 +1045,346 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
           </Card>
         </div>
       </div>
+
+      <Dialog
+        open={showCastConfirmDialog}
+        onOpenChange={(open) => {
+          if (!open) setLastCastResolution(null);
+        }}
+      >
+        <DialogContent
+          tome
+          hideCloseButton={castConfirmUnmatched}
+          className="max-w-2xl"
+          onPointerDownOutside={(e) => {
+            if (castConfirmUnmatched) e.preventDefault();
+          }}
+          onEscapeKeyDown={(e) => {
+            if (castConfirmUnmatched) e.preventDefault();
+          }}
+        >
+          {lastCastResolution?.kind === 'matched' && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-tome-heading text-primary">Cast complete</DialogTitle>
+                <DialogDescription>
+                  This component sequence matches a spell you already have prepared.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-1">
+                <p className="text-xl font-tome-heading text-primary">{lastCastResolution.spell.name}</p>
+                <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                  <div>
+                    <dt className="text-micro font-tome-marginalia uppercase text-muted-foreground">Level</dt>
+                    <dd className="font-mono font-semibold text-foreground">
+                      {lastCastResolution.spell.slot_level ?? lastCastResolution.spell.level}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-micro font-tome-marginalia uppercase text-muted-foreground">Type</dt>
+                    <dd>{lastCastResolution.spell.type ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-micro font-tome-marginalia uppercase text-muted-foreground">Range</dt>
+                    <dd>{formatSpellRangeFeet(lastCastResolution.spell.range) || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-micro font-tome-marginalia uppercase text-muted-foreground">Duration</dt>
+                    <dd>{lastCastResolution.spell.duration?.trim() ? lastCastResolution.spell.duration : '—'}</dd>
+                  </div>
+                </dl>
+                {lastCastResolution.spell.damage_dice_count != null &&
+                  lastCastResolution.spell.damage_die_size != null && (
+                    <p className="text-sm">
+                      <span className="text-muted-foreground font-tome-marginalia">Damage </span>
+                      <span className="font-mono font-semibold">
+                        {formatSpellDamageDice(
+                          lastCastResolution.spell.damage_dice_count,
+                          lastCastResolution.spell.damage_die_size,
+                        )}
+                      </span>
+                      {lastCastResolution.spell.damage_type && (
+                        <span className="text-muted-foreground"> {lastCastResolution.spell.damage_type}</span>
+                      )}
+                    </p>
+                  )}
+                {(lastCastResolution.spell.concentration || lastCastResolution.spell.save_attr) && (
+                  <p className="text-xs text-muted-foreground font-tome-marginalia">
+                    {lastCastResolution.spell.concentration && <span>Concentration. </span>}
+                    {lastCastResolution.spell.save_attr && (
+                      <span>Save {lastCastResolution.spell.save_attr}</span>
+                    )}
+                  </p>
+                )}
+                {lastCastResolution.spell.description?.trim() && (
+                  <div className="rounded-md border border-border/60 bg-muted/20 p-3 text-sm text-foreground/90 max-h-40 overflow-y-auto">
+                    {lastCastResolution.spell.description}
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button type="button" onClick={() => setLastCastResolution(null)}>
+                  OK
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {lastCastResolution?.kind === 'unmatched' && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-tome-heading text-primary">Confirm new spell</DialogTitle>
+                <DialogDescription>
+                  No prepared spell matches this sequence. Name it and set mechanics, then forge it—or cancel to
+                  edit the sequence in the crucible.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="max-h-[min(60vh,28rem)] space-y-4 overflow-y-auto pr-1">
+                <div className="rounded-md border border-border/60 bg-muted/20 p-2">
+                  <p className="text-micro font-tome-marginalia uppercase text-muted-foreground mb-2">Sequence</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedComponents.map((comp, idx) => (
+                      <Badge key={`${comp.id}-${idx}`} variant="secondary" className="inline-flex items-center gap-1 font-mono">
+                        <ComponentRpgGlyph
+                          component={comp}
+                          iconClassName="text-sm"
+                          fallbackClassName="font-bold"
+                        />
+                        <span>{comp.name}</span>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Spell Name</Label>
+                  <Input
+                    ref={castConfirmNameRef}
+                    value={spellName}
+                    onChange={(e) => setSpellName(e.target.value)}
+                    placeholder="Enter spell name..."
+                    className="bg-background"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Level</Label>
+                    <div className="bg-muted/30 border border-border rounded-md px-3 py-2 text-sm font-mono font-bold text-primary">
+                      {level}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Type</Label>
+                    <Select
+                      value={spellType}
+                      onValueChange={(v) => {
+                        setSpellType(v);
+                        markOverride('type');
+                      }}
+                    >
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Attack">Attack</SelectItem>
+                        <SelectItem value="Save">Save</SelectItem>
+                        <SelectItem value="Effect">Effect</SelectItem>
+                        <SelectItem value="Healing">Healing</SelectItem>
+                        <SelectItem value="Utility">Utility</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Range (feet)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={rangeFeet === '' ? '' : rangeFeet}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (raw === '') {
+                          setRangeFeet('');
+                          markOverride('range');
+                          return;
+                        }
+                        const n = parseInt(raw, 10);
+                        if (!Number.isNaN(n) && n >= 0) {
+                          setRangeFeet(n);
+                          markOverride('range');
+                        }
+                      }}
+                      placeholder="0 = self-centered"
+                      className="bg-background"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Duration</Label>
+                    <Input
+                      value={duration}
+                      onChange={(e) => {
+                        setDuration(e.target.value);
+                        markOverride('duration');
+                      }}
+                      placeholder="e.g. 1 min, instantaneous"
+                      className={`bg-background ${duration.trim() !== '' && !isDurationValid ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                    />
+                  </div>
+                </div>
+
+                {spellType === 'Save' && (
+                  <div>
+                    <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">
+                      Saving Throw
+                    </Label>
+                    <Select value={saveAttr} onValueChange={setSaveAttr}>
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Attribute" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ABILITIES.map((a) => (
+                          <SelectItem key={a} value={a}>
+                            {a}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Dice count</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={99}
+                      value={damageDiceCount === '' ? '' : damageDiceCount}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === '') setDamageDiceCount('');
+                        else {
+                          const n = parseInt(v, 10);
+                          if (!Number.isNaN(n)) setDamageDiceCount(n);
+                        }
+                        markOverride('damageDice');
+                      }}
+                      placeholder="e.g. 2"
+                      className={`bg-background ${!isDamageDiceValid ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Die size</Label>
+                    <Select
+                      value={damageDieSize === '' ? '__none__' : String(damageDieSize)}
+                      onValueChange={(v) => {
+                        setDamageDieSize(v === '__none__' ? '' : parseInt(v, 10));
+                        markOverride('damageDice');
+                      }}
+                    >
+                      <SelectTrigger
+                        className={`bg-background ${!isDamageDiceValid ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                      >
+                        <SelectValue placeholder="Die" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">—</SelectItem>
+                        {STANDARD_SPELL_DIE_SIZES.map((sz) => (
+                          <SelectItem key={sz} value={String(sz)}>
+                            d{sz}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Damage type</Label>
+                  <Select
+                    value={damageType}
+                    onValueChange={(v) => {
+                      setDamageType(v);
+                      markOverride('damageType');
+                    }}
+                  >
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DAMAGE_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="castConfirmAddMod" checked={addModifier} onCheckedChange={(c) => setAddModifier(c === true)} />
+                    <Label htmlFor="castConfirmAddMod" className="cursor-pointer">
+                      Add spellcasting modifier to damage
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="castConfirmConc"
+                      checked={concentration}
+                      onCheckedChange={(c) => {
+                        setConcentration(c === true);
+                        markOverride('concentration');
+                      }}
+                    />
+                    <Label htmlFor="castConfirmConc" className="cursor-pointer">
+                      Requires concentration
+                    </Label>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Description</Label>
+                  <textarea
+                    value={spellDescription}
+                    onChange={(e) => setSpellDescription(e.target.value)}
+                    placeholder="Describe what your spell does..."
+                    rows={3}
+                    className="w-full px-3 py-2 text-sm rounded-md border border-border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button type="button" variant="outline" onClick={() => setLastCastResolution(null)}>
+                  Cancel
+                </Button>
+                <LoadingButton
+                  type="button"
+                  onClick={() => {
+                    try {
+                      handleSave();
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : 'Cannot forge spell');
+                    }
+                  }}
+                  isLoading={mutationInProgress}
+                  disabled={!canSave || !hasEnoughStability || (maxBlueprintSlots !== undefined && maxBlueprintSlots < 1) || isEditMode}
+                  loadingText="Forging..."
+                  className="gap-2"
+                >
+                  <Save className="h-4 w-4" />
+                  Forge spell
+                </LoadingButton>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

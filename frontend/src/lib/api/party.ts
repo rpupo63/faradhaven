@@ -1,4 +1,4 @@
-import { getBaseUrl, handleResponse } from './base';
+import { getBaseUrl, handleResponse, apiFetch } from './base';
 import { ApiParty, ApiCharacter, ApiBeast } from '@/types/game/api';
 
 /**
@@ -15,7 +15,7 @@ export async function createParty(
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const body: Record<string, unknown> = { name };
   if (characterId) body.character_id = characterId;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify(body),
@@ -45,7 +45,7 @@ export async function getParty(
   const url = `${base}/api/parties/${partyId}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<ApiParty>(res, 'Failed to get party');
 }
 
@@ -60,7 +60,7 @@ export async function getPartiesByUserId(
   const url = `${base}/api/user/${userId}/parties`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<ApiParty[]>(res, 'Failed to get user parties');
 }
 
@@ -76,7 +76,7 @@ export async function updateParty(
   const url = `${base}/api/parties/${partyId}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'PUT',
     headers,
     body: JSON.stringify({ name }),
@@ -95,7 +95,7 @@ export async function deleteParty(
   const url = `${base}/api/parties/${partyId}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'DELETE',
     headers,
   });
@@ -114,7 +114,7 @@ export async function addCharacterToParty(
   const url = `${base}/api/parties/${partyId}/members`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify({ character_id: characterId }),
@@ -134,7 +134,7 @@ export async function removeCharacterFromParty(
   const url = `${base}/api/parties/${partyId}/members/${characterId}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'DELETE',
     headers,
   });
@@ -153,7 +153,7 @@ export async function addBeastToParty(
   const url = `${base}/api/parties/${partyId}/beasts`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify(beastData),
@@ -173,7 +173,7 @@ export async function addIdentifiedBeast(
   const url = `${base}/api/parties/${partyId}/identified-beasts`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify({ beast_id: beastId }),
@@ -193,7 +193,7 @@ export async function removeIdentifiedBeast(
   const url = `${base}/api/parties/${partyId}/identified-beasts/${beastId}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'DELETE',
     headers,
   });

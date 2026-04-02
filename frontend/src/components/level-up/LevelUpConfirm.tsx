@@ -1,4 +1,5 @@
-import { Heart, Users, Swords } from 'lucide-react';
+import { Users } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { Badge } from '@/components/ui/badge';
 import { ApiLevelUpPreview, ApiArchetype, ApiWeapon } from '@/types/game';
 
@@ -39,7 +40,7 @@ export function LevelUpConfirm({
         {/* HP Gain Summary */}
         <div className="p-3 rounded border border-green-500/30 bg-green-500/10">
           <p className="font-semibold mb-2 text-foreground flex items-center gap-2">
-            <Heart className="h-4 w-4 text-green-400" />
+            <RaIcon name="health" className="text-sm text-green-400" />
             Hit Point Increase
           </p>
           <div className="flex items-center gap-2">
@@ -68,7 +69,7 @@ export function LevelUpConfirm({
         {selectedWeapon && preview.weapon_selection_info && (
           <div className="p-3 rounded border border-amber-500/30 bg-amber-500/10">
             <p className="font-semibold mb-2 text-foreground flex items-center gap-2">
-              <Swords className="h-4 w-4 text-amber-400" />
+              <RaIcon name="crossed-swords" className="text-sm text-amber-400" />
               Signature Weapon
             </p>
             <Badge variant="element-lightning">{selectedWeapon.name}</Badge>

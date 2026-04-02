@@ -1,4 +1,5 @@
-import { Minus, Plus, Shield } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -68,7 +69,7 @@ export function HPPanel({
         </div>
         {tempHP > 0 && (
           <div className="text-sm text-blue-400 font-tome-marginalia flex items-center justify-center gap-1">
-            <Shield className="h-3 w-3" />
+            <RaIcon name="shield" className="text-xs" />
             <span>+{tempHP} Temp HP</span>
           </div>
         )}

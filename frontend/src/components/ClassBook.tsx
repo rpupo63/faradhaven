@@ -212,10 +212,10 @@ export function ClassBook({ classData, className }: ClassBookProps) {
           <CardHeader className="pb-2">
             <CardTitle className="font-tome-subheading text-lg text-primary flex items-center gap-2">
               <Sparkles className="h-5 w-5" />
-              Spell Components
+              Class spell components
             </CardTitle>
             <p className="text-sm text-muted-foreground font-tome-marginalia">
-              Magical components available to this class for crafting spells — unlocked from level 1
+              Components your class grants for crafting spells (including species heritage options folded into the class list). Available from level 1 for eligible classes.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">

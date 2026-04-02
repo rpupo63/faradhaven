@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getCharacterSpells, getSpells, castSpell, getCharacterSheet } from '@/lib/api'; // NEW: Added getSpells
-import { hasAllComponents } from '@/lib/spellUtils';
+import { getCharacterSpells, getSpells, castSpell, getCharacterSheet, getSpeedDial } from '@/lib/api'; // NEW: Added getSpells
+import { getSpellComponentCount, hasAllComponents, resolveSpellPoolComponents } from '@/lib/spellUtils';
 import { CharacterSpellForge } from '@/components/CharacterSpellForge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,14 +9,25 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { LoadingQuill } from '@/components/LoadingQuill';
-import { Sparkles, Wand2, BookOpen, Shield, Zap, Clock, Target, Brain, Heart, Swords, Edit, AlertTriangle, Timer } from 'lucide-react';
-import type { ApiSpell, ApiComponent, ApiCharacterComponent, ApiCharacterSheet, ApiClassResource, CastSpellResponse } from '@/types/game';
+import { Clock, Edit, AlertTriangle, Timer, Bookmark } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
+import type { ApiSpell, ApiComponent, ApiCharacterComponent, ApiCharacterSheet, ApiClassResource, CastSpellResponse, ApiSavedSpell } from '@/types/game';
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch'; // NEW: Import Switch component
 import { Label } from '@/components/ui/label';   // NEW: Import Label for Switch
 import { SpellListPagination } from './SpellListPagination'; // NEW: Import SpellListPagination
 import { buildCastToast, RESOURCE_KEY_LABELS } from '@/lib/toastUtils';
+import { spellMatchesAnySavedSpeedDial } from '@/lib/powderMageSpellMatch';
+import { hasSpeedDialResourceRemaining } from '@/lib/powderMageSpeedDial';
 import { formatSpellRangeFeet, formatSpellDamageDice } from '@/lib/spellMechanics';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 function getClassResourceValue(resources: ApiClassResource[] | undefined, key: string): number | undefined {
   return resources?.find(r => r.key === key)?.current_value;
@@ -43,45 +54,52 @@ interface SpellCostInfo {
   warningText?: string;
   /** Mutagen: whether this cast would trigger a madness save */
   madnessSaveRequired?: boolean;
+  /** Powder Mage: show “Cast with Speed Dial” on the button */
+  useSpeedDialCast?: boolean;
 }
 
 /**
  * Computes cost, label, availability, and warning for a spell based on the character's class.
  */
-function getSpellCostInfo(sheet: ApiCharacterSheet | undefined, spell: ApiSpell): SpellCostInfo {
-  if (!sheet) return { cost: spell.slot_level, label: 'Slot', hasEnough: true };
+function getSpellCostInfo(
+  sheet: ApiCharacterSheet | undefined,
+  spell: ApiSpell,
+  speedDialSpells?: ApiSavedSpell[],
+): SpellCostInfo {
+  const tier = getSpellComponentCount(spell);
+  if (!sheet) return { cost: tier || 1, label: 'Slot', hasEnough: true };
 
   const className = sheet.class?.name;
   const poolResource = getPoolResource(sheet);
 
   switch (className) {
     case 'The Rift Weaver': {
-      const cost = (spell.components?.length || 0) * 2;
+      const cost = tier * 2;
       const current = poolResource?.current_value ?? 0;
       return { cost, label: 'SP', hasEnough: current >= cost };
     }
 
     case 'The Piston Brawler': {
-      const cost = spell.slot_level;
+      const cost = tier;
       const current = poolResource?.current_value ?? 0;
       return { cost, label: 'Stab', hasEnough: current >= cost };
     }
 
     case 'The Sanguinist': {
-      const cost = spell.slot_level;
+      const cost = tier;
       const current = poolResource?.current_value ?? 0;
       return { cost, label: 'Ichor', hasEnough: current >= cost };
     }
 
     case 'The Vapor Blade': {
-      const cost = spell.slot_level;
+      const cost = tier;
       const current = poolResource?.current_value ?? 0;
       return { cost, label: 'SP', hasEnough: current >= cost };
     }
 
     case 'The Ironwright':
     case 'The Lorewright': {
-      return { cost: spell.components?.length || 0, label: 'Comp', hasEnough: true };
+      return { cost: tier, label: 'Comp', hasEnough: true };
     }
 
     case 'The Mutagen': {
@@ -89,11 +107,11 @@ function getSpellCostInfo(sheet: ApiCharacterSheet | undefined, spell: ApiSpell)
       const conMod = Math.floor(((sheet.character?.constitution ?? 10) - 10) / 2);
       const castCount = sheet.character?.madness_cast_count ?? 0;
       const threshold = profBonus + conMod;
-      const componentCount = spell.components?.length || 0;
+      const componentCount = tier;
 
       const willExceedCastLimit = castCount + 1 > threshold;
       const exceedsComponentLimit = componentCount > profBonus;
-      const madnessSaveRequired = spell.slot_level >= 1 && (willExceedCastLimit || exceedsComponentLimit);
+      const madnessSaveRequired = tier >= 1 && (willExceedCastLimit || exceedsComponentLimit);
 
       let warningText: string | undefined;
       if (madnessSaveRequired) {
@@ -111,17 +129,24 @@ function getSpellCostInfo(sheet: ApiCharacterSheet | undefined, spell: ApiSpell)
     }
 
     case 'The Powder Mage': {
-      return { cost: 0, label: 'Speed Dial', hasEnough: true };
+      const matchesSaved =
+        !!speedDialSpells?.length && spellMatchesAnySavedSpeedDial(spell, speedDialSpells);
+      if (matchesSaved && hasSpeedDialResourceRemaining(sheet)) {
+        return { cost: 0, label: 'Speed Dial', hasEnough: true, useSpeedDialCast: true };
+      }
+      const cost = 1;
+      const current = getClassResourceValue(sheet.class_resources, 'powder_charges') ?? 0;
+      return { cost, label: 'Powder', hasEnough: current >= cost };
     }
 
     default: {
       if (poolResource) {
-        const cost = spell.slot_level;
+        const cost = tier;
         const current = poolResource.current_value ?? 0;
         const label = RESOURCE_KEY_LABELS[poolResource.key] || poolResource.display_name;
         return { cost, label, hasEnough: current >= cost };
       }
-      return { cost: spell.slot_level, label: 'Slot', hasEnough: true };
+      return { cost: tier || 1, label: 'Slot', hasEnough: true };
     }
   }
 }
@@ -170,8 +195,16 @@ export function PreparedSpells({ characterId, token, characterName }: PreparedSp
     staleTime: 30_000,
   });
 
+  const { data: speedDialSpells = [] } = useQuery({
+    queryKey: ['speed-dial', characterId],
+    queryFn: () => getSpeedDial(characterId, token),
+    enabled: !!characterId && !!token && sheet?.class?.name === 'The Powder Mage',
+    staleTime: 30_000,
+  });
+
   const castMutation = useMutation({
-    mutationFn: (spell: ApiSpell) => castSpell(characterId, spell.slot_level, token, spell.id),
+    mutationFn: (spell: ApiSpell) =>
+      castSpell(characterId, getSpellComponentCount(spell), token, spell.id),
     onSuccess: (data, spell) => {
       const message = buildCastToast(sheet, spell.name, data);
 
@@ -191,6 +224,7 @@ export function PreparedSpells({ characterId, token, characterName }: PreparedSp
       queryClient.invalidateQueries({ queryKey: ['character', characterId] });
       queryClient.invalidateQueries({ queryKey: ['character-spells', characterId] });
       queryClient.invalidateQueries({ queryKey: ['all-spells'] }); // Invalidate all-spells too
+      queryClient.invalidateQueries({ queryKey: ['speed-dial', characterId] });
     },
     onError: (err: Error) => {
       const errorMsg = err.message || 'Failed to cast spell';
@@ -206,7 +240,7 @@ export function PreparedSpells({ characterId, token, characterName }: PreparedSp
     return (
       <Card className="arcane-border bg-card">
         <CardContent className="py-12 text-center">
-          <Sparkles className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <RaIcon name="aura" className="text-5xl mx-auto text-muted-foreground mb-4 block" />
           <h3 className="text-lg font-tome-heading text-primary mb-2">Login Required</h3>
           <p className="text-muted-foreground font-tome-marginalia">
             Please log in to view prepared spells.
@@ -230,7 +264,7 @@ export function PreparedSpells({ characterId, token, characterName }: PreparedSp
     return (
       <Card className="arcane-border bg-card">
         <CardContent className="py-12 text-center">
-          <Wand2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <RaIcon name="crystal-wand" className="text-5xl mx-auto text-muted-foreground mb-4 block" />
           <h3 className="text-lg font-tome-heading text-primary mb-2">Error</h3>
           <p className="text-muted-foreground font-tome-marginalia">
             Failed to load prepared spells.
@@ -245,7 +279,7 @@ export function PreparedSpells({ characterId, token, characterName }: PreparedSp
       <Card className="arcane-border bg-card">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg font-tome-heading text-primary">
-            <Sparkles className="h-5 w-5" />
+            <RaIcon name="aura" className="text-base" />
             {characterName ? `${characterName}'s Spells` : 'Spells'}
             <Badge variant="secondary" className="ml-auto">
               {spells?.length || 0} {spells?.length === 1 ? 'spell' : 'spells'}
@@ -284,10 +318,11 @@ export function PreparedSpells({ characterId, token, characterName }: PreparedSp
                 key={spell.id} 
                 spell={spell} 
                 sheet={sheet}
+                speedDialSpells={sheet?.class?.name === 'The Powder Mage' ? speedDialSpells : undefined}
                 onCast={() => castMutation.mutate(spell)}
                 onEdit={() => setEditingSpell(spell)}
                 isCasting={castMutation.isPending && castMutation.variables?.id === spell.id}
-                isDisabled={!hasAllComponents(spell, sheet?.class?.components, sheet?.components)}
+                isDisabled={!hasAllComponents(spell, resolveSpellPoolComponents(sheet), sheet?.components)}
               />
             )}
           />
@@ -306,11 +341,14 @@ export function PreparedSpells({ characterId, token, characterName }: PreparedSp
               userId={sheet.character.user_id}
               characterId={characterId}
               token={token}
-              availableComponents={sheet.class?.components}
+              availableComponents={resolveSpellPoolComponents(sheet) ?? sheet.class?.components}
               components={sheet.components}
               currentStability={getClassResourceValue(sheet.class_resources, 'max_stability')}
               maxStability={getClassResourceMaxOrValue(sheet.class_resources, 'max_stability')}
               maxBlueprintSlots={getClassResourceMaxOrValue(sheet.class_resources, 'speed_dial_slots')}
+              isPowderMage={sheet.class?.name === 'The Powder Mage'}
+              timerDuration={sheet.class_resources?.find((r) => r.key === 'timer_duration')?.value}
+              speedDialSlots={sheet.class_resources?.find((r) => r.key === 'speed_dial_slots')?.value ?? 0}
             />
           )}
         </DialogContent>
@@ -322,16 +360,34 @@ export function PreparedSpells({ characterId, token, characterName }: PreparedSp
 export interface PreparedSpellCardProps {
   spell: ApiSpell;
   sheet?: ApiCharacterSheet;
+  /** Powder Mage: Speed Dial snapshots for free-cast matching */
+  speedDialSpells?: ApiSavedSpell[];
   onCast?: () => void;
   onEdit?: () => void;
   isCasting?: boolean;
   isDisabled?: boolean;
+  /** Powder Mage specific extensions */
+  isPowderMage?: boolean;
+  speedDialSlots?: number;
+  onSaveToSpeedDial?: (slotIndex: number) => void;
 }
 
-export function PreparedSpellCard({ spell, sheet, onCast, onEdit, isCasting, isDisabled: isComponentsMissing }: PreparedSpellCardProps) {
+export function PreparedSpellCard({
+  spell,
+  sheet,
+  speedDialSpells,
+  onCast,
+  onEdit,
+  isCasting,
+  isDisabled: isComponentsMissing,
+  isPowderMage,
+  speedDialSlots = 0,
+  onSaveToSpeedDial,
+}: PreparedSpellCardProps) {
   const characterComponents = sheet?.components;
-  const classComponents = sheet?.class?.components;
-  const costInfo = getSpellCostInfo(sheet, spell);
+  const spellPoolComponents = resolveSpellPoolComponents(sheet);
+  const costInfo = getSpellCostInfo(sheet, spell, speedDialSpells);
+  const spellTier = getSpellComponentCount(spell);
 
   const isDisabled = isComponentsMissing || !costInfo.hasEnough;
 
@@ -366,7 +422,7 @@ export function PreparedSpellCard({ spell, sheet, onCast, onEdit, isCasting, isD
           theme={costInfo.madnessSaveRequired ? undefined : "background-subtle"}
           className="shrink-0"
         >
-          Lvl {spell.slot_level}
+          Lvl {spellTier || '—'}
         </Badge>
       );
     }
@@ -399,12 +455,12 @@ export function PreparedSpellCard({ spell, sheet, onCast, onEdit, isCasting, isD
     const parts = [];
     
     if (spell.type && spell.type !== 'Utility') {
-      let icon = <Zap className="h-3 w-3 mr-1" />;
+      let icon = <RaIcon name="lightning-bolt" className="text-xs mr-1" />;
       let themeVariant: "spell-type-default" | "spell-type-attack" | "spell-type-healing" | "spell-type-save" = "spell-type-default";
 
-      if (spell.type === 'Attack') { icon = <Swords className="h-3 w-3 mr-1" />; themeVariant="spell-type-attack"; }
-      if (spell.type === 'Healing') { icon = <Heart className="h-3 w-3 mr-1" />; themeVariant="spell-type-healing"; }
-      if (spell.type === 'Save') { icon = <Shield className="h-3 w-3 mr-1" />; themeVariant="spell-type-save"; }
+      if (spell.type === 'Attack') { icon = <RaIcon name="crossed-swords" className="text-xs mr-1" />; themeVariant="spell-type-attack"; }
+      if (spell.type === 'Healing') { icon = <RaIcon name="health" className="text-xs mr-1" />; themeVariant="spell-type-healing"; }
+      if (spell.type === 'Save') { icon = <RaIcon name="shield" className="text-xs mr-1" />; themeVariant="spell-type-save"; }
 
       parts.push(
         <Badge key="type" variant="outline" theme={themeVariant} className="mr-2">
@@ -416,7 +472,7 @@ export function PreparedSpellCard({ spell, sheet, onCast, onEdit, isCasting, isD
     if (typeof spell.range === 'number') {
       parts.push(
         <span key="range" className="flex items-center text-xs text-muted-foreground mr-3" title="Range">
-          <Target className="h-3 w-3 mr-1" /> {formatSpellRangeFeet(spell.range)}
+          <RaIcon name="archery-target" className="text-xs mr-1" /> {formatSpellRangeFeet(spell.range)}
         </span>
       );
     }
@@ -432,7 +488,7 @@ export function PreparedSpellCard({ spell, sheet, onCast, onEdit, isCasting, isD
     if (spell.concentration) {
       parts.push(
         <Badge key="conc" variant="secondary" size="h5-sm" className="mr-2" title="Requires Concentration">
-          <Brain className="h-3 w-3 mr-1" /> Conc.
+          <RaIcon name="brain-freeze" className="text-xs mr-1" /> Conc.
         </Badge>
       );
     }
@@ -487,7 +543,11 @@ export function PreparedSpellCard({ spell, sheet, onCast, onEdit, isCasting, isD
     ? 'Missing Components'
     : !costInfo.hasEnough
       ? `Insufficient ${costInfo.label}`
-      : 'Cast';
+      : costInfo.useSpeedDialCast
+        ? 'Cast with Speed Dial'
+        : 'Cast';
+
+  const canSaveToSpeedDial = isPowderMage && spellTier <= 3 && onSaveToSpeedDial && speedDialSlots > 0;
 
   return (
     <div className={`p-4 rounded-lg border border-border bg-card/50 hover:bg-card/80 transition-all group min-w-0 ${isDisabled ? 'opacity-50 grayscale blur-[1px]' : ''} ${costInfo.madnessSaveRequired ? 'border-amber-500/30' : ''}`}>
@@ -495,7 +555,7 @@ export function PreparedSpellCard({ spell, sheet, onCast, onEdit, isCasting, isD
         <div className="min-w-0 flex-1">
           <h4 className="font-tome-heading text-primary text-lg leading-tight break-words">{spell.name}</h4>
           <p className="text-xs text-muted-foreground font-tome-marginalia mt-1">
-            Level {spell.slot_level} Evocation
+            {spellTier > 0 ? `${spellTier} components` : 'Spell'}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0 justify-end">
@@ -510,10 +570,35 @@ export function PreparedSpellCard({ spell, sheet, onCast, onEdit, isCasting, isD
               disabled={isDisabled}
               loadingText="Casting..."
             >
-              <Wand2 className="h-3 w-3 mr-1 shrink-0" />
+              <RaIcon name="crystal-wand" className="text-xs mr-1 shrink-0" />
               <span className="truncate">{castButtonLabel}</span>
             </LoadingButton>
           )}
+
+          {canSaveToSpeedDial && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 text-primary"
+                  title="Save to Speed Dial"
+                >
+                  <Bookmark className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Save to Slot</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {Array.from({ length: speedDialSlots }).map((_, i) => (
+                  <DropdownMenuItem key={i} onClick={() => onSaveToSpeedDial(i)}>
+                    Slot {i + 1}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
           <Button
             size="icon"
             variant="ghost"
@@ -539,7 +624,7 @@ export function PreparedSpellCard({ spell, sheet, onCast, onEdit, isCasting, isD
       {spell.components && spell.components.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-auto pt-2 border-t border-border/30">
           {spell.components.map((component: ApiComponent) => {
-            const inPool = isPoolComponent(component.id, classComponents);
+            const inPool = isPoolComponent(component.id, spellPoolComponents);
             if (inPool) {
               return (
                 <ComponentBadge 

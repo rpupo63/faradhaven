@@ -16,7 +16,8 @@ export interface ApiSpell {
   description: string;
   level: number;
   components?: ApiComponent[];
-  slot_level: number;
+  /** Legacy alias; API returns tier as `level`. Use `getSpellComponentCount()` for display/cost. */
+  slot_level?: number;
 
   // Spell Mechanics
   type?: SpellMechanicType;
@@ -138,6 +139,22 @@ export interface CastSpellResponse {
   resource_key?: string;
 }
 
+/** Speed Dial / blueprint slot (saved_spells table) */
+export interface ApiSavedSpell {
+  id: string;
+  character_id: string;
+  name: string;
+  component_ids: string[];
+  slot_index: number;
+  total_cost?: number;
+  damage_type?: string | null;
+  description?: string | null;
+  uses_remaining?: number | null;
+  max_uses?: number | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 /** Store owner catalog rule (matches models.StoreOwnerCatalogRule JSON) */
 export interface ApiStoreOwnerCatalogRule {
   id: string;
@@ -176,6 +193,8 @@ export interface ApiRace {
   languages?: string[];
   bonus_language_count?: number;
   traits?: ApiTrait[];
+  /** Join-table spell pool (same as backend Race.Components). */
+  components?: ApiComponent[];
   created_at?: string;
   updated_at?: string;
 }
@@ -207,6 +226,8 @@ export interface ApiComponent {
   id: string;
   name: string;
   symbol: string; // 2-3 letter alchemical symbol for periodic table display
+  /** RPG Awesome icon class suffix (e.g. "fire" for .ra-fire); empty = use symbol only */
+  rpg_awesome_icon?: string;
   category: ComponentCategory;
   description: string;
   element?: string;

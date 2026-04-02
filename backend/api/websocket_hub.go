@@ -176,18 +176,18 @@ func ServeWs(hub *Hub, authMiddleware authMiddleware) http.HandlerFunc {
 			return
 		}
 		
-		// Set authorization header temporarily for the middleware validation logic if we want to reuse it,
-		// or just validate directly. The easiest way is to set the header and call the underlying auth check
-		r.Header.Set("Authorization", "Bearer "+tokenStr)
-		
-		// Actually, let's just authenticate directly
-		user, err := authMiddleware.userRepo.FindByToken(tokenStr)
+		userID, err := authMiddleware.validateToken(tokenStr)
 		if err != nil {
 			respondError(w, http.StatusUnauthorized, "Invalid token")
 			return
 		}
 
-		// Add user ID to context for completeness, though we don't strictly need it if we aren't using it in ws yet
+		user, err := authMiddleware.userRepo.FindByID(userID)
+		if err != nil || user == nil {
+			respondError(w, http.StatusUnauthorized, "User not found")
+			return
+		}
+
 		ctx := ctxWithUserID(r.Context(), user.ID.String())
 		r = r.WithContext(ctx)
 

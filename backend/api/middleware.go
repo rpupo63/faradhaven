@@ -1,12 +1,15 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 	"os"
 	"runtime/debug"
 	"strings"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/rpupo63/unified-personal-site-backend/database"
 	"github.com/rpupo63/unified-personal-site-backend/errs"
 	"github.com/rs/zerolog"
@@ -33,6 +36,31 @@ func newAuthMiddleware(userRepo database.UserRepository) authMiddleware {
 	}
 }
 
+func (m authMiddleware) validateToken(tokenString string) (uuid.UUID, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
+		return jwtSecret, nil
+	})
+
+	if err != nil || !token.Valid {
+		return uuid.Nil, errors.New("invalid token")
+	}
+
+	subject, err := token.Claims.GetSubject()
+	if err != nil || subject == "" {
+		return uuid.Nil, errors.New("invalid token subject")
+	}
+
+	userID, err := uuid.Parse(subject)
+	if err != nil {
+		return uuid.Nil, errors.New("invalid user ID in token")
+	}
+
+	return userID, nil
+}
+
 func (m authMiddleware) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
@@ -45,15 +73,27 @@ func (m authMiddleware) authenticate(next http.Handler) http.Handler {
 			m.responder.WriteError(w, errs.Unauthorized)
 			return
 		}
-		u, err := m.userRepo.FindByToken(tokenString)
-		if err != nil || u == nil {
+
+		userID, err := m.validateToken(tokenString)
+		if err != nil {
 			log.Debug().
 				Err(err).
 				Str("token_prefix", tokenString[:min(8, len(tokenString))]).
-				Msg("Authentication failed: token not found or invalid")
+				Msg("Authentication failed: token invalid")
 			m.responder.WriteError(w, errs.Unauthorized)
 			return
 		}
+
+		u, err := m.userRepo.FindByID(userID)
+		if err != nil || u == nil {
+			log.Debug().
+				Err(err).
+				Str("user_id", userID.String()).
+				Msg("Authentication failed: user not found")
+			m.responder.WriteError(w, errs.Unauthorized)
+			return
+		}
+
 		ctx := r.Context()
 		ctx = ctxWithUserID(ctx, u.ID.String())
 		ctx = ctxWithIsAdmin(ctx, u.IsAdmin)
@@ -75,6 +115,7 @@ func (w *statusResponseWriter) WriteHeader(statusCode int) {
 		w.ResponseWriter.WriteHeader(statusCode)
 	}
 }
+
 func LogInternalServerErrors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		srw := &statusResponseWriter{ResponseWriter: w, status: 200}

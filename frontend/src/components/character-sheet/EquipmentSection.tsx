@@ -1,4 +1,5 @@
-import { Swords, Target, Star, Shield, ShieldCheck, Hand } from 'lucide-react';
+import { Hand } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { updateEquipment } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { parseCostToCp, formatCpToDisplay } from '@/lib/currency';
 
 interface EquipmentSectionProps {
   sheet: NormalizedCharacterSheet;
@@ -18,6 +20,13 @@ interface EquipmentSectionProps {
 }
 
 const formatMod = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
+
+// Helper to calculate sell value (50% of cost)
+const getSellValue = (costStr: string) => {
+  const cp = parseCostToCp(costStr);
+  if (cp <= 0) return null;
+  return formatCpToDisplay(Math.floor(cp / 2));
+};
 
 // Helper to calculate attack and damage modifiers for a weapon
 function getWeaponModifiers(weapon: ApiWeapon, modifiers: NormalizedCharacterSheet['modifiers']) {
@@ -113,7 +122,7 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-base font-tome-subheading text-primary">
           <div className="flex items-center gap-2">
-            <Swords className="h-4 w-4" />
+            <RaIcon name="crossed-swords" className="text-sm" />
             Equipment & Weapons
           </div>
 
@@ -177,12 +186,17 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
                         onWeaponClick(cw);
                       }} className="min-w-0 flex-1 text-left">
                         <span className="font-bold text-primary group-hover:text-primary/90 flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                          {cw.is_equipped && <Star className="h-3 w-3 fill-primary shrink-0" />}
-                          <Target className={`h-3 w-3 shrink-0 ${cw.is_equipped ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`} />
+                          {cw.is_equipped && <RaIcon name="crown" className="text-xs text-primary shrink-0" />}
+                          <RaIcon name="archery-target" className={`text-xs shrink-0 ${cw.is_equipped ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`} />
                           <span className="break-words">{cw.custom_name || cw.weapon.name}</span>
-                          <span className="text-xs text-muted-foreground font-normal w-full min-[480px]:w-auto min-[480px]:ml-2">
+                          <span className="text-xs text-muted-foreground font-normal min-[480px]:ml-2 shrink-0">
                             ({formatMod(totalAttackModifier)} Atk, {formatMod(damageAbilityMod)} Dmg)
                           </span>
+                          {cw.weapon.cost && getSellValue(cw.weapon.cost) && (
+                            <span className="text-micro font-medium text-faded-gold bg-faded-gold/5 px-1.5 py-0.5 rounded border border-faded-gold/20 shrink-0" title={`Sell value: ${getSellValue(cw.weapon.cost)}`}>
+                              Sell: {getSellValue(cw.weapon.cost)}
+                            </span>
+                          )}
                         </span>
                       </button>
                       <div className="flex flex-wrap items-center gap-1 shrink-0 justify-end">
@@ -242,14 +256,22 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
             <div className="space-y-2">
               {armor.map((it) => {
                 const isEquipped = sheet.character.equipped_armor_id === it.id;
+                const sellValue = it.cost ? getSellValue(it.cost) : null;
                 return (
                   <div key={it.id} className={cn("text-sm p-2 rounded border min-w-0", isEquipped ? 'border-primary/50 bg-primary/5' : 'border-border/50 bg-muted/10')}>
                     <div className="flex flex-col gap-2 min-[400px]:flex-row min-[400px]:justify-between min-[400px]:items-start">
                       <div className="min-w-0">
-                        <span className="font-bold text-primary flex items-center gap-1.5 flex-wrap">
-                          {isEquipped && <ShieldCheck className="h-3 w-3 text-primary shrink-0" />}
-                          <span className="break-words">{it.name}</span>
-                        </span>
+                        <div className="flex flex-wrap items-center gap-x-2">
+                          <span className="font-bold text-primary flex items-center gap-1.5 flex-wrap">
+                            {isEquipped && <RaIcon name="bolt-shield" className="text-xs text-primary shrink-0" />}
+                            <span className="break-words">{it.name}</span>
+                          </span>
+                          {sellValue && (
+                            <span className="text-micro font-medium text-faded-gold bg-faded-gold/5 px-1.5 py-0.5 rounded border border-faded-gold/20" title={`Sell value: ${sellValue}`}>
+                              Sell: {sellValue}
+                            </span>
+                          )}
+                        </div>
                         {it.armor_type && <span className="text-micro text-muted-foreground">{it.armor_type} Armor</span>}
                       </div>
                       <Button size="xs" variant="outline" className="h-6 shrink-0 self-end min-[400px]:ml-2" onClick={() => handleEquipmentChange(it.id, false, !isEquipped, 'armor')} disabled={!!isLoading}>
@@ -282,13 +304,21 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
               {shields.map((it) => {
                 const isEquipped = sheet.character.equipped_shield_id === it.id;
                 const canEquipShield = isEquipped || freeHands >= 1;
+                const sellValue = it.cost ? getSellValue(it.cost) : null;
                 return (
                   <div key={it.id} className={cn("text-sm p-2 rounded border min-w-0", isEquipped ? 'border-primary/50 bg-primary/5' : 'border-border/50 bg-muted/10')}>
                     <div className="flex flex-col gap-2 min-[400px]:flex-row min-[400px]:justify-between min-[400px]:items-start">
-                       <span className="font-bold text-primary flex items-center gap-1.5 min-w-0 break-words">
-                          {isEquipped && <Shield className="h-3 w-3 text-primary shrink-0" />}
-                          {it.name}
-                        </span>
+                       <div className="flex flex-wrap items-center gap-x-2 min-w-0">
+                         <span className="font-bold text-primary flex items-center gap-1.5 min-w-0 break-words">
+                            {isEquipped && <RaIcon name="shield" className="text-xs text-primary shrink-0" />}
+                            {it.name}
+                          </span>
+                          {sellValue && (
+                            <span className="text-micro font-medium text-faded-gold bg-faded-gold/5 px-1.5 py-0.5 rounded border border-faded-gold/20" title={`Sell value: ${sellValue}`}>
+                              Sell: {sellValue}
+                            </span>
+                          )}
+                       </div>
                       <Button
                         size="xs"
                         variant="outline"
@@ -313,17 +343,27 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
           <div className="space-y-2">
             <p className="text-micro uppercase tracking-wider text-muted-foreground font-bold">Items & Gear</p>
             <div className="space-y-2">
-              {otherItems.map((it) => (
-                <div key={it.id} className="text-sm p-2 rounded border border-border/50 bg-muted/10 min-w-0">
-                  <div className="flex flex-col gap-1 min-[400px]:flex-row min-[400px]:justify-between min-[400px]:items-start">
-                    <span className="font-bold text-primary break-words min-w-0">{it.name}</span>
-                    <span className="text-micro text-muted-foreground shrink-0">{it.category}</span>
+              {otherItems.map((it) => {
+                const sellValue = it.cost ? getSellValue(it.cost) : null;
+                return (
+                  <div key={it.id} className="text-sm p-2 rounded border border-border/50 bg-muted/10 min-w-0">
+                    <div className="flex flex-col gap-1 min-[400px]:flex-row min-[400px]:justify-between min-[400px]:items-start">
+                      <div className="flex flex-wrap items-center gap-x-2 min-w-0">
+                        <span className="font-bold text-primary break-words min-w-0">{it.name}</span>
+                        {sellValue && (
+                          <span className="text-micro font-medium text-faded-gold bg-faded-gold/5 px-1.5 py-0.5 rounded border border-faded-gold/20" title={`Sell value: ${sellValue}`}>
+                            Sell: {sellValue}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-micro text-muted-foreground shrink-0">{it.category}</span>
+                    </div>
+                    {it.effects && (
+                      <p className="text-micro text-muted-foreground mt-1 italic">{it.effects}</p>
+                    )}
                   </div>
-                  {it.effects && (
-                    <p className="text-micro text-muted-foreground mt-1 italic">{it.effects}</p>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -332,13 +372,25 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
         {character.inventory && character.inventory.length > 0 && (
           <div className="space-y-2 border-t border-border/30 pt-2">
             <p className="text-micro uppercase tracking-wider text-muted-foreground font-bold">Other Gear</p>
-            <ul className="text-xs font-tome-marginalia space-y-1">
-              {character.inventory.map((item, idx) => (
-                <li key={idx} className="flex items-center gap-2 text-muted-foreground">
-                  <span className="w-1 h-1 rounded-full bg-primary/30" />
-                  {item}
-                </li>
-              ))}
+            <ul className="text-xs font-tome-marginalia space-y-2">
+              {character.inventory.map((item, idx) => {
+                const sellValue = getSellValue(item);
+                return (
+                  <li key={idx} className="flex flex-col gap-1 text-muted-foreground border-b border-border/10 pb-1.5 last:border-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-1 h-1 rounded-full bg-primary/30 shrink-0" />
+                        <span className="break-words">{item}</span>
+                      </div>
+                      {sellValue && (
+                        <span className="text-micro font-medium text-faded-gold shrink-0 bg-faded-gold/5 px-1 rounded" title={`Sell value: ${sellValue}`}>
+                          Sell: {sellValue}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

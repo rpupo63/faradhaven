@@ -1,4 +1,4 @@
-import { getBaseUrl, handleResponse } from './base';
+import { getBaseUrl, handleResponse, apiFetch } from './base';
 import type { ApiEffect } from '@/types/game';
 
 export interface RollTableResponse {
@@ -35,7 +35,7 @@ export async function rollTable(
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify({ table_name: tableName }),
@@ -55,7 +55,7 @@ export async function castMutagen(
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
   });
@@ -74,7 +74,7 @@ export async function getActiveEffects(
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<ActiveEffect[]>(res, 'Failed to fetch active effects');
 }
 
@@ -91,6 +91,6 @@ export async function removeEffect(
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   
-  const res = await fetch(url, { method: 'DELETE', headers });
+  const res = await apiFetch(url, { method: 'DELETE', headers });
   return handleResponse<void>(res, 'Failed to remove effect');
 }

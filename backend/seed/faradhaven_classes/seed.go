@@ -40,6 +40,31 @@ func (ClassComponentLink) TableName() string {
 	return "class_components"
 }
 
+// mergeClassComponentPool returns the union of the class seed pool and HeritageSpeciesComponents,
+// deduped with stable order: base pool first, then heritage names not already present.
+func mergeClassComponentPool(base []string) []string {
+	seen := make(map[string]struct{}, len(base)+32)
+	out := make([]string, 0, len(base)+32)
+	for _, name := range base {
+		if name == "" {
+			continue
+		}
+		if _, ok := seen[name]; ok {
+			continue
+		}
+		seen[name] = struct{}{}
+		out = append(out, name)
+	}
+	for _, name := range HeritageSpeciesComponents() {
+		if _, ok := seen[name]; ok {
+			continue
+		}
+		seen[name] = struct{}{}
+		out = append(out, name)
+	}
+	return out
+}
+
 // proficiencyByLevel returns proficiency bonus for level 1-20 (D&D-style)
 func proficiencyByLevel(level int) int {
 	if level < 1 {
@@ -350,8 +375,8 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 			}
 		}
 
-		// Collect class-component links
-		for _, compName := range cs.ComponentPool {
+		// Collect class-component links (class pool + species heritage components formerly on races)
+		for _, compName := range mergeClassComponentPool(cs.ComponentPool) {
 			componentID := uuids.ComponentUUID(compName)
 			allClassComponents = append(allClassComponents, ClassComponentLink{
 				ClassID:     classID.String(),

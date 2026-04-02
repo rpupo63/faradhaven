@@ -11,13 +11,14 @@ import (
 // Classes use components instead of traditional spells (e.g., Chimera metabolizes mutagens,
 // Cog-Weaver builds rigs, Vitalist uses blood as conduit).
 type Component struct {
-	ID          uuid.UUID         `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid();not null"`
-	Name        string            `json:"name" gorm:"type:text;not null"`
-	Symbol      string            `json:"symbol" gorm:"type:varchar(4)"`      // 2-3 letter alchemical symbol for periodic table
-	Category    ComponentCategory `json:"category" gorm:"type:text;not null"` // primordial, physical, etc.
-	Description string            `json:"description" gorm:"type:text"`
-	Element     string            `json:"element,omitempty" gorm:"type:text"` // e.g. fire, lightning, necrotic
-	Tier        int               `json:"tier" gorm:"type:int;default:1"`     // 1 = basic (primordial/physical/shape), 2 = advanced
-	CreatedAt   time.Time         `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
-	UpdatedAt   time.Time         `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
+	ID             uuid.UUID         `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid();not null"`
+	Name           string            `json:"name" gorm:"type:text;not null"`
+	Symbol         string            `json:"symbol" gorm:"type:varchar(4)"`            // 2-3 letter alchemical symbol for periodic table
+	RpgAwesomeIcon string            `json:"rpg_awesome_icon" gorm:"type:varchar(64)"` // icon name without ra- prefix (rpg-awesome)
+	Category       ComponentCategory `json:"category" gorm:"type:text;not null"`       // primordial, physical, etc.
+	Description    string            `json:"description" gorm:"type:text"`
+	Element        string            `json:"element,omitempty" gorm:"type:text"` // e.g. fire, lightning, necrotic
+	Tier           int               `json:"tier" gorm:"type:int;default:1"`     // 1 = basic (primordial/physical/shape), 2 = advanced
+	CreatedAt      time.Time         `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
+	UpdatedAt      time.Time         `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 }

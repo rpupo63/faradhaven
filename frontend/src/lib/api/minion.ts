@@ -1,4 +1,4 @@
-import { getBaseUrl, handleResponse } from './base';
+import { getBaseUrl, handleResponse, apiFetch } from './base';
 import type {
   ApiMinion,
   ApiConstructTemplate,
@@ -19,7 +19,7 @@ export async function getMinions(
   const url = `${base}/api/characters/${characterId}/minions${params}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<(ApiMinion | ApiHarvestMinion)[]>(res, 'Failed to load minions');
 }
 
@@ -34,7 +34,7 @@ export async function getMinionTemplates(
   const url = `${base}/api/characters/${characterId}/minions/templates`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   return handleResponse<Record<string, ApiConstructTemplate>>(res, 'Failed to load construct templates');
 }
 
@@ -50,7 +50,7 @@ export async function createConstruct(
   const url = `${base}/api/characters/${characterId}/minions`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify(request),
@@ -71,7 +71,7 @@ export async function updateMinionHP(
   const url = `${base}/api/characters/${characterId}/minions/${minionId}/hp`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'PATCH',
     headers,
     body: JSON.stringify({ delta }),
@@ -110,7 +110,7 @@ export async function storeHarvest(
   const url = `${base}/api/characters/${characterId}/minions`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify(body),
@@ -132,7 +132,7 @@ export async function deleteMinion(
   const url = `${base}/api/characters/${characterId}/minions/${minionId}${params}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'DELETE',
     headers,
   });

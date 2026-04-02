@@ -7,7 +7,9 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/rpupo63/unified-personal-site-backend/database"
 	"github.com/rpupo63/unified-personal-site-backend/errs"
@@ -48,6 +50,60 @@ type RegisterRequest struct {
 	Password string `json:"password"`
 }
 
+var jwtSecret = []byte(getJWTSecret())
+
+func getJWTSecret() string {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		log.Warn().Msg("JWT_SECRET not set, using default insecure secret")
+		return "super_secret_default_key" // In production, this should fail or generate a random key
+	}
+	return secret
+}
+
+// generateAccessToken creates a short-lived JWT token
+func generateAccessToken(userID uuid.UUID) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+		Subject:   userID.String(),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+	})
+	return token.SignedString(jwtSecret)
+}
+
+// generateRefreshToken returns a cryptographically random token for API auth
+func generateRefreshToken() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
+func setRefreshTokenCookie(w http.ResponseWriter, token string, expiresAt time.Time) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    token,
+		Expires:  expiresAt,
+		HttpOnly: true,
+		Secure:   os.Getenv("ENV") == "production",
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode, // Adjust if cross-origin needs change
+	})
+}
+
+func clearRefreshTokenCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+		Secure:   os.Getenv("ENV") == "production",
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
 func (h *authHandler) login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -83,18 +139,29 @@ func (h *authHandler) login() http.HandlerFunc {
 			return
 		}
 
-		token, err := generateSessionToken()
+		accessToken, err := generateAccessToken(u.ID)
 		if err != nil {
-			h.responder.WriteError(w, errs.NewInternalError("token creation failed"))
+			h.responder.WriteError(w, errs.NewInternalError("access token creation failed"))
 			return
 		}
-		u.Token = &token
+
+		refreshToken, err := generateRefreshToken()
+		if err != nil {
+			h.responder.WriteError(w, errs.NewInternalError("refresh token creation failed"))
+			return
+		}
+
+		expiresAt := time.Now().Add(7 * 24 * time.Hour) // 7 days
+		u.RefreshToken = &refreshToken
+		u.RefreshTokenExpiresAt = &expiresAt
 		if err := h.userRepo.Update(u); err != nil {
 			h.responder.WriteError(w, errs.NewInternalError("could not save token"))
 			return
 		}
 
-		resp := LoginResponse{Token: token, UserID: &u.ID}
+		setRefreshTokenCookie(w, refreshToken, expiresAt)
+
+		resp := LoginResponse{Token: accessToken, UserID: &u.ID}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -128,38 +195,109 @@ func (h *authHandler) register() http.HandlerFunc {
 			return
 		}
 
-		token, err := generateSessionToken()
+		refreshToken, err := generateRefreshToken()
 		if err != nil {
 			h.responder.WriteError(w, errs.NewInternalError("token generation failed"))
 			return
 		}
+		
+		expiresAt := time.Now().Add(7 * 24 * time.Hour)
 
 		newUser := &models.User{
-			Name:         req.Name,
-			Email:        req.Email,
-			PasswordHash: hash,
-			Token:        &token,
+			Name:                  req.Name,
+			Email:                 req.Email,
+			PasswordHash:          hash,
+			RefreshToken:          &refreshToken,
+			RefreshTokenExpiresAt: &expiresAt,
 		}
 
 		if err := h.userRepo.Add(newUser); err != nil {
 			h.responder.WriteError(w, errs.NewInternalError("failed to create user"))
 			return
 		}
+		
+		accessToken, err := generateAccessToken(newUser.ID)
+		if err != nil {
+			h.responder.WriteError(w, errs.NewInternalError("access token generation failed"))
+			return
+		}
 
-		resp := LoginResponse{Token: token, UserID: &newUser.ID}
+		setRefreshTokenCookie(w, refreshToken, expiresAt)
+
+		resp := LoginResponse{Token: accessToken, UserID: &newUser.ID}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(resp)
 	}
 }
 
-// generateSessionToken returns a cryptographically random token for API auth (Bearer).
-func generateSessionToken() (string, error) {
-	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
+func (h *authHandler) refresh() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("refresh_token")
+		if err != nil {
+			h.responder.WriteError(w, errs.Unauthorized)
+			return
+		}
+
+		tokenString := cookie.Value
+		u, err := h.userRepo.FindByRefreshToken(tokenString)
+		if err != nil || u == nil {
+			h.responder.WriteError(w, errs.Unauthorized)
+			return
+		}
+
+		if u.RefreshTokenExpiresAt == nil || time.Now().After(*u.RefreshTokenExpiresAt) {
+			h.responder.WriteError(w, errs.Unauthorized)
+			return
+		}
+
+		// Generate new access token
+		accessToken, err := generateAccessToken(u.ID)
+		if err != nil {
+			h.responder.WriteError(w, errs.NewInternalError("access token creation failed"))
+			return
+		}
+
+		// Rotate refresh token
+		newRefreshToken, err := generateRefreshToken()
+		if err != nil {
+			h.responder.WriteError(w, errs.NewInternalError("refresh token creation failed"))
+			return
+		}
+
+		expiresAt := time.Now().Add(7 * 24 * time.Hour)
+		u.RefreshToken = &newRefreshToken
+		u.RefreshTokenExpiresAt = &expiresAt
+		if err := h.userRepo.Update(u); err != nil {
+			h.responder.WriteError(w, errs.NewInternalError("could not save token"))
+			return
+		}
+
+		setRefreshTokenCookie(w, newRefreshToken, expiresAt)
+
+		resp := LoginResponse{Token: accessToken, UserID: &u.ID}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(resp)
 	}
-	return hex.EncodeToString(b), nil
+}
+
+func (h *authHandler) logout() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("refresh_token")
+		if err == nil && cookie.Value != "" {
+			u, err := h.userRepo.FindByRefreshToken(cookie.Value)
+			if err == nil && u != nil {
+				// Clear the refresh token in the DB
+				u.RefreshToken = nil
+				u.RefreshTokenExpiresAt = nil
+				_ = h.userRepo.Update(u)
+			}
+		}
+
+		clearRefreshTokenCookie(w)
+		w.WriteHeader(http.StatusOK)
+	}
 }
 
 // hashPassword hashes a password with bcrypt for storage.

@@ -10,8 +10,7 @@ func Khoravar() FaradhavenRaceSeed {
 		Size:           "Medium (about 4–6 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
 		BaseSpeed:      30,
 		Languages:      []string{"Common", "Elvish"},
-		Traits:         khoravarTraits(),
-		ComponentNames: []string{"Anger", "Self"},
+		Traits: khoravarTraits(),
 	}
 }
 
@@ -27,12 +26,6 @@ func khoravarTraits() []TraitSeed {
 		{
 			Name:        "Fey Ancestry",
 			Description: "You have Advantage on saving throws you make to avoid or end the Charmed condition.",
-			LevelReq:    1,
-			ActionType:  "Passive",
-		},
-		{
-			Name:        "Fey Gift",
-			Description: "You know the Anger + Self component combination (magically enhancing your charisma to influence others). Whenever you finish a Long Rest, you can replace that combination with a different cantrip-tier component combination from the Cleric, Druid, or Wizard spell list. Intelligence, Wisdom, or Charisma is your spellcasting ability for the spell you cast with this trait (chosen when you select this species).",
 			LevelReq:    1,
 			ActionType:  "Passive",
 		},

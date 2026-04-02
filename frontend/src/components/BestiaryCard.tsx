@@ -6,7 +6,8 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from './ui/tooltip';
-import { Pencil, Trash2, Skull, Shield, Heart, Swords } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
+import { RaIcon } from '@/components/ui/RaIcon';
 import { cn } from '@/lib/utils';
 
 interface BestiaryCardProps {
@@ -41,7 +42,7 @@ export function BestiaryCard({ entry, onEdit, onDelete }: BestiaryCardProps) {
             />
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 text-charcoal/60 p-6">
-              <Skull className="w-16 h-16" strokeWidth={1} />
+              <RaIcon name="skull" className="text-6xl" />
               <span className="font-tome-marginalia text-sm">No sketch</span>
             </div>
           )}
@@ -81,13 +82,13 @@ export function BestiaryCard({ entry, onEdit, onDelete }: BestiaryCardProps) {
               <p className="font-tome-subheading text-base text-foreground">{entry.armorClass}</p>
             </div>
             <div className="py-2 px-1">
-              <Heart className="w-4 h-4 mx-auto text-dried-blood mb-0.5" />
+              <RaIcon name="health" className="text-sm mx-auto text-dried-blood mb-0.5 block" />
               <p className="text-micro text-muted-foreground font-tome-marginalia">HP</p>
               <p className="font-tome-subheading text-base text-foreground">{entry.hitPoints}</p>
               <p className="text-micro text-muted-foreground">({entry.hitDice})</p>
             </div>
             <div className="py-2 px-1">
-              <Skull className="w-4 h-4 mx-auto text-faded-gold mb-0.5" />
+              <RaIcon name="skull" className="text-sm mx-auto text-faded-gold mb-0.5 block" />
               <p className="text-micro text-muted-foreground font-tome-marginalia">CR</p>
               <p className="font-tome-subheading text-base text-foreground">{entry.challengeRating}</p>
             </div>
@@ -120,7 +121,7 @@ export function BestiaryCard({ entry, onEdit, onDelete }: BestiaryCardProps) {
           {entry.attacks.length > 0 && (
             <div className="space-y-1.5 mt-auto">
               <div className="flex items-center gap-2 text-sm">
-                <Swords className="w-4 h-4 text-dried-blood" />
+                <RaIcon name="crossed-swords" className="text-sm text-dried-blood" />
                 <span className="font-tome-subheading text-primary">Attacks</span>
               </div>
               <div className="space-y-1">
