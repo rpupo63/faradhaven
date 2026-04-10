@@ -1,20 +1,24 @@
 package faradhaven_classes
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // RiftWeaver returns the Rift Weaver class seed
 func RiftWeaver() FaradhavenClassSeed {
 	return FaradhavenClassSeed{
-		Name:           "The Rift Weaver",
-		Description:    "Open rifts to elemental planes and channel raw fire, ice, lightning, and earth into devastating evocations. You're the party's artillery—stand back and obliterate the battlefield with area destruction.",
-		HitDie:         8,
-		PrimaryAbility: "intelligence",
-		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/rift_weaver.jpg",
-		Archetype:      "Full Caster / Evoker / Damage",
-		Concept:        "A scholar who learned to open rifts to elemental planes. They draw power from fire, ice, lightning, and earth—commanding raw elemental forces for devastating evocation magic. You are the party's artillery.",
-		DnDSkillFocus:    []string{"Arcana", "Nature"},
-		Proficiencies:    "Simple weapons, Daggers, Quarterstaffs, Light Armor",
-		SkillChoice:      []string{"Arcana", "History", "Nature", "Religion"},
-		Tools:            []string{"Arcane Focus (orb or wand)"},
-		SavingThrows:     []string{"Intelligence", "Wisdom"},
+		Name:                "The Rift Weaver",
+		Description:         "Open rifts to elemental planes and channel raw fire, ice, lightning, and earth into devastating evocations. You're the party's artillery—stand back and obliterate the battlefield with area destruction.",
+		HitDie:              8,
+		PrimaryAbility:      "intelligence",
+		PhotoURL:            seedmedia.URL("rift_weaver.jpg"),
+		Archetype:           "Full Caster / Evoker / Damage",
+		Concept:             "A scholar who learned to open rifts to elemental planes. They draw power from fire, ice, lightning, and earth—commanding raw elemental forces for devastating evocation magic. You are the party's artillery.",
+		DnDSkillFocus:       []string{"Arcana", "Nature"},
+		Proficiencies:       "Simple weapons, Daggers, Quarterstaffs, Light Armor",
+		SkillChoice:         []string{"Arcana", "History", "Nature", "Religion"},
+		Tools:               []string{"Arcane Focus (orb or wand)"},
+		SavingThrows:        []string{"Intelligence", "Wisdom"},
 		AutomaticEquipNames: []string{"Spellbook (grimoire of elemental formulae)"},
 		AutomaticItemNames:  []string{"Scholar's robes (light armor)", "Explorer's pack"},
 		EquipmentChoices: []EquipmentChoiceSeed{
@@ -79,9 +83,9 @@ func riftWeaverLevelProgression() map[int]ClassLevelSeed {
 			elementalOverloadUses = 1
 		}
 		return map[string]int{
-			"spell_points":           maxSpellPointsByLevel(level),
-			"overchannel_uses":       overchannelUses,
-			"elemental_surge_uses":   elementalSurgeUses,
+			"spell_points":            maxSpellPointsByLevel(level),
+			"overchannel_uses":        overchannelUses,
+			"elemental_surge_uses":    elementalSurgeUses,
 			"elemental_overload_uses": elementalOverloadUses,
 		}
 	}

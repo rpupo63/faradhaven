@@ -1,16 +1,20 @@
 package faradhaven_races
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // Faerie returns the Faerie race seed
 func Faerie() FaradhavenRaceSeed {
 	return FaradhavenRaceSeed{
-		Name:           "Faerie",
-		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/faerie.jpg",
-		Description:    "Known for their mischief, faeries resemble insects with humanoid features. Their size and shape may vary, but all have antennae, black eyes, chitinous skin, and insectoid legs and wings. Every faerie is born from a flower and possesses innate magic, which many use to play pranks. Some Lorwyn faeries serve Queen Oura, who has proclaimed herself the faeries' ruler. Not all faeries recognize Oura's authority, however. In Shadowmoor, faeries might instead worship Queen Maralen, the elf who overthrew the previous faerie queen and, some say, ushered in the clashing of Lorwyn and Shadowmoor.",
-		CreatureType:   "Fey",
-		Size:           "Small (about 2–4 feet tall)",
-		BaseSpeed:      30,
-		Languages:      []string{"Common", "Sylvan"},
-		Traits: faerieTraits(),
+		Name:         "Faerie",
+		PhotoURL:     seedmedia.URL("faerie.jpg"),
+		Description:  "Known for their mischief, faeries resemble insects with humanoid features. Their size and shape may vary, but all have antennae, black eyes, chitinous skin, and insectoid legs and wings. Every faerie is born from a flower and possesses innate magic, which many use to play pranks. Some Lorwyn faeries serve Queen Oura, who has proclaimed herself the faeries' ruler. Not all faeries recognize Oura's authority, however. In Shadowmoor, faeries might instead worship Queen Maralen, the elf who overthrew the previous faerie queen and, some say, ushered in the clashing of Lorwyn and Shadowmoor.",
+		CreatureType: "Fey",
+		Size:         "Small (about 2–4 feet tall)",
+		BaseSpeed:    30,
+		Languages:    []string{"Common", "Sylvan"},
+		Traits:       faerieTraits(),
 	}
 }
 

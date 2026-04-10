@@ -1,22 +1,26 @@
 package faradhaven_classes
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 var three = 3
 
 // PowderMage returns the Powder Mage class seed
 func PowderMage() FaradhavenClassSeed {
 	return FaradhavenClassSeed{
-		Name:           "The Powder Mage",
-		Description:    "The 'Continuous Ignition' Powder Mage. Start inputting components as soon as you declare the Cast action; whatever you chain together before the timer runs out is what happens. You aren't fighting to make the spell work, but to pack as much power into the casting window as possible.",
-		HitDie:         8,
-		PrimaryAbility: "dexterity",
-		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/powder_mage.jpg",
-		Archetype:      "Speed Caster / Skirmisher",
-		Concept:        "Continuous Ignition: Real-time rapid casting under pressure.",
-		DnDSkillFocus:    []string{"Performance", "Acrobatics"},
-		Proficiencies:    "Light Armor, Simple Weapons",
-		SkillChoice:      []string{"Performance", "Acrobatics", "Arcana", "Sleight of Hand"},
-		Tools:            []string{"Alchemist's Supplies"},
-		SavingThrows:     []string{"Dexterity", "Charisma"},
+		Name:                "The Powder Mage",
+		Description:         "The 'Continuous Ignition' Powder Mage. Start inputting components as soon as you declare the Cast action; whatever you chain together before the timer runs out is what happens. You aren't fighting to make the spell work, but to pack as much power into the casting window as possible.",
+		HitDie:              8,
+		PrimaryAbility:      "dexterity",
+		PhotoURL:            seedmedia.URL("powder_mage.jpg"),
+		Archetype:           "Speed Caster / Skirmisher",
+		Concept:             "Continuous Ignition: Real-time rapid casting under pressure.",
+		DnDSkillFocus:       []string{"Performance", "Acrobatics"},
+		Proficiencies:       "Light Armor, Simple Weapons",
+		SkillChoice:         []string{"Performance", "Acrobatics", "Arcana", "Sleight of Hand"},
+		Tools:               []string{"Alchemist's Supplies"},
+		SavingThrows:        []string{"Dexterity", "Charisma"},
 		AutomaticEquipNames: []string{"Component Pouch"},
 		AutomaticItemNames:  []string{"Light Armor", "Explorer's Pack"},
 		EquipmentChoices: []EquipmentChoiceSeed{

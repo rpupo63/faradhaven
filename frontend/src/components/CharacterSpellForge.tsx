@@ -64,6 +64,13 @@ const ABILITIES = ["STR", "DEX", "CON", "INT", "WIS", "CHA"] as const;
 
 const EMPTY_PREPARED_SPELLS: ApiSpell[] = [];
 
+/** Only send damage_type when it matches server enums (synthesis/UI can briefly hold unknown strings). */
+function damageTypeForSpellApi(raw: string): string | undefined {
+  const t = raw.trim();
+  if (!t) return undefined;
+  return DAMAGE_TYPES.includes(t as (typeof DAMAGE_TYPES)[number]) ? t : undefined;
+}
+
 export function CharacterSpellForge({
   availableComponents,
   userId,
@@ -367,7 +374,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
     save_attr: saveAttr || undefined,
     damage_dice_count: damageDiceCount === '' ? undefined : damageDiceCount,
     damage_die_size: damageDieSize === '' ? undefined : damageDieSize,
-    damage_type: damageType || undefined,
+    damage_type: damageTypeForSpellApi(damageType),
     add_modifier: addModifier,
   });
 
@@ -979,9 +986,16 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                   <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">
                     Damage Type {synthesis?.suggested_damage_type && !overrides.has('damageType') && <Badge variant="secondary" size="tiny" className="ml-1">auto</Badge>}
                   </Label>
-                  <Select value={damageType} onValueChange={(v) => { setDamageType(v); markOverride('damageType'); }}>
-                    <SelectTrigger className="bg-background"><SelectValue placeholder="Type" /></SelectTrigger>
+                  <Select
+                    value={damageType === '' ? '__none__' : damageType}
+                    onValueChange={(v) => {
+                      setDamageType(v === '__none__' ? '' : v);
+                      markOverride('damageType');
+                    }}
+                  >
+                    <SelectTrigger className="bg-background"><SelectValue placeholder="None (no damage)" /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="__none__">—</SelectItem>
                       {DAMAGE_TYPES.map(t => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
                     </SelectContent>
                   </Select>
@@ -1306,16 +1320,17 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                 <div>
                   <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Damage type</Label>
                   <Select
-                    value={damageType}
+                    value={damageType === '' ? '__none__' : damageType}
                     onValueChange={(v) => {
-                      setDamageType(v);
+                      setDamageType(v === '__none__' ? '' : v);
                       markOverride('damageType');
                     }}
                   >
                     <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="Type" />
+                      <SelectValue placeholder="None (no damage)" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="__none__">—</SelectItem>
                       {DAMAGE_TYPES.map((t) => (
                         <SelectItem key={t} value={t}>
                           {t}

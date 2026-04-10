@@ -31,7 +31,7 @@ export function SkillsSection({
   const { modifiers, skill_proficiencies, saving_throw_proficiencies } = sheet;
 
   const handleRoll = async (modifier: number, label: string) => {
-    const result = await rollD20(modifier);
+    const result = await rollD20(modifier, label);
     if (!result) return;
     const rollResult: RollResult = {
       type: 'ability_check',
@@ -39,7 +39,9 @@ export function SkillsSection({
       total: result.total,
       natural: result.natural,
       modifier: result.modifier,
-      timestamp: Date.now(),
+      timestamp:
+        // eslint-disable-next-line react-hooks/purity -- click handler, not render
+        Date.now(),
     };
     setLastRoll(rollResult);
     onRollResult?.(rollResult);

@@ -165,8 +165,8 @@ func (r *ClassRepo) GetLevelResourceMap(classID uuid.UUID, level int) (map[strin
 		return nil, err
 	}
 	m := make(map[string]int, len(resources))
-	for _, r := range resources {
-		m[r.ResourceKey] = r.Value
+	for _, row := range resources {
+		m[row.ResourceKey] = row.Value
 	}
 	return m, nil
 }

@@ -15,6 +15,9 @@ import { useToast } from '@/hooks/use-toast';
 import { LoadingQuill } from '@/components/LoadingQuill';
 import { PlusCircle, Map as MapIcon, LogIn, RefreshCw, Trash2 } from 'lucide-react';
 
+/** Default background image URL for new maps (https or data URL). Edit this to prefill the create form. */
+const DEFAULT_NEW_MAP_BACKGROUND_URL = '';
+
 const DND_WORDS = [
   'dragon', 'goblin', 'dungeon', 'wizard', 'paladin', 'rogue', 'cleric', 'bard',
   'ranger', 'fighter', 'sorcerer', 'druid', 'warlock', 'monk', 'barbarian', 'tavern',
@@ -208,7 +211,7 @@ const BattleMapLanding = ({ token, userId }: { token: string | null, userId?: st
 
     // Create Map State
     const [newMapName, setNewMapName] = useState('');
-    const [newMapBackgroundUrl, setNewMapBackgroundUrl] = useState('');
+    const [newMapBackgroundUrl, setNewMapBackgroundUrl] = useState(DEFAULT_NEW_MAP_BACKGROUND_URL);
     const [newMapCode, setNewMapCode] = useState(() => generateRoomCode());
     const [newMapRows, setNewMapRows] = useState(20);
     const [newMapCols, setNewMapCols] = useState(20);

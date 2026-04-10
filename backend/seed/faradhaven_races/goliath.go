@@ -1,16 +1,20 @@
 package faradhaven_races
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // Goliath returns the Goliath race seed
 func Goliath() FaradhavenRaceSeed {
 	return FaradhavenRaceSeed{
-		Name:           "Goliath",
-		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/goliath.jpg",
-		Description:    "Towering over most folk, goliaths are distant descendants of giants. Each goliath bears the favors of the first giants - favors that manifest in various supernatural boons, including the ability to quickly grow and temporarily approach the height of goliaths' gigantic kin.\n\nGoliaths have physical characteristics that are reminiscent of the giants in their family lines. For example, some goliaths look like stone giants, while others resemble fire giants. Whatever giants they count as kin, goliaths have forged their own path in the multiverse - unencumbered by the internecine conflicts that have ravaged giantkind for ages - and seek heights above those reached by their ancestors.",
-		CreatureType:   "Humanoid",
-		Size:           "Medium (about 7-8 feet tall)",
-		BaseSpeed:      35,
-		Languages:      []string{"Common", "Giant"},
-		Traits: goliathTraits(),
+		Name:         "Goliath",
+		PhotoURL:     seedmedia.URL("goliath.jpg"),
+		Description:  "Towering over most folk, goliaths are distant descendants of giants. Each goliath bears the favors of the first giants - favors that manifest in various supernatural boons, including the ability to quickly grow and temporarily approach the height of goliaths' gigantic kin.\n\nGoliaths have physical characteristics that are reminiscent of the giants in their family lines. For example, some goliaths look like stone giants, while others resemble fire giants. Whatever giants they count as kin, goliaths have forged their own path in the multiverse - unencumbered by the internecine conflicts that have ravaged giantkind for ages - and seek heights above those reached by their ancestors.",
+		CreatureType: "Humanoid",
+		Size:         "Medium (about 7-8 feet tall)",
+		BaseSpeed:    35,
+		Languages:    []string{"Common", "Giant"},
+		Traits:       goliathTraits(),
 	}
 }
 

@@ -1,10 +1,14 @@
 package faradhaven_races
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // Human returns the Human race seed
 func Human() FaradhavenRaceSeed {
 	return FaradhavenRaceSeed{
 		Name:         "Human",
-		PhotoURL:     "https://photos-for-apps.s3.us-east-2.amazonaws.com/human.jpg",
+		PhotoURL:     seedmedia.URL("human.jpg"),
 		Description:  "Found throughout the multiverse, humans are as varied as they are numerous, and they endeavor to achieve as much as they can in the years they are given. Their ambition and resourcefulness are commended, respected, and feared on many worlds.\n\nHumans are as diverse in appearance as the people of Earth, and they have many gods. Scholars dispute the origin of humanity, but one of the earliest known human gatherings is said to have occurred in Sigil, the torus-shaped city at the center of the multiverse and the place where the Common language was born. From there, humans could have spread to every part of the multiverse, bringing the City of Doors' cosmopolitanism with them.",
 		CreatureType: "Humanoid",
 		Size:         "Medium (about 4-7 feet tall) or Small (about 2-4 feet tall), chosen when you select this species",

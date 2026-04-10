@@ -1,10 +1,14 @@
 package faradhaven_races
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // Orc returns the Orc race seed
 func Orc() FaradhavenRaceSeed {
 	return FaradhavenRaceSeed{
 		Name:         "Orc",
-		PhotoURL:     "https://photos-for-apps.s3.us-east-2.amazonaws.com/orc.jpg",
+		PhotoURL:     seedmedia.URL("orc.jpg"),
 		Description:  "Orcs trace their creation to Gruumsh, a powerful god who roamed the wide open spaces of the Material Plane. Gruumsh equipped his children with gifts to help them wander great plains, vast caverns, and churning seas and to face the monsters that lurk there. Even when they turn their devotion to other gods, orcs retain Gruumsh's gifts: endurance, determination, and the ability to see in darkness.\n\nOrcs are, on average, tall and broad. They have gray skin, ears that are sharply pointed, and prominent lower canines that resemble small tusks. Orc youths on some worlds are told about their ancestors' great travels and travails. Inspired by those tales, many of those orcs wonder when Gruumsh will call on them to match the heroic deeds of old and if they will prove worthy of his favor. Other orcs are happy to leave old tales in the past and find their own way.",
 		CreatureType: "Humanoid",
 		Size:         "Medium (about 6-7 feet tall)",

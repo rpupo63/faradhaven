@@ -107,7 +107,7 @@ type Character struct {
 	DiceThemeColor *string `json:"dice_theme_color,omitempty" gorm:"type:text"`
 	DiceFontColor  *string `json:"dice_font_color,omitempty" gorm:"type:text"`
 
-	// Character profile picture URL
+	// ImageURL is the HTTPS URL of the profile image (S3 key prefix character-images/ in BUCKET).
 	ImageURL string `json:"image_url" gorm:"type:text"`
 
 	// Character notes (miscellaneous notes for the player)

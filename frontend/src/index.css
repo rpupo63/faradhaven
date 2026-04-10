@@ -633,6 +633,13 @@
     }
   }
 
+  /* @3d-dice/dice-box appends an inline canvas; without this it stays ~300×150 and looks like a corner glitch */
+  #dice-box > canvas.dice-box-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
   /* Gear spin animations */
   .animate-gear-slow {
     animation: gear-spin 20s linear infinite;

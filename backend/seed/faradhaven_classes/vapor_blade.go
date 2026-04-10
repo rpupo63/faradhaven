@@ -1,20 +1,24 @@
 package faradhaven_classes
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // VaporBlade returns the Vapor Blade class seed
 func VaporBlade() FaradhavenClassSeed {
 	return FaradhavenClassSeed{
-		Name:           "The Vapor Blade",
-		Description:    "Coat your blades in venom and slip through shadows to strike before enemies know you're there. Master the art of assassination with poison damage over time, shadow teleportation, and lethal precision.",
-		HitDie:         8,
-		PrimaryAbility: "dexterity",
-		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/vapor_blade.jpg",
-		Archetype:      "Stealth / Assassin / Melee DPS",
-		Concept:        "A killer who blends magic with blades. They coat weapons in venom, move through shadows, and strike before targets know they're there.",
-		DnDSkillFocus:  []string{"Stealth", "Deception"},
-		Proficiencies:  "Simple weapons, Light armor, Daggers, Shortswords, Rapiers",
-		SkillChoice:    []string{"Stealth", "Acrobatics", "Deception", "Perception"},
-		Tools:          []string{"Poisoner's Kit", "Thieves' Tools"},
-		SavingThrows:   []string{"Dexterity", "Intelligence"},
+		Name:                "The Vapor Blade",
+		Description:         "Coat your blades in venom and slip through shadows to strike before enemies know you're there. Master the art of assassination with poison damage over time, shadow teleportation, and lethal precision.",
+		HitDie:              8,
+		PrimaryAbility:      "dexterity",
+		PhotoURL:            seedmedia.URL("vapor_blade.jpg"),
+		Archetype:           "Stealth / Assassin / Melee DPS",
+		Concept:             "A killer who blends magic with blades. They coat weapons in venom, move through shadows, and strike before targets know they're there.",
+		DnDSkillFocus:       []string{"Stealth", "Deception"},
+		Proficiencies:       "Simple weapons, Light armor, Daggers, Shortswords, Rapiers",
+		SkillChoice:         []string{"Stealth", "Acrobatics", "Deception", "Perception"},
+		Tools:               []string{"Poisoner's Kit", "Thieves' Tools"},
+		SavingThrows:        []string{"Dexterity", "Intelligence"},
 		AutomaticEquipNames: []string{"Dark cloak"},
 		AutomaticItemNames:  []string{"Leather armor", "Poisoner's kit", "Thieves' Tools"},
 		EquipmentChoices: []EquipmentChoiceSeed{
@@ -131,12 +135,12 @@ func vaporBladeLevelFeatures() map[int][]FeatureSeed {
 			{Name: "Venom Coating", Description: "When you hit with a finesse weapon, you can spend 2 Shadow Points to apply a coating. Venom: Target takes 1d4 poison damage at the start of its next turn. Stacks intensity up to 3 times. Shadow: You have advantage on Stealth checks until the end of your next turn."},
 			{Name: "Shadow Step", Description: "As a bonus action while in dim light or darkness, spend 5 Shadow Points to teleport up to 30 feet to another unoccupied space in dim light or darkness."},
 		},
-		2: {{Name: "Sneak Strike", Description: "Trigger: Advantage OR Unaware Target OR Flanking. Cost: 3 Shadow Points. Deal an extra 2d6 damage. Limit: Uses equal to Dex Mod (min 1). Regain all uses on Short Rest."}},
-		3: {{Name: "Silent Blade", Description: "When you apply a coating, you can spend 1 additional Shadow Point to apply the **Silenced** status (preventing Verbal actions and spell components). The target must succeed on a Wisdom save (DC 8 + Prof + Dex) or be Silenced for 1 round."}},
-		5: {{Name: "Extra Attack", Description: "You can attack twice when you take the Attack action. Each hit can apply a different coating."}, {Name: "Blade Flurry", Description: "When you use Shadow Step, your next attack before the end of your turn deals an extra 1d6 damage."}},
-		6: {{Name: "Venom Mastery", Description: "Your Venom damage die increases to 2d4. Consecutive applications stack intensity (up to 3x total damage). Targets poisoned by you have disadvantage on saving throws against your other Vapor Blade features."}},
-		7: {{Name: "Shadow Meld", Description: "As a bonus action in dim light or darkness, spend 5 Shadow Points to become invisible for 1 minute or until you attack or cast a spell."}},
-		9: {{Name: "Lethal Precision", Description: "Critical hits and attacks against surprised targets (who have not yet acted) deal an extra 3d6 damage of your weapon's type for 5 Shadow Points."}, {Name: "Weak Point Analysis", Description: "You score a critical hit on a roll of 19 or 20."}},
+		2:  {{Name: "Sneak Strike", Description: "Trigger: Advantage OR Unaware Target OR Flanking. Cost: 3 Shadow Points. Deal an extra 2d6 damage. Limit: Uses equal to Dex Mod (min 1). Regain all uses on Short Rest."}},
+		3:  {{Name: "Silent Blade", Description: "When you apply a coating, you can spend 1 additional Shadow Point to apply the **Silenced** status (preventing Verbal actions and spell components). The target must succeed on a Wisdom save (DC 8 + Prof + Dex) or be Silenced for 1 round."}},
+		5:  {{Name: "Extra Attack", Description: "You can attack twice when you take the Attack action. Each hit can apply a different coating."}, {Name: "Blade Flurry", Description: "When you use Shadow Step, your next attack before the end of your turn deals an extra 1d6 damage."}},
+		6:  {{Name: "Venom Mastery", Description: "Your Venom damage die increases to 2d4. Consecutive applications stack intensity (up to 3x total damage). Targets poisoned by you have disadvantage on saving throws against your other Vapor Blade features."}},
+		7:  {{Name: "Shadow Meld", Description: "As a bonus action in dim light or darkness, spend 5 Shadow Points to become invisible for 1 minute or until you attack or cast a spell."}},
+		9:  {{Name: "Lethal Precision", Description: "Critical hits and attacks against surprised targets (who have not yet acted) deal an extra 3d6 damage of your weapon's type for 5 Shadow Points."}, {Name: "Weak Point Analysis", Description: "You score a critical hit on a roll of 19 or 20."}},
 		10: {{Name: "Death Mark", Description: "Bonus Action. Cost: 0 Shadow Points (Limit: 1/Short Rest). Mark a creature within 60 feet. For 1 minute, your Sneak Strike deals an extra 2d6 damage to it."}},
 		11: {{Name: "Shadow Chain", Description: "When you use Shadow Step, you can spend 5 additional Shadow Points to bring one willing creature within 5 feet with you to the destination."}},
 		13: {{Name: "Venom Burst", Description: "Trigger: Poisoned creature dies. Reaction. Cost: 10 Shadow Points. The creature explodes. Each creature within 10 feet takes 3d6 poison damage (Constitution save for half)."}},

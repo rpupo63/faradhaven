@@ -9,6 +9,7 @@ type GameMap struct {
 	OwnerID       uuid.UUID    `gorm:"type:uuid;not null" json:"owner_id"`
 	RoomCode      string       `gorm:"type:varchar(50);unique;not null" json:"room_code"`
 	Name          string       `gorm:"type:varchar(255);not null" json:"name"`
+	// BackgroundURL is the HTTPS URL of the map image (S3 maps/backgrounds/ when uploaded via API, or any image URL).
 	BackgroundURL string       `gorm:"type:text" json:"background_url"`
 	GridRows      int          `gorm:"default:20" json:"grid_rows"`
 	GridCols      int          `gorm:"default:20" json:"grid_cols"`

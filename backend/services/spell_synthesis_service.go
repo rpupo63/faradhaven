@@ -106,9 +106,12 @@ func (s *SpellSynthesisService) Synthesize(components []models.Component) *Spell
 			continue
 		case models.CategoryEssentia:
 			if c.Element != "" {
-				dmgType := mapElementToDamageType(c.Element)
-				syn.SuggestedDamageType = &dmgType
-				hasDamage = true
+				mapped := mapElementToDamageType(c.Element)
+				if parsed, ok := models.ParseDamageType(mapped); ok {
+					s := string(parsed)
+					syn.SuggestedDamageType = &s
+					hasDamage = true
+				}
 			}
 
 		case models.CategoryForma:

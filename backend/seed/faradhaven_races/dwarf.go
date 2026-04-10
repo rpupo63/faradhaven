@@ -1,10 +1,14 @@
 package faradhaven_races
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // Dwarf returns the Dwarf race seed
 func Dwarf() FaradhavenRaceSeed {
 	return FaradhavenRaceSeed{
 		Name:         "Dwarf",
-		PhotoURL:     "https://photos-for-apps.s3.us-east-2.amazonaws.com/dwarf.jpg",
+		PhotoURL:     seedmedia.URL("dwarf.jpg"),
 		Description:  "Dwarves were raised from the earth in the elder days by a deity of the forge. Called by various names on different worlds - Moradin, Reorx, and others - that god gave dwarves an affinity for stone and metal and for living underground. The god also made them resilient like the mountains, with a life span of about 350 years. Squat and often bearded, the original dwarves carved cities and strongholds into mountainsides and under the earth. Their oldest legends tell of conflicts with the monsters of mountaintops and the Underdark, whether those monsters were towering giants or subterranean horrors. Inspired by those tales, dwarves of any culture often sing of valorous deeds - especially of the little overcoming the mighty. On some worlds in the multiverse, the first settlements of dwarves were built in hills or mountains, and the families who trace their ancestry to those settlements call themselves hill dwarves or mountain dwarves, respectively.",
 		CreatureType: "Humanoid",
 		Size:         "Medium (about 4-5 feet tall)",

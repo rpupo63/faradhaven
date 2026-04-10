@@ -1,10 +1,14 @@
 package faradhaven_races
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // Boggart returns the Boggart race seed
 func Boggart() FaradhavenRaceSeed {
 	return FaradhavenRaceSeed{
 		Name:         "Boggart",
-		PhotoURL:     "https://photos-for-apps.s3.us-east-2.amazonaws.com/boggart.jpg",
+		PhotoURL:     seedmedia.URL("boggart.jpg"),
 		Description:  "Boggarts are small, squat goblinoids from the realm of Lorwyn-Shadowmoor. They have bestial features such as horns and animal-like snouts, and their appearance varies widely: one might resemble a hedgehog with spiky fur, while another has the snout and fleshy ears of a swine. Boggarts love crafting potions and often gravitate toward specific areas of expertise.\n\nIn Lorwyn, boggarts are born into communal warrens where laws and hierarchies are loose suggestions. The oldest and most powerful boggarts, known as aunties, serve as respected leaders who keep the peace. Lorwyn boggarts value sharing knowledge and past experiences, and many are willing to brave great dangers in pursuit of new experiences.\n\nIn Shadowmoor, boggarts are sharper-featured and may have extra sets of horns or body modifications like riveted armored plates. Their society is chaotic and decentralized, with small communities in isolated or dangerous places. Aunties in Shadowmoor wander the land, greeting those they meet with arbitrary tests, boons, or curses.",
 		CreatureType: "Humanoid",
 		Size:         "Small (about 2-4 feet tall)",

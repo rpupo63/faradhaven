@@ -104,6 +104,18 @@ func abilityScoreImprovementByLevel(level int) int {
 
 // SeedFaradhavenClasses creates Class, ClassLevel, Archetype, LevelFeature, and ClassComponent rows.
 // Uses batch operations and deterministic UUIDs for efficient reseeding.
+//
+// Level row merge contract (for each class, levels 1–20):
+//  1. Defaults are applied from this file: HpGain from hit die average, ProficiencyBonus from
+//     proficiencyByLevel, MaxSpellPoints from maxSpellPointsByLevel, AbilityScoreImprovement
+//     from abilityScoreImprovementByLevel.
+//  2. If the class seed defines LevelProgression[level], that ClassLevelSeed overlays explicit
+//     fields (spell slots, combat columns, Resources map → class_level_resources). Pointer fields
+//     on ClassLevelSeed (CantripsKnown, SpellsKnown, MaxSpellPoints, ProficiencyBonus,
+//     AbilityScoreImprovement) replace defaults only when non-nil; zero values in *int are valid
+//     overrides when you need to force 0.
+//  3. Integer combat fields on ClassLevelSeed (ExtraAttackCount, SneakAttackDice, etc.) are copied
+//     when the level has a progression entry (zero is a valid value).
 func SeedFaradhavenClasses(tx *gorm.DB) error {
 	classSeeds := AllClasses()
 
@@ -216,7 +228,8 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 			}
 		}
 
-		// Collect class levels (1-20) and their features
+		// Collect class levels (1-20) and their features.
+		// See SeedFaradhavenClasses doc comment for default-then-overlay merge rules.
 		for level := 1; level <= 20; level++ {
 			classLevelID := uuids.ClassLevelUUID(cs.Name, level)
 			avgHitDie := (cs.HitDie + 1) / 2
@@ -234,6 +247,12 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 			// Apply structured level progression data
 			if cs.LevelProgression != nil {
 				if lp, ok := cs.LevelProgression[level]; ok {
+					if lp.ProficiencyBonus != nil {
+						cl.ProficiencyBonus = *lp.ProficiencyBonus
+					}
+					if lp.AbilityScoreImprovement != nil {
+						cl.AbilityScoreImprovement = *lp.AbilityScoreImprovement
+					}
 					if lp.CantripsKnown != nil {
 						cl.CantripsKnown = lp.CantripsKnown
 					}

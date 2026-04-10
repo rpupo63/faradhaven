@@ -68,6 +68,32 @@ export async function getUserMaps(
   return handleResponse<GameMap[]>(res, 'Failed to load maps');
 }
 
+/**
+ * Uploads a battle map background image to S3 (maps/backgrounds/) and sets background_url on the map.
+ */
+export async function uploadMapBackgroundImage(
+  mapId: string,
+  file: File,
+  token: string
+): Promise<{ background_url: string; message: string }> {
+  const base = getBaseUrl();
+  const url = `${base}/api/map/${mapId}/background`;
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+  };
+  const formData = new FormData();
+  formData.append('image', file);
+  const res = await apiFetch(url, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+  return handleResponse<{ background_url: string; message: string }>(
+    res,
+    'Failed to upload map background'
+  );
+}
+
 export async function updateMap(
   mapId: string,
   data: UpdateMapRequest,

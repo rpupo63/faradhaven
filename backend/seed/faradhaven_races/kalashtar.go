@@ -1,10 +1,14 @@
 package faradhaven_races
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // Kalashtar returns the Kalashtar race seed
 func Kalashtar() FaradhavenRaceSeed {
 	return FaradhavenRaceSeed{
 		Name:               "Kalashtar",
-		PhotoURL:           "https://photos-for-apps.s3.us-east-2.amazonaws.com/kalashtar.jpg",
+		PhotoURL:           seedmedia.URL("kalashtar.jpg"),
 		Description:        "Kalashtar (pronounced kal-ASH-tar) are created from the union of humanity and renegade spirits called quori from the plane of dreams. Kalashtar appear human, but their spiritual connection affects them in a variety of ways. They have symmetrical, slightly angular features, and their eyes often glow when they are concentrating or expressing strong emotions. Kalashtar can't communicate directly with their quori spirits. Rather, kalashtar might experience them as a source of instinct and inspiration, drawing on the spirits' memories when the kalashtar sleep. This connection grants kalashtar minor psionic abilities, as well as protection from psionic attacks.",
 		CreatureType:       "Aberration",
 		Size:               "Medium (about 6–7 feet tall)",

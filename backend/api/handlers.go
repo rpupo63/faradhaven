@@ -23,13 +23,8 @@ func initializeHandlers(db database.Database, hub *Hub) *routeHandlers {
 	notorietyService := services.NewNotorietyService(db.CharacterRepo())
 	s3Service, err := services.NewS3Service()
 	if err != nil {
-		// Log error but don't fail startup if S3 is not configured?
-		// Or fail? Given this is "initializeHandlers" called from main, maybe we should log.
-		// Since we don't have a logger passed in here easily (except importing zerolog/log), we can just panic or log.
-		// However, the signature of initializeHandlers doesn't return error.
-		// Let's assume for now we log and pass nil if error, and handler handles nil service?
-		// Or better, just log and continue, handler will fail at runtime if used.
-		// For simplicity/speed matching existing pattern:
+		log.Warn().Err(err).Msg("S3 service not initialized; uploads and store owner portrait URLs disabled")
+		s3Service = nil
 	}
 
 	levelUpService := services.NewLevelUpService(
@@ -136,7 +131,7 @@ func initializeHandlers(db database.Database, hub *Hub) *routeHandlers {
 		resourceHandler:        newResourceHandler(db.CharacterResourceRepo()),
 		minionHandler:          newMinionHandler(minionService),
 		noteHandler:            newNoteHandler(db.NoteRepo(), db.CharacterRepo(), s3Service),
-		gameMapHandler:         newGameMapHandler(db.GameMapRepo(), hub),
+		gameMapHandler:         newGameMapHandler(db.GameMapRepo(), hub, s3Service),
 		mapTokenHandler:        newMapTokenHandler(db.MapTokenRepo(), db.GameMapRepo(), hub),
 		mapElementHandler:      newMapElementHandler(db.MapElementRepo(), db.GameMapRepo()),
 		mechanicsHandler:       NewMechanicsHandler(db.DB()),
@@ -148,6 +143,6 @@ func initializeHandlers(db database.Database, hub *Hub) *routeHandlers {
 		monsterHandler:         newMonsterHandler(db.MonsterRepo(), monsterGenerationService), // NEW: Monster Handler
 		partyHandler:           partyHandlerInstance,                                          // NEW: Party Handler
 		abilityHandler:         newAbilityHandler(db.CharacterRepo(), db.CharacterResourceRepo()),
-		storeOwnerHandler:      newStoreOwnerHandler(db.StoreOwnerRepo()),
+		storeOwnerHandler:      newStoreOwnerHandler(db.StoreOwnerRepo(), s3Service),
 	}
 }

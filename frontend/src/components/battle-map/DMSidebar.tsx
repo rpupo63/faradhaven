@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GameMap, CreateTokenRequest, MapElementType, CreateMapElementRequest, MapToken } from '@/types/map'; // Import MapElementType
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { addToken, deleteMap, setInitiative, clearInitiative } from '@/lib/api/map';
+import { addToken, deleteMap, setInitiative, clearInitiative, updateMap } from '@/lib/api/map';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { EntityCombobox, TokenEntity } from './EntityCombobox';
@@ -52,6 +52,26 @@ export const DMSidebar: React.FC<DMSidebarProps> = ({ mapData, token, userId, re
   const [elementTrapDescription, setElementTrapDescription] = useState('');
   const [elementTrapVisible, setElementTrapVisible] = useState(false);
   const [elementElevationLevel, setElementElevationLevel] = useState(0);
+
+  const [backgroundUrlDraft, setBackgroundUrlDraft] = useState(mapData.background_url);
+  const [isSavingBackground, setIsSavingBackground] = useState(false);
+
+  useEffect(() => {
+    setBackgroundUrlDraft(mapData.background_url);
+  }, [mapData.id, mapData.background_url]);
+
+  const handleSaveBackground = async () => {
+    setIsSavingBackground(true);
+    try {
+      await updateMap(mapData.id, { background_url: backgroundUrlDraft }, token);
+      toast({ title: 'Background updated' });
+      refreshMap();
+    } catch {
+      toast({ title: 'Failed to update background', variant: 'destructive' });
+    } finally {
+      setIsSavingBackground(false);
+    }
+  };
 
   const handleEntitySelect = (entity: TokenEntity) => {
     setSelectedEntity(entity);
@@ -257,6 +277,28 @@ export const DMSidebar: React.FC<DMSidebarProps> = ({ mapData, token, userId, re
       <div>
         <h3 className="text-lg font-bold text-sidebar-primary mb-2">DM Controls</h3>
         <p className="text-xs text-sidebar-foreground mb-4">Room Code: <span className="font-mono text-sidebar-foreground select-all">{mapData.room_code}</span></p>
+      </div>
+
+      <div className="space-y-3 border-t border-sidebar-border pt-4">
+        <h4 className="font-semibold text-sm">Map background</h4>
+        <div className="space-y-2">
+          <Label>Image URL</Label>
+          <Input
+            value={backgroundUrlDraft}
+            onChange={(e) => setBackgroundUrlDraft(e.target.value)}
+            placeholder="https://..."
+            className="bg-input border-input text-xs"
+          />
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full"
+          disabled={isSavingBackground || backgroundUrlDraft === mapData.background_url}
+          onClick={handleSaveBackground}
+        >
+          {isSavingBackground ? 'Saving…' : 'Apply background'}
+        </Button>
       </div>
 
       <div className="space-y-3 border-t border-sidebar-border pt-4">

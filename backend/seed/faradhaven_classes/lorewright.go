@@ -1,5 +1,9 @@
 package faradhaven_classes
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // Lorewright returns the Lorewright class seed.
 // A class that harvests creatures to absorb their components, skills, attacks, and recipes,
 // balancing power against the risk of madness. High wisdom and constitution,
@@ -7,18 +11,18 @@ package faradhaven_classes
 func Lorewright() FaradhavenClassSeed {
 	archetypeLevel := 3
 	return FaradhavenClassSeed{
-		Name:           "The Lorewright",
-		Description:    "Harvest the flesh of your prey to absorb their components, skills, and abilities. Balance the power you gain against the fracturing of your mind as you become the sum of all you have consumed.",
-		HitDie:         8,
-		PrimaryAbility: "wisdom",
-		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/lorewright.jpg",
-		Archetype:      "Knowledge / Survival / Transformation",
-		Concept:        "A hunter-scholar who has learned that true understanding comes through consumption. You eat the livers of your prey to absorb their memories, skills, and eventually their physical traits. Max WIS and CON—your mind must be strong enough to hold the souls of beasts, and your body must process what you consume. Every meal is a gamble between power and madness.",
-		DnDSkillFocus:    []string{"Insight", "Survival"},
-		Proficiencies:    "Simple weapons, Martial weapons, Light armor, Medium armor, Shields",
-		SkillChoice:      []string{"History", "Insight", "Medicine", "Nature", "Survival", "Animal Handling", "Perception"},
-		Tools:            []string{"Herbalism Kit", "Cook's Utensils"},
-		SavingThrows:     []string{"Wisdom", "Intelligence"},
+		Name:                "The Lorewright",
+		Description:         "Harvest the flesh of your prey to absorb their components, skills, and abilities. Balance the power you gain against the fracturing of your mind as you become the sum of all you have consumed.",
+		HitDie:              8,
+		PrimaryAbility:      "wisdom",
+		PhotoURL:            seedmedia.URL("lorewright.jpg"),
+		Archetype:           "Knowledge / Survival / Transformation",
+		Concept:             "A hunter-scholar who has learned that true understanding comes through consumption. You eat the livers of your prey to absorb their memories, skills, and eventually their physical traits. Max WIS and CON—your mind must be strong enough to hold the souls of beasts, and your body must process what you consume. Every meal is a gamble between power and madness.",
+		DnDSkillFocus:       []string{"Insight", "Survival"},
+		Proficiencies:       "Simple weapons, Martial weapons, Light armor, Medium armor, Shields",
+		SkillChoice:         []string{"History", "Insight", "Medicine", "Nature", "Survival", "Animal Handling", "Perception"},
+		Tools:               []string{"Herbalism Kit", "Cook's Utensils"},
+		SavingThrows:        []string{"Wisdom", "Intelligence"},
 		AutomaticEquipNames: []string{"Preservation kit (salt, jars)", "Traveler's clothes", "Bone talisman"},
 		AutomaticItemNames:  []string{"Leather armor", "Explorer's pack"},
 		EquipmentChoices: []EquipmentChoiceSeed{
@@ -37,10 +41,10 @@ func Lorewright() FaradhavenClassSeed {
 				},
 			},
 		},
-		LevelFeatures:       lorewrightLevelFeatures(),
-		LevelProgression:    lorewrightLevelProgression(),
-		ArchetypeLevel:      &archetypeLevel,
-		Archetypes:          lorewrightArchetypes(),
+		LevelFeatures:    lorewrightLevelFeatures(),
+		LevelProgression: lorewrightLevelProgression(),
+		ArchetypeLevel:   &archetypeLevel,
+		Archetypes:       lorewrightArchetypes(),
 		ComponentPool: []string{
 			// Forma (Shape)
 			"Aura", "Self",
@@ -84,7 +88,7 @@ func lorewrightArchetypes() []ArchetypeSeed {
 			Name:        "Path of the Sage",
 			Description: "You absorb the knowledge and magical insights of your prey, becoming a repository of arcane secrets and ancestral wisdom.",
 			Features: map[int][]FeatureSeed{
-				3:  {{Name: "Scholar's Legacy", Description: "You gain expertise in History or Arcana (double your proficiency bonus), plus two additional languages. You gain one additional Recipe Slot."}},
+				3:  {{Name: "Scholar's Legacy", Description: "You gain expertise in History or Arcana (double your proficiency bonus), plus two additional languages. You gain **one additional Harvest Slot** (same pool as other harvested skills, attacks, and recipes)."}},
 				10: {{Name: "Deep Insight", Description: "When you use Visceral Psychometry, you can ask 5 questions instead of 3 with Phylogenetic Recall. You also intuitively learn the Component recipe for one of the creature's abilities. You also harvest 1 new Component from the creature."}},
 				14: {{Name: "Shared Consciousness", Description: "You can maintain Collective Consciousness on up to three allies simultaneously. When you share a harvested ability, you retain the full benefit yourself."}},
 			},
@@ -115,6 +119,20 @@ func lorewrightLevelProgression() map[int]ClassLevelSeed {
 		19: {Resources: map[string]int{"echo_slots": 5, "madness_die": 12, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 1}},
 		20: {Resources: map[string]int{"echo_slots": 5, "madness_die": 20, "component_capacity": 3, "prey_instinct_uses": 1, "collective_consciousness_uses": 1, "predators_trance_uses": 1}},
 	}
+}
+
+// LorewrightMadnessDieForLevel returns the seeded madness die size for Lorewright at class level 1–20.
+// Use when class_level_resources rows are missing or stale in the database.
+func LorewrightMadnessDieForLevel(level int) int {
+	if level < 1 || level > 20 {
+		return 0
+	}
+	prog := lorewrightLevelProgression()
+	lp, ok := prog[level]
+	if !ok || lp.Resources == nil {
+		return 0
+	}
+	return lp.Resources["madness_die"]
 }
 
 func lorewrightLevelFeatures() map[int][]FeatureSeed {

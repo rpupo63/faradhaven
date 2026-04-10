@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rpupo63/unified-personal-site-backend/database"
-	_ "github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/unified-personal-site-backend/models"
 	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_classes"
 )
 
@@ -59,8 +59,11 @@ func (s *MadnessService) RollMadness(characterID uuid.UUID) (*MadnessRollResult,
 		return nil, errors.New("could not determine character's current class level")
 	}
 
-	madnessDie := classLevel.BardicInspiration // BardicInspiration is repurposed as Madness Die size
-	roll := rand.Intn(madnessDie) + 1          // Roll 1 to madnessDie
+	madnessDie := s.resolveLorewrightMadnessDie(character.ClassID, character.Level, classLevel)
+	if madnessDie <= 0 {
+		return nil, errors.New("could not determine madness die size for this class level")
+	}
+	roll := rand.Intn(madnessDie) + 1 // Roll 1 to madnessDie
 
 	result := &MadnessRollResult{
 		CharacterID: characterID,
@@ -70,11 +73,30 @@ func (s *MadnessService) RollMadness(characterID uuid.UUID) (*MadnessRollResult,
 
 	if roll == 1 {
 		madnessTable := faradhaven_classes.LorewrightMadnessTable()
-		// Get a random effect from the table, for now just for demonstration
-		// In a real system, you'd roll a d50 or choose based on level/context
-		effectIndex := rand.Intn(len(madnessTable)) + 1
-		result.Effect = madnessTable[effectIndex]
+		if n := len(madnessTable); n > 0 {
+			effectIndex := rand.Intn(n) + 1
+			result.Effect = madnessTable[effectIndex]
+		}
 	}
 
 	return result, nil
+}
+
+// resolveLorewrightMadnessDie prefers DB class_level_resources, then BardicInspiration, then seed data.
+func (s *MadnessService) resolveLorewrightMadnessDie(classID uuid.UUID, level int, classLevel *models.ClassLevel) int {
+	die := s.classRepo.GetLevelResourceValue(classID, level, "madness_die")
+	if die > 0 {
+		return die
+	}
+	if rows, err := s.classRepo.FindLevelResourcesByClassLevel(classLevel.ID); err == nil {
+		for _, row := range rows {
+			if row.ResourceKey == "madness_die" && row.Value > 0 {
+				return row.Value
+			}
+		}
+	}
+	if classLevel.BardicInspiration > 0 {
+		return classLevel.BardicInspiration
+	}
+	return faradhaven_classes.LorewrightMadnessDieForLevel(level)
 }

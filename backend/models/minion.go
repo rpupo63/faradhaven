@@ -117,7 +117,7 @@ func GetConstructTemplates() map[string]ConstructTemplate {
 			BaseHP:             8,
 			BaseSpeed:          30,
 			Size:               "Medium",
-			RequiredComponents: []string{"Ferrum", "Ignis", "Crush", "Push", "Imbue"},
+			RequiredComponents: []string{"Ferrum", "Ignis", "Crush", "Push", "Arcanum"},
 			Actions: []ConstructAction{
 				{
 					Name:        "Slam",
@@ -137,7 +137,7 @@ func GetConstructTemplates() map[string]ConstructTemplate {
 			BaseHP:             15,
 			BaseSpeed:          25,
 			Size:               "Large",
-			RequiredComponents: []string{"Fulgur", "Ferrum", "Ignis", "Push", "Crush", "Heat", "Conduct", "Mend", "Zone", "Imbue"},
+			RequiredComponents: []string{"Fulgur", "Ferrum", "Ignis", "Push", "Crush", "Zone", "Arcanum", "Terra", "Vita", "Ward"},
 			Actions: []ConstructAction{
 				{
 					Name:        "Crushing Blow",

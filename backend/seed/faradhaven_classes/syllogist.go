@@ -1,14 +1,18 @@
 package faradhaven_classes
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // Syllogist returns The Syllogist class seed — a null-caster conductor of action economy and Logica chains for allies (Faradhaven: no spell points; potency from Protocol Charges).
 func Syllogist() FaradhavenClassSeed {
 	archetypeLevel := 3
 	return FaradhavenClassSeed{
-		Name:        "The Syllogist",
-		Description: "Trained tacticians who wield notation magic—a cognitivist tradition that treats battle as ordered proof, not evocation. You are a null-caster in Faradhaven terms: this class grants no spell points and no spell levels; your formulae cannot satisfy the spell forge alone (your pool omits Forma and Essentia). You instead spend Protocol Charges to donate Logica and Magnitudo, reorder allies’ chains, share components, and steal moments from the round.",
+		Name:           "The Syllogist",
+		Description:    "Trained tacticians who wield notation magic—a cognitivist tradition that treats battle as ordered proof, not evocation. You are a null-caster in Faradhaven terms: this class grants no spell points and no spell levels; your formulae cannot satisfy the spell forge alone (your pool omits Forma and Essentia). You instead spend Protocol Charges to donate Logica and Magnitudo, reorder allies’ chains, share components, and steal moments from the round.",
 		HitDie:         8,
 		PrimaryAbility: "Intelligence",
-		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/syllogist.jpg",
+		PhotoURL:       seedmedia.URL("syllogist.jpg"),
 		Archetype:      "Null-caster support / Action economy / Logica",
 		Concept: "Power source: Notation—patterns of causality written in gesture, voice, and scraped formulae; it is not divine, not primal, and not spell-slot arcana. Origin: guild academies, military tribunals, and proof-houses that denied that only a full formula can change the world—you change whose sequence fires and when. You advance by study (Intelligence as your spellcasting-equivalent ability); you endure stress with clarity of mind (Wisdom saving throws).\n\n" +
 			"Spell slot progression (5e frame): null-caster—potency comes from Protocol Charges and features, not Faradhaven spell points. By 2nd level your mechanical identity is fixed: you lend components (Lend Axiom) and react to Logica casts (Interleave); you are ally-focused permission and timing, not personal spell damage.",
@@ -17,8 +21,8 @@ func Syllogist() FaradhavenClassSeed {
 		SkillChoice: []string{
 			"Arcana", "History", "Insight", "Investigation", "Perception",
 		},
-		Tools:            []string{"Calligrapher's Supplies"},
-		SavingThrows:     []string{"Intelligence", "Wisdom"},
+		Tools:              []string{"Calligrapher's Supplies"},
+		SavingThrows:       []string{"Intelligence", "Wisdom"},
 		AutomaticItemNames: []string{"Scholar's robes (light armor)", "Scholar's pack", "Calligrapher's Supplies"},
 		EquipmentChoices: []EquipmentChoiceSeed{
 			{
@@ -146,8 +150,8 @@ func syllogistArchetypes() []ArchetypeSeed {
 			Features: map[int][]FeatureSeed{
 				3: {
 					{
-						Name:        "Grant Hustle",
-						Description: "As a bonus action, you can spend 1 Protocol Charge and choose one willing ally you can see within 30 feet. Until the start of your next turn, that ally can take the Dash or Disengage action once on their turn without using an action. You can use Grant Hustle a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a short rest.",
+						Name:           "Grant Hustle",
+						Description:    "As a bonus action, you can spend 1 Protocol Charge and choose one willing ally you can see within 30 feet. Until the start of your next turn, that ally can take the Dash or Disengage action once on their turn without using an action. You can use Grant Hustle a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a short rest.",
 						ActionType:     "Bonus Action",
 						UsesPerRest:    "Proficiency Bonus",
 						ResetCondition: "Short Rest",
@@ -168,8 +172,8 @@ func syllogistArchetypes() []ArchetypeSeed {
 			Features: map[int][]FeatureSeed{
 				3: {
 					{
-						Name:        "Resonant Strong",
-						Description: "When an ally you can see casts a spell that includes the Strong component, and this turn you have either spent Protocol Charges on a Syllogist feature or given that ally a benefit from Lend Axiom, you can treat that Strong as one magnitude step greater for that casting when the table negotiates area, duration, or damage escalation (the DM adjudicates what one step means in Faradhaven’s spell tables). You can do so a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest.",
+						Name:           "Resonant Strong",
+						Description:    "When an ally you can see casts a spell that includes the Strong component, and this turn you have either spent Protocol Charges on a Syllogist feature or given that ally a benefit from Lend Axiom, you can treat that Strong as one magnitude step greater for that casting when the table negotiates area, duration, or damage escalation (the DM adjudicates what one step means in Faradhaven’s spell tables). You can do so a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest.",
 						UsesPerRest:    "Proficiency Bonus",
 						ResetCondition: "Long Rest",
 						ResourceCosts:  []ResourceCostSeed{{Key: "resonant_strong_uses", Amount: 1}},
@@ -196,8 +200,8 @@ func syllogistArchetypes() []ArchetypeSeed {
 				},
 				7: {
 					{
-						Name:        "Linked Ledger",
-						Description: "When two willing allies you can see are within 15 feet of each other, once per round when one of them casts a spell, you can spend 1 Protocol Charge (no action) to let the other donate one spell component they carry to that casting. The donor’s inventory is reduced as normal; the caster must still satisfy forge rules and their own class pool.",
+						Name:          "Linked Ledger",
+						Description:   "When two willing allies you can see are within 15 feet of each other, once per round when one of them casts a spell, you can spend 1 Protocol Charge (no action) to let the other donate one spell component they carry to that casting. The donor’s inventory is reduced as normal; the caster must still satisfy forge rules and their own class pool.",
 						ResourceCosts: []ResourceCostSeed{{Key: "protocol_charges", Amount: 1}},
 					},
 				},
@@ -215,8 +219,8 @@ func syllogistLevelFeatures() map[int][]FeatureSeed {
 					"You still track Protocol Charges and use your features to support allies. Any saving throw DC for a Syllogist feature that calls for a DC equals 8 + your proficiency bonus + your Intelligence modifier.",
 			},
 			{
-				Name:        "Lend Axiom",
-				Description: "As an action, you can spend 1 Protocol Charge and choose one willing ally within 30 feet who can see or hear you. Until the start of your next turn, the first time that ally casts a spell (if they do), they may treat one component named when you used this feature—If, Then, Therefore, or a Magnitudo you announce—as if it were on their class-and-race spell pool for that casting without expending that component from inventory.",
+				Name:           "Lend Axiom",
+				Description:    "As an action, you can spend 1 Protocol Charge and choose one willing ally within 30 feet who can see or hear you. Until the start of your next turn, the first time that ally casts a spell (if they do), they may treat one component named when you used this feature—If, Then, Therefore, or a Magnitudo you announce—as if it were on their class-and-race spell pool for that casting without expending that component from inventory.",
 				ActionType:     "Action",
 				ResourceCosts:  []ResourceCostSeed{{Key: "protocol_charges", Amount: 1}},
 				UsesPerRest:    "",
@@ -225,8 +229,8 @@ func syllogistLevelFeatures() map[int][]FeatureSeed {
 		},
 		2: {
 			{
-				Name:        "Interleave",
-				Description: "When an ally you can see begins casting a spell that already includes at least one Logica component (If, Then, or Therefore), you can use your reaction and spend 1 Protocol Charge to assert how a Logica beat resolves relative to other beats (for example: a Then phase now vs after another phase). The DM adjudicates the result using your group’s spell rules.",
+				Name:           "Interleave",
+				Description:    "When an ally you can see begins casting a spell that already includes at least one Logica component (If, Then, or Therefore), you can use your reaction and spend 1 Protocol Charge to assert how a Logica beat resolves relative to other beats (for example: a Then phase now vs after another phase). The DM adjudicates the result using your group’s spell rules.",
 				ActionType:     "Reaction",
 				ResourceCosts:  []ResourceCostSeed{{Key: "protocol_charges", Amount: 1}},
 				UsesPerRest:    "",
@@ -257,8 +261,8 @@ func syllogistLevelFeatures() map[int][]FeatureSeed {
 		},
 		6: {
 			{
-				Name: "Chain Clause",
-				Description: "When an ally casts a spell that includes Then or Therefore, you can spend 2 Protocol Charges (no action required unless the DM says timing matters) to let that spell’s narration include one extra resolution beat after the table agrees. That beat cannot add a new Essentia ingredient and cannot add an extra damage die unless another rule grants one; it may adjust Logica, Forma emphasis, or targeting only.",
+				Name:           "Chain Clause",
+				Description:    "When an ally casts a spell that includes Then or Therefore, you can spend 2 Protocol Charges (no action required unless the DM says timing matters) to let that spell’s narration include one extra resolution beat after the table agrees. That beat cannot add a new Essentia ingredient and cannot add an extra damage die unless another rule grants one; it may adjust Logica, Forma emphasis, or targeting only.",
 				ResourceCosts:  []ResourceCostSeed{{Key: "protocol_charges", Amount: 2}},
 				UsesPerRest:    "",
 				ResetCondition: "",
@@ -266,8 +270,8 @@ func syllogistLevelFeatures() map[int][]FeatureSeed {
 		},
 		7: {
 			{
-				Name: "Refuting Gesture",
-				Description: "Defense. When an ally within 30 feet who this round benefited from Lend Axiom or Interleave must make a saving throw against a spell, you can use your reaction to give them advantage on that save. You can use Refuting Gesture a number of times equal to your Intelligence modifier (minimum once), and you regain all expended uses when you finish a long rest.",
+				Name:           "Refuting Gesture",
+				Description:    "Defense. When an ally within 30 feet who this round benefited from Lend Axiom or Interleave must make a saving throw against a spell, you can use your reaction to give them advantage on that save. You can use Refuting Gesture a number of times equal to your Intelligence modifier (minimum once), and you regain all expended uses when you finish a long rest.",
 				ActionType:     "Reaction",
 				UsesPerRest:    "Intelligence Modifier (min 1)",
 				ResetCondition: "Long Rest",
@@ -282,8 +286,8 @@ func syllogistLevelFeatures() map[int][]FeatureSeed {
 		},
 		9: {
 			{
-				Name: "Simultaneous Lemma",
-				Description: "Utility / tempo spike. Once per long rest, you can use an action to choose two willing allies you can see within 60 feet. Until the start of your next turn, one of those allies may cast one spell they are allowed to cast with a casting time of 1 action by using a bonus action instead, provided that spell’s negotiated tier is no higher than 2nd for this rule. The second ally gains no automatic benefit from Simultaneous Lemma unless another feature targets them.",
+				Name:           "Simultaneous Lemma",
+				Description:    "Utility / tempo spike. Once per long rest, you can use an action to choose two willing allies you can see within 60 feet. Until the start of your next turn, one of those allies may cast one spell they are allowed to cast with a casting time of 1 action by using a bonus action instead, provided that spell’s negotiated tier is no higher than 2nd for this rule. The second ally gains no automatic benefit from Simultaneous Lemma unless another feature targets them.",
 				ActionType:     "Action",
 				UsesPerRest:    "1",
 				ResetCondition: "Long Rest",
@@ -292,8 +296,8 @@ func syllogistLevelFeatures() map[int][]FeatureSeed {
 		},
 		10: {
 			{
-				Name:        "Rapid Axiom",
-				Description: "Tier upgrade (heroic tier). Once per short rest, you can use Lend Axiom by taking a bonus action instead of an action. You still spend Protocol Charges and follow all other requirements of Lend Axiom.",
+				Name:           "Rapid Axiom",
+				Description:    "Tier upgrade (heroic tier). Once per short rest, you can use Lend Axiom by taking a bonus action instead of an action. You still spend Protocol Charges and follow all other requirements of Lend Axiom.",
 				ActionType:     "Bonus Action",
 				UsesPerRest:    "1",
 				ResetCondition: "Short Rest",
@@ -302,8 +306,8 @@ func syllogistLevelFeatures() map[int][]FeatureSeed {
 		},
 		11: {
 			{
-				Name: "Distributed Proof",
-				Description: "Utility. A number of times per long rest equal to your proficiency bonus, you can use an action to link yourself and one willing ally within 30 feet for 1 minute. While linked, when either of you casts a spell, non-pool spell components required by that spell may be deducted from either character’s inventory, provided that component is actually carried by one of you and you choose which inventory loses the piece at cast time.",
+				Name:           "Distributed Proof",
+				Description:    "Utility. A number of times per long rest equal to your proficiency bonus, you can use an action to link yourself and one willing ally within 30 feet for 1 minute. While linked, when either of you casts a spell, non-pool spell components required by that spell may be deducted from either character’s inventory, provided that component is actually carried by one of you and you choose which inventory loses the piece at cast time.",
 				ActionType:     "Action",
 				UsesPerRest:    "Proficiency Bonus",
 				ResetCondition: "Long Rest",
@@ -318,14 +322,14 @@ func syllogistLevelFeatures() map[int][]FeatureSeed {
 		},
 		13: {
 			{
-				Name: "Breather Lemma",
+				Name:        "Breather Lemma",
 				Description: "Once per short rest, when you use Lend Axiom or Interleave, you can regain 1 Protocol Charge (you cannot exceed your maximum). Your Protocol Charges maximum increases at this level (see your class resources on the character sheet).",
 			},
 		},
 		14: {
 			{
-				Name:        "Perfected Interleave",
-				Description: "Once per short rest, when you use Interleave, you do not spend the Protocol Charge that Interleave would normally require.",
+				Name:           "Perfected Interleave",
+				Description:    "Once per short rest, when you use Interleave, you do not spend the Protocol Charge that Interleave would normally require.",
 				UsesPerRest:    "1",
 				ResetCondition: "Short Rest",
 				ResourceCosts:  []ResourceCostSeed{{Key: "perfected_interleave_uses", Amount: 1}},
@@ -333,7 +337,7 @@ func syllogistLevelFeatures() map[int][]FeatureSeed {
 		},
 		15: {
 			{
-				Name: "Theorem Reserve",
+				Name:        "Theorem Reserve",
 				Description: "When you finish a short rest, you regain one expended use of Efficient Theorem’s extra die, provided you have fewer remaining uses than your maximum for that feature (your maximum is your proficiency bonus).",
 			},
 		},
@@ -356,8 +360,8 @@ func syllogistLevelFeatures() map[int][]FeatureSeed {
 		},
 		18: {
 			{
-				Name:        "Penultimate Proof",
-				Description: "Your Protocol Charges maximum increases by 1 (already reflected in your level progression). In addition, once per long rest, when you roll initiative and you have no Protocol Charges remaining, you regain 2 Protocol Charges.",
+				Name:           "Penultimate Proof",
+				Description:    "Your Protocol Charges maximum increases by 1 (already reflected in your level progression). In addition, once per long rest, when you roll initiative and you have no Protocol Charges remaining, you regain 2 Protocol Charges.",
 				UsesPerRest:    "1",
 				ResetCondition: "Long Rest",
 				ResourceCosts:  []ResourceCostSeed{{Key: "penultimate_proof_uses", Amount: 1}},
@@ -371,8 +375,8 @@ func syllogistLevelFeatures() map[int][]FeatureSeed {
 		},
 		20: {
 			{
-				Name: "Q.E.D.",
-				Description: "Your Protocol Charges maximum increases by 2 (already reflected in your level progression). Once per long rest, after you finish a long rest, you regain Protocol Charges equal to half the Protocol Charges you spent only on features that targeted or directly benefited allies since your previous long rest (round down).",
+				Name:           "Q.E.D.",
+				Description:    "Your Protocol Charges maximum increases by 2 (already reflected in your level progression). Once per long rest, after you finish a long rest, you regain Protocol Charges equal to half the Protocol Charges you spent only on features that targeted or directly benefited allies since your previous long rest (round down).",
 				UsesPerRest:    "1",
 				ResetCondition: "Long Rest",
 				ResourceCosts:  []ResourceCostSeed{{Key: "qed_uses", Amount: 1}},

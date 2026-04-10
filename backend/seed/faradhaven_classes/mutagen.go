@@ -1,25 +1,29 @@
 package faradhaven_classes
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // Mutagen returns the Mutagen class seed
 func Mutagen() FaradhavenClassSeed {
 	archetypeLevel := 3
 
 	return FaradhavenClassSeed{
-		Name:           "The Mutagen",
-		Description:    "A volatile warrior who channels component-crafted abilities through their own body, risking madness to unleash primal power. You balance on the edge of a feral state, growing stronger as your humanity slips away.",
-		HitDie:         10,
-		PrimaryAbility: "Strength",
-		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/mutagen.jpg",
-		Archetype:      "Biological Horror / Berserker",
-		Concept:        "A survivor of experimental alchemy or plague who metabolizes magic into physical change. They struggle to maintain control against the beast within.",
-		DnDSkillFocus:    []string{"Strength", "Survival"},
-		Proficiencies:    "Light & Medium Armor, Simple & Martial Weapons",
-		SkillChoice:      []string{"Athletics", "Intimidation", "Survival", "Nature", "Medicine"},
-		Tools:            []string{"Alchemist's Supplies"},
-		SavingThrows:     []string{"Constitution", "Strength"},
-		AutomaticEquipNames: []string{"Alchemist's Supplies"},
+		Name:                 "The Mutagen",
+		Description:          "A volatile warrior who channels component-crafted abilities through their own body, risking madness to unleash primal power. You balance on the edge of a feral state, growing stronger as your humanity slips away.",
+		HitDie:               10,
+		PrimaryAbility:       "Strength",
+		PhotoURL:             seedmedia.URL("mutagen.jpg"),
+		Archetype:            "Biological Horror / Berserker",
+		Concept:              "A survivor of experimental alchemy or plague who metabolizes magic into physical change. They struggle to maintain control against the beast within.",
+		DnDSkillFocus:        []string{"Strength", "Survival"},
+		Proficiencies:        "Light & Medium Armor, Simple & Martial Weapons",
+		SkillChoice:          []string{"Athletics", "Intimidation", "Survival", "Nature", "Medicine"},
+		Tools:                []string{"Alchemist's Supplies"},
+		SavingThrows:         []string{"Constitution", "Strength"},
+		AutomaticEquipNames:  []string{"Alchemist's Supplies"},
 		AutomaticWeaponNames: []string{"Mutagen Bite"},
-		AutomaticItemNames:  []string{"Scale Mail", "Explorer's Pack"},
+		AutomaticItemNames:   []string{"Scale Mail", "Explorer's Pack"},
 		EquipmentChoices: []EquipmentChoiceSeed{
 			{
 				Instruction: "Choose your heavy weapon",
@@ -36,9 +40,9 @@ func Mutagen() FaradhavenClassSeed {
 				},
 			},
 		},
-		LevelFeatures:       mutagenLevelFeatures(),
-		LevelProgression:    mutagenLevelProgression(),
-		ArchetypeLevel:      &archetypeLevel,
+		LevelFeatures:    mutagenLevelFeatures(),
+		LevelProgression: mutagenLevelProgression(),
+		ArchetypeLevel:   &archetypeLevel,
 		ResourceDefinitions: []ResourceDefinitionSeed{
 			{Key: "madness_base_dc", DisplayName: "Madness Base DC", Category: "state", Description: "Starting DC for Madness saving throws (resets on rest)", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 1},
 			{Key: "feral_bonus", DisplayName: "Feral Bonus", Category: "modifier", Description: "Extra melee damage while in Feral Mode", DisplayOrder: 2},

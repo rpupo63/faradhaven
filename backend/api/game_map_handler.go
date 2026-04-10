@@ -8,15 +8,93 @@ import (
 	"github.com/google/uuid"
 	"github.com/rpupo63/unified-personal-site-backend/database"
 	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/unified-personal-site-backend/services"
+	"github.com/rs/zerolog/log"
 )
 
 type gameMapHandler struct {
 	gameMapRepo *database.GameMapRepo
 	hub         *Hub
+	s3Service   *services.S3Service
 }
 
-func newGameMapHandler(gameMapRepo *database.GameMapRepo, hub *Hub) *gameMapHandler {
-	return &gameMapHandler{gameMapRepo: gameMapRepo, hub: hub}
+func newGameMapHandler(gameMapRepo *database.GameMapRepo, hub *Hub, s3Service *services.S3Service) *gameMapHandler {
+	return &gameMapHandler{gameMapRepo: gameMapRepo, hub: hub, s3Service: s3Service}
+}
+
+// uploadBackgroundImage uploads a map background to S3 (maps/backgrounds/) and sets BackgroundURL.
+func (h *gameMapHandler) uploadBackgroundImage() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if h.s3Service == nil {
+			respondError(w, http.StatusInternalServerError, "File upload is not available")
+			return
+		}
+
+		mapID, err := uuid.Parse(chi.URLParam(r, "mapID"))
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid map ID")
+			return
+		}
+
+		userIDStr, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		userID, err := uuid.Parse(userIDStr)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Invalid user ID in context")
+			return
+		}
+
+		gameMap, err := h.gameMapRepo.GetByID(mapID)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Map not found")
+			return
+		}
+		if gameMap.OwnerID != userID {
+			respondError(w, http.StatusForbidden, "Only the DM can update this map")
+			return
+		}
+
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid multipart form")
+			return
+		}
+		file, handler, err := r.FormFile("image")
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid file")
+			return
+		}
+		defer file.Close()
+
+		contentType := handler.Header.Get("Content-Type")
+		if contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp" {
+			respondError(w, http.StatusBadRequest, "Invalid file type. Only JPEG, PNG, and WebP are allowed.")
+			return
+		}
+
+		url, err := h.s3Service.UploadMapBackgroundImage(file, handler)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to upload map background")
+			respondError(w, http.StatusInternalServerError, "Failed to upload image")
+			return
+		}
+
+		gameMap.BackgroundURL = url
+		if err := h.gameMapRepo.Update(gameMap); err != nil {
+			log.Error().Err(err).Msg("Failed to save map background URL")
+			respondError(w, http.StatusInternalServerError, "Failed to update map")
+			return
+		}
+
+		h.hub.BroadcastMapUpdate(mapID, "MAP_UPDATED", gameMap)
+
+		respondJSON(w, http.StatusOK, map[string]string{
+			"background_url": url,
+			"message":        "Map background updated successfully",
+		})
+	}
 }
 
 func (h *gameMapHandler) createMap() http.HandlerFunc {

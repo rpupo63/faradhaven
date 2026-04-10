@@ -1,10 +1,14 @@
 package faradhaven_races
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // Dhampir returns the Dhampir race seed
 func Dhampir() FaradhavenRaceSeed {
 	return FaradhavenRaceSeed{
 		Name:               "Dhampir",
-		PhotoURL:           "https://photos-for-apps.s3.us-east-2.amazonaws.com/dhampir.jpg",
+		PhotoURL:           seedmedia.URL("dhampir.jpg"),
 		Description:        "Dhampirs are living people who possess vampiric prowess but are cursed with macabre hunger. Most dhampirs thirst for blood, but some gain sustenance from dreams, life energy, or other vital sources. Dhampirs must choose whether to fight to control their hunger or give in to predatory urges.\n\nDhampirs often arise from encounters with vampires; some are the descendants of a powerful vampire, while others are partially transformed by a vampire's bite. All manner of macabre bargains and necromantic influences might also give rise to a dhampir. Regardless of their origins, dhampirs exhibit their vampiric nature in various ways, including increased speed and a life-draining bite.",
 		CreatureType:       "Humanoid",
 		Size:               "Medium (about 4–7 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",

@@ -25,6 +25,9 @@ type StoreOwner struct {
 	CreatedAt             time.Time      `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedAt             time.Time      `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
+	// ImageURL is set by the API from S3 (storeowners/{name}.png); not a DB column.
+	ImageURL string `json:"image_url,omitempty" gorm:"-"`
+
 	CatalogRules []StoreOwnerCatalogRule `json:"catalog_rules,omitempty" gorm:"foreignKey:StoreOwnerID;constraint:OnDelete:CASCADE"`
 }
 

@@ -1,10 +1,14 @@
 package faradhaven_races
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // Halfling returns the Halfling race seed
 func Halfling() FaradhavenRaceSeed {
 	return FaradhavenRaceSeed{
 		Name:         "Halfling",
-		PhotoURL:     "https://photos-for-apps.s3.us-east-2.amazonaws.com/halfling.jpg",
+		PhotoURL:     seedmedia.URL("halfling.jpg"),
 		Description:  "Cherished and guided by gods who value life, home, and hearth, halflings gravitate toward bucolic havens where family and community help shape their lives. That said, many halflings possess a brave and adventurous spirit that leads them on journeys of discovery, affording them the chance to explore a bigger world and make new friends along the way. Their size—similar to that of a human child—helps them pass through crowds unnoticed and slip through tight spaces. Anyone who has spent time around halflings, particularly halfling adventurers, has likely witnessed the storied \"luck of the halflings\" in action. When a halfling is in mortal danger, an unseen force seems to intervene on the halfling's behalf. Many halflings believe in the power of luck, and they attribute their unusual gift to one or more of their benevolent gods, including Yondalla, Brandobaris, and Charmalaine. The same gift might contribute to their robust life spans (about 150 years). Halfling communities come in all varieties: sequestered shires tucked away in unspoiled parts of the world, crime syndicates, or territorial mobs. Halflings who prefer to live underground are sometimes called strongheart halflings or stouts. Nomadic halflings, as well as those who live among humans and other tall folk, are sometimes called lightfoot halflings or tallfellows.",
 		CreatureType: "Humanoid",
 		Size:         "Small (about 2–3 feet tall)",

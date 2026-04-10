@@ -15,7 +15,7 @@ import {
   type RollType,
 } from '@/lib/dice';
 import type { NormalizedCharacterSheet } from '@/types/game';
-import { Activity } from 'lucide-react';
+import { Activity, Sparkles } from 'lucide-react';
 import { RaIcon } from '@/components/ui/RaIcon';
 
 const ABILITIES = [
@@ -41,7 +41,7 @@ export function DiceRollSection({ sheet, className }: DiceRollSectionProps) {
   const { modifiers } = sheet;
 
   const handleRoll = async (type: RollType, modifier: number, label: string) => {
-    const result = await rollD20(modifier);
+    const result = await rollD20(modifier, label);
     if (!result) return;
     setLastRoll({
       type,

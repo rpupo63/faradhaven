@@ -1,7 +1,7 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { LogOut, User, Menu, Newspaper, Store } from 'lucide-react';
+import { LogOut, User, Menu, Newspaper, Store, ScrollText } from 'lucide-react';
 import { RaIcon } from '@/components/ui/RaIcon';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { DiceCustomizer } from '@/components/DiceCustomizer';
 import { DiceAnimation } from '@/components/DiceAnimation';
+import { MainContentBoundsProvider } from '@/context/MainContentBoundsContext';
 
 interface LayoutProps {
   children: ReactNode;
@@ -23,6 +24,8 @@ interface LayoutProps {
 const GM_EMAIL = 'rpupo63@gmail.com';
 
 type NavItem = { path: string; label: string; renderIcon: () => React.ReactNode };
+
+type NavSection = { title?: string; items: NavItem[] };
 
 const baseNavItems: NavItem[] = [
   { path: '/characters', label: 'Characters', renderIcon: () => <RaIcon name="player" className="text-xl shrink-0" /> },
@@ -35,14 +38,23 @@ const baseNavItems: NavItem[] = [
 
 const gmNavItem: NavItem = { path: '/gm/spells', label: 'GM Review', renderIcon: () => <RaIcon name="shield" className="text-xl shrink-0" /> };
 
+const loreNavItems: NavItem[] = [
+  { path: '/lore', label: 'Lore', renderIcon: () => <ScrollText className="w-5 h-5 shrink-0" /> },
+];
+
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, isAuthenticated } = useAuth();
   const [diceCustomizerOpen, setDiceCustomizerOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
 
-  const navItems = user?.email === GM_EMAIL ? [...baseNavItems, gmNavItem] : baseNavItems;
+  const mainNavItems = user?.email === GM_EMAIL ? [...baseNavItems, gmNavItem] : baseNavItems;
+  const navSections: NavSection[] = [
+    { items: mainNavItems },
+    { title: 'Lore', items: loreNavItems },
+  ];
 
   const handleLogout = () => {
     logout();
@@ -50,6 +62,7 @@ export function Layout({ children }: LayoutProps) {
   };
 
   return (
+    <MainContentBoundsProvider mainRef={mainRef}>
     <div className="h-dvh min-h-0 w-full flex flex-col overflow-hidden">
       {/* Tome header – bar like a handbook title strip */}
       <header className="shrink-0 border-b-2 border-faded-gold/50 bg-card/80 backdrop-blur-sm z-50 hand-drawn-border border-t-0 border-l-0 border-r-0 rounded-none">
@@ -74,25 +87,40 @@ export function Layout({ children }: LayoutProps) {
                         </SheetTitle>
                       </SheetHeader>
                       <nav className="flex flex-col p-4 gap-2">
-                        {navItems.map((item) => {
-                          const isActive = location.pathname === item.path ||
-                            location.pathname.startsWith(`${item.path}/`);
-                          return (
-                            <Link
-                              key={item.path}
-                              to={item.path}
-                              className={cn(
-                                'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
-                                isActive
-                                  ? 'bg-primary/10 text-primary border border-primary/20'
-                                  : 'text-muted-foreground hover:text-foreground hover:bg-primary/5'
-                              )}
-                            >
-                              {item.renderIcon()}
-                              <span className="font-tome-subheading text-sm uppercase tracking-wide">{item.label}</span>
-                            </Link>
-                          );
-                        })}
+                        {navSections.map((section, sIdx) => (
+                          <div key={sIdx} className="flex flex-col gap-2">
+                            {section.title && (
+                              <p
+                                className={cn(
+                                  'px-4 text-xs font-tome-marginalia uppercase tracking-widest text-muted-foreground',
+                                  sIdx > 0 && 'pt-4'
+                                )}
+                              >
+                                {section.title}
+                              </p>
+                            )}
+                            {section.items.map((item) => {
+                              const isActive =
+                                location.pathname === item.path ||
+                                location.pathname.startsWith(`${item.path}/`);
+                              return (
+                                <Link
+                                  key={item.path}
+                                  to={item.path}
+                                  className={cn(
+                                    'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+                                    isActive
+                                      ? 'bg-primary/10 text-primary border border-primary/20'
+                                      : 'text-muted-foreground hover:text-foreground hover:bg-primary/5'
+                                  )}
+                                >
+                                  {item.renderIcon()}
+                                  <span className="font-tome-subheading text-sm uppercase tracking-wide">{item.label}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        ))}
                       </nav>
                     </SheetContent>
                   </Sheet>
@@ -178,37 +206,56 @@ export function Layout({ children }: LayoutProps) {
         >
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-4">
             <nav className="flex flex-col gap-2">
-              {navItems.map((item) => {
-                const isActive = location.pathname === item.path ||
-                  location.pathname.startsWith(`${item.path}/`);
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={cn(
-                      'flex items-center gap-3 px-3 py-3 rounded-lg transition-all text-sm font-tome-subheading uppercase tracking-wide border border-transparent',
-                      isActive
-                        ? 'text-primary bg-primary/15 border-primary/20 shadow-seal'
-                        : 'text-muted-foreground hover:text-primary hover:bg-primary/10',
-                      sidebarCollapsed ? "justify-center px-0" : "px-4"
-                    )}
-                    title={sidebarCollapsed ? item.label : undefined}
-                  >
-                    {item.renderIcon()}
-                    {!sidebarCollapsed && (
-                      <span className="truncate opacity-100 transition-opacity duration-300">
-                        {item.label}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
+              {navSections.map((section, sIdx) => (
+                <div key={sIdx} className="flex flex-col gap-2">
+                  {section.title && !sidebarCollapsed && (
+                    <p
+                      className={cn(
+                        'px-3 text-[10px] font-tome-marginalia uppercase tracking-widest text-muted-foreground/80',
+                        sIdx > 0 && 'pt-2'
+                      )}
+                    >
+                      {section.title}
+                    </p>
+                  )}
+                  {section.title && sidebarCollapsed && sIdx > 0 && (
+                    <div className="mx-1 my-1 h-px shrink-0 bg-faded-gold/25" aria-hidden />
+                  )}
+                  {section.items.map((item) => {
+                    const isActive =
+                      location.pathname === item.path ||
+                      location.pathname.startsWith(`${item.path}/`);
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-3 rounded-lg transition-all text-sm font-tome-subheading uppercase tracking-wide border border-transparent',
+                          isActive
+                            ? 'text-primary bg-primary/15 border-primary/20 shadow-seal'
+                            : 'text-muted-foreground hover:text-primary hover:bg-primary/10',
+                          sidebarCollapsed ? 'justify-center px-0' : 'px-4'
+                        )}
+                        title={sidebarCollapsed ? item.label : undefined}
+                      >
+                        {item.renderIcon()}
+                        {!sidebarCollapsed && (
+                          <span className="truncate opacity-100 transition-opacity duration-300">{item.label}</span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              ))}
             </nav>
           </div>
         </aside>
 
         {/* Main content – only this column scrolls; header/sidebar/footer stay fixed */}
-        <main className="min-h-0 min-w-0 flex-1 w-full touch-pan-y overflow-y-auto overscroll-y-contain px-6 pt-4 pb-10 sm:px-10 sm:pt-6 sm:pb-16 md:px-12 md:pt-8 md:pb-12 lg:px-16 lg:pt-10 lg:pb-16">
+        <main
+          ref={mainRef}
+          className="min-h-0 min-w-0 flex-1 w-full touch-pan-y overflow-y-auto overscroll-y-contain px-6 pt-4 pb-10 sm:px-10 sm:pt-6 sm:pb-16 md:px-12 md:pt-8 md:pb-12 lg:px-16 lg:pt-10 lg:pb-16"
+        >
           <div className="relative w-full max-w-6xl mx-auto min-w-0">
             {children}
           </div>
@@ -230,5 +277,6 @@ export function Layout({ children }: LayoutProps) {
 
       <DiceAnimation />
     </div>
+    </MainContentBoundsProvider>
   );
 }

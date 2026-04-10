@@ -1,24 +1,28 @@
 package faradhaven_classes
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // Sanguinist returns the Sanguinist class seed.
 // Restructured into a Modular Progression Class with a Notoriety System.
 func Sanguinist() FaradhavenClassSeed {
 	return FaradhavenClassSeed{
-		Name:           "The Sanguinist",
-		Description:    "A modular class balancing the Medical Prodigy and the Blood Rage tracks. Manage Ichor to fuel healing miracles or devastating vampiric attacks, but beware the Instability Feedback Loop.",
-		HitDie:         10,
-		PrimaryAbility: "charisma",
-		PhotoURL:       "https://photos-for-apps.s3.us-east-2.amazonaws.com/sanguinist.jpg",
-		Archetype:      "Modular Notoriety (Doctor vs Predator)",
-		Concept:        "A vampire-like being who manages Blood Ichor. Your choices at key levels grant Notoriety Points (MP or BR), creating mechanical tension and punishing players who lean too hard into one side without balance.",
-		DnDSkillFocus:    []string{"Medicine", "Stealth"},
-		Proficiencies:    "Light armor, Simple weapons, Martial finesse weapons",
-		SkillChoice:      []string{"Deception", "Insight", "Persuasion", "Stealth"},
-		Tools:            []string{"Poisoner's Kit", "Healer's Kit"},
-		SavingThrows:     []string{"Constitution", "Charisma"},
-		AutomaticEquipNames: []string{"3 blood vials (empty)"},
+		Name:                 "The Sanguinist",
+		Description:          "A modular class balancing the Medical Prodigy and the Blood Rage tracks. Manage Ichor to fuel healing miracles or devastating vampiric attacks, but beware the Instability Feedback Loop.",
+		HitDie:               10,
+		PrimaryAbility:       "charisma",
+		PhotoURL:             seedmedia.URL("sanguinist.jpg"),
+		Archetype:            "Modular Notoriety (Doctor vs Predator)",
+		Concept:              "A vampire-like being who manages Blood Ichor. Your choices at key levels grant Notoriety Points (MP or BR), pushing you toward dedicated healer or dedicated predator—lean too far without balance and your body pays an extra cost; stay near parity and complications fade.",
+		DnDSkillFocus:        []string{"Medicine", "Stealth"},
+		Proficiencies:        "Light armor, Simple weapons, Martial finesse weapons",
+		SkillChoice:          []string{"Deception", "Insight", "Persuasion", "Stealth"},
+		Tools:                []string{"Poisoner's Kit", "Healer's Kit"},
+		SavingThrows:         []string{"Constitution", "Charisma"},
+		AutomaticEquipNames:  []string{"3 blood vials (empty)"},
 		AutomaticWeaponNames: []string{"Bite"},
-		AutomaticItemNames:  []string{"Leather armor", "Healer's kit"},
+		AutomaticItemNames:   []string{"Leather armor", "Healer's kit"},
 		EquipmentChoices: []EquipmentChoiceSeed{
 			{
 				Instruction: "Choose your surgical weapon",
@@ -35,10 +39,10 @@ func Sanguinist() FaradhavenClassSeed {
 				},
 			},
 		},
-		LevelFeatures:       sanguinistLevelFeatures(),
-		LevelProgression:    sanguinistLevelProgression(),
-		ArchetypeLevel:      nil, // Modular progression instead of rigid archetype
-		Archetypes:          nil,
+		LevelFeatures:    sanguinistLevelFeatures(),
+		LevelProgression: sanguinistLevelProgression(),
+		ArchetypeLevel:   nil, // Modular progression instead of rigid archetype
+		Archetypes:       nil,
 		ComponentPool: []string{
 			// Forma (Shape)
 			"Aura", "Self", "Projectile", "Zone",
@@ -69,7 +73,7 @@ func sanguinistLevelFeatures() map[int][]FeatureSeed {
 			{Name: "Unarmored Defense", Description: "While not wearing armor, your AC equals 10 + your Dexterity modifier + your Charisma modifier. You cannot use a shield with this feature."},
 			{Name: "The Thirst", Description: "You have a pool of Blood Ichor equal to Level + Charisma modifier. Bite: As an action, make a melee weapon attack (+ Prof + Cha). On hit, deal 2d8 necrotic damage and regain Ichor equal to your Proficiency Bonus. This attack counts for the purposes of Extra Attack. Yields Unstable Components as described in the Sanguine Extraction feature."},
 			{Name: "Siphon", Description: "As an action, deal 1d4 necrotic damage to a willing creature within 5 feet (this can be yourself). You regain 1 Ichor.", ActionType: "Action", ResourceGains: []ResourceCostSeed{{Key: "max_blood_ichor", Amount: 1}}},
-			{Name: "The Moral Seesaw (Notoriety System)", Description: "Your choices at levels 3, 7, 11, 15, and 18 grant Notoriety Points in Medical Prodigy (MP) or Blood Rage (BR). This creates a dynamic feedback loop. If your MP is 3+ points higher than BR (Overloaded Healer), using damage-dealing class features (Bite, Shadow Mist, Ichor Lash) triggers 'Sanguine Backfires' (you must heal the closest enemy within 30ft for 1d8 HP, or take that damage yourself if no enemy is in range). If your BR is 3+ points higher than MP (Starving Predator), using Blood Graft becomes 'Ravenous' (the target takes 1d8 necrotic damage before receiving the heal)."},
+			{Name: "The Moral Seesaw (Notoriety System)", Description: "Your choices at levels 3, 7, 11, 15, and 18 grant Notoriety Points in Medical Prodigy (MP) or Blood Rage (BR). **Balanced** (tracks within 1): no extra strain. **Overloaded Healer** (MP ≥ BR + 3): when you use damage-dealing class features (Bite, Shadow Mist, Ichor Lash), ichor backlash may strike you—**Sanguine Backfire** deals you an extra 1d8 necrotic as your body resists violence. **Starving Predator** (BR ≥ MP + 3): when you use Blood Graft, **Ravenous** hunger takes its cut—you take 1d8 necrotic before your heal resolves. At the table, treat these as the price of extreme specialization; mixing MP and BR keeps the seesaw steadier."},
 			{Name: "Ichor Exhaustion Limit", Description: "If you spend more than 50% of your Max Ichor in a single turn, you must succeed on a DC 13 Constitution Save or gain 1 level of Sanguine Fatigue (Disadvantage on the next attack)."},
 		},
 		2: {
@@ -110,7 +114,7 @@ func sanguinistLevelFeatures() map[int][]FeatureSeed {
 			{Name: "Choice A: Field Medic (+1 MP)", Description: "Requires 1 MP. Spend 4 Ichor and 2 Unstable Components to perform Mass Blood Graft. Heal up to 3 allies for 2d8 + Charisma."},
 			{Name: "Choice B: Ichor Lash (+1 BR)", Description: "Requires 1 BR. Spend 3 Ichor to extend your Bite reach to 15ft using a whip of blood. If it hits, the target is pulled 10ft toward you."},
 		},
-		9: {{Name: "Shadow Mist Expansion", Description: "Shadow Mist radius increases to 15 feet. Damage increases to 3d6 necrotic, and failed saves on other creatures also result in the target being Restrained."}},
+		9:  {{Name: "Shadow Mist Expansion", Description: "Shadow Mist radius increases to 15 feet. Damage increases to 3d6 necrotic, and failed saves on other creatures also result in the target being Restrained."}},
 		10: {{Name: "Eternal Covenant", Description: "Perform a 1-hour ritual on a deceased creature. You gain a +2 bonus to AC and advantage on all saving throws for 24 hours. The creature cannot be resurrected except by a ritual of equal or greater power."}},
 		11: {
 			{Name: "Modular Choice: Level 11", Description: "Choose one: (A) Panacea (+1 MP) or (B) Heart-Seeker (+1 BR)."},

@@ -623,7 +623,8 @@ type CreateSpellRequest struct {
 	SaveAttr           *models.SaveAttribute `json:"save_attr,omitempty"`
 	DamageDiceCount    *int                  `json:"damage_dice_count,omitempty"`
 	DamageDieSize      *int                  `json:"damage_die_size,omitempty"`
-	DamageType         *models.DamageType    `json:"damage_type,omitempty"`
+	// DamageType is optional; unknown or empty strings are treated as omitted (not all spells deal damage).
+	DamageType *string `json:"damage_type,omitempty"`
 	AddModifier        bool                  `json:"add_modifier"`
 	ComponentIDs       []uuid.UUID           `json:"component_ids"`
 }
@@ -638,7 +639,8 @@ type UpdateSpellRequest struct {
 	SaveAttr          *models.SaveAttribute `json:"save_attr,omitempty"`
 	DamageDiceCount   *int                  `json:"damage_dice_count,omitempty"`
 	DamageDieSize     *int                  `json:"damage_die_size,omitempty"`
-	DamageType        *models.DamageType    `json:"damage_type,omitempty"`
+	// DamageType is optional; unknown or empty strings clear the field.
+	DamageType *string `json:"damage_type,omitempty"`
 	AddModifier       *bool                 `json:"add_modifier,omitempty"`
 	Checked           *bool                 `json:"checked,omitempty"`
 	ComponentIDs      []uuid.UUID           `json:"component_ids,omitempty"`

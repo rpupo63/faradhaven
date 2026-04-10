@@ -1,0 +1,64 @@
+To bridge the gap between a "business sim" and a TTRPG, we can move away from granular time management and toward a Phased Resolution System. This treats the restaurant/bar as a living entity with its own "character sheet."
+
+In a TTRPG context (like your Faradhaven setting), this allows the players to engage with the establishment during "Downtime" or as a "Base of Operations" without it devolving into a math-heavy spreadsheet.
+The "Venue Heartbeat" System
+
+This system operates in three distinct phases: The Preparation, The Opening, and The Evaluation.
+1. The Preparation Phase (Resource & Strategy)
+
+Instead of "shopping," players perform Venture Actions. These are skill-based checks that determine the "Loadout" for the session.
+
+    Sourcing (The Hunt): A survival or streetwise check to acquire "Stock." Success grants Quality Tokens (e.g., Rare Spices, Vintage Casks). Failure might mean using "Generic Stock," which caps the maximum profit for the night.
+
+    The Daily Special (The Craft): An Intelligence or Artistry-based check to design the menu. A high roll grants a Thematic Buff (e.g., "Hearty Stew: +2 to Strength saves for patrons tomorrow").
+
+    Marketing (The Hook): A Charisma or Influence check to determine the Customer Tier.
+
+        Low Roll: Common laborers (low spend, low expectations).
+
+        High Roll: Aristocrats/VIPs (high spend, high "Difficulty Class" to please).
+
+2. The Opening Phase (The "Simulated Run")
+
+This is the "non-time sensitive" core. Rather than playing out every minute, you resolve the night using The Customer Stack.
+
+    The Stack: Based on your Marketing success, you draw a number of "Customer Cards" or "Patron Archetypes."
+
+    The Fulfillment Puzzle: Each Patron has a Demand and a Patience Threshold.
+
+        Example: The Grumpy Guardsman. Demand: 2 Units of Ale, 1 Meat. Patience: 2.
+
+    Resolution: Players "spend" their Quality Tokens and Staff Actions (limited per night) to satisfy the Stack.
+
+        You don't roll to see if you cook; you roll to see how efficiently you use resources. A "Critical Success" on a Service Check might allow one bottle of wine to satisfy two different patrons.
+
+3. The Evaluation Phase (Growth & Reputation)
+
+This is where the "Engine Building" happens. You tally the results of the night into three "Currencies":
+Currency	Derived From	Used For
+Gold (Coin)	Basic fulfillment of Patrons.	Paying rent, buying better gear/stoves.
+Reputation (Heat)	Over-delivering on VIP demands.	Unlocking "Tier 2" Patrons and better Market prices.
+Intel (Rumors)	Specialized "Social Actions" during the Opening.	Plot hooks, map locations, or blackmail (The TTRPG bridge).
+Action Economy for TTRPG Integration
+
+Each player character (PC) can choose one Station during the Opening Phase, granting them a unique mechanical "Move":
+
+    The Back of House (The Alchemist/Chef): Can "Transmute" low-quality ingredients into high-quality ones with a successful check, saving the party money.
+
+    The Front of House (The Face): Can "Mitigate" a failed service. If a dish is ruined, a Charisma check "distracts" the customer, preventing a loss of Reputation.
+
+    The Floor (The Bouncer/Observer): Focuses on the Intel currency. They roll to overhear secrets instead of helping with food service.
+
+The "Base" Character Sheet
+
+The bar itself should have stats that grow over time:
+
+    Ambience: (A modifier to Marketing rolls).
+
+    Efficiency: (Reduces the "cost" of Stock).
+
+    Security: (Reduces the chance of "Bad Events" like bar fights or health inspections).
+
+Why this works for TTRPGs:
+
+This reframe turns the restaurant into a mechanical narrative engine. The "Resource Gathering" is the adventure (getting the rare basil from the swamp), and the "Customer Getting" is the reward (the Duke comes to eat, and now you have a political ally). It removes the "Overcooked" stress by making the "Running the Bar" a tactical puzzle solved during the transition between adventures.

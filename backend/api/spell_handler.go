@@ -93,6 +93,38 @@ func normalizeSpellDurationField(spell *models.Spell) {
 	*spell.Duration = t
 }
 
+// normalizeSpellDamageTypeField clears empty values, canonicalizes parseable types, and drops unknown types so damage type stays optional for non-damaging spells.
+func normalizeSpellDamageTypeField(spell *models.Spell) {
+	if spell.DamageType == nil {
+		return
+	}
+	s := strings.TrimSpace(string(*spell.DamageType))
+	if s == "" {
+		spell.DamageType = nil
+		return
+	}
+	if parsed, ok := models.ParseDamageType(s); ok {
+		spell.DamageType = &parsed
+		return
+	}
+	spell.DamageType = nil
+}
+
+// spellDamageTypeFromRequestJSON parses optional damage_type from create/update JSON. Invalid or blank values yield nil so spells without damage never fail validation.
+func spellDamageTypeFromRequestJSON(s *string) *models.DamageType {
+	if s == nil {
+		return nil
+	}
+	t := strings.TrimSpace(*s)
+	if t == "" {
+		return nil
+	}
+	if parsed, ok := models.ParseDamageType(t); ok {
+		return &parsed
+	}
+	return nil
+}
+
 // validateSpellMechanicsOrRespond normalizes duration and checks type, range, and duration. Returns false if the response was already written.
 func validateSpellMechanicsOrRespond(w http.ResponseWriter, spell *models.Spell) bool {
 	normalizeSpellDurationField(spell)
@@ -117,10 +149,7 @@ func validateSpellMechanicsOrRespond(w http.ResponseWriter, spell *models.Spell)
 		respondError(w, http.StatusBadRequest, "invalid save_attr (use STR, DEX, CON, INT, WIS, or CHA)")
 		return false
 	}
-	if spell.DamageType != nil && !spell.DamageType.IsValid() {
-		respondError(w, http.StatusBadRequest, "invalid damage_type")
-		return false
-	}
+	normalizeSpellDamageTypeField(spell)
 	if err := models.ValidateSpellDamageDicePair(spell.DamageDiceCount, spell.DamageDieSize); err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return false
@@ -776,7 +805,7 @@ func (h *spellHandler) createSpell() http.HandlerFunc {
 			SaveAttr:        req.SaveAttr,
 			DamageDiceCount: req.DamageDiceCount,
 			DamageDieSize:   req.DamageDieSize,
-			DamageType:      req.DamageType,
+			DamageType:      spellDamageTypeFromRequestJSON(req.DamageType),
 			AddModifier:     req.AddModifier,
 		}
 
@@ -812,8 +841,9 @@ func (h *spellHandler) createSpell() http.HandlerFunc {
 				spell.Range = &r
 			}
 			if spell.DamageType == nil && synthesis.SuggestedDamageType != nil {
-				dt := models.DamageType(*synthesis.SuggestedDamageType)
-				spell.DamageType = &dt
+				if parsed, ok := models.ParseDamageType(*synthesis.SuggestedDamageType); ok {
+					spell.DamageType = &parsed
+				}
 			}
 			if spell.DamageDiceCount == nil && synthesis.SuggestedDamageDiceCount != nil {
 				c := *synthesis.SuggestedDamageDiceCount
@@ -1002,7 +1032,7 @@ func (h *spellHandler) updateSpell() http.HandlerFunc {
 			spell.DamageDieSize = req.DamageDieSize
 		}
 		if req.DamageType != nil {
-			spell.DamageType = req.DamageType
+			spell.DamageType = spellDamageTypeFromRequestJSON(req.DamageType)
 		}
 		if req.AddModifier != nil {
 			spell.AddModifier = *req.AddModifier

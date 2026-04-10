@@ -53,10 +53,17 @@ type WeaponRequirementSeed struct {
 // ClassLevelSeed defines structured level progression data for seeding.
 // D&D-standard combat fields remain as explicit struct fields.
 // Faradhaven class-specific resources use the generic Resources map.
+//
+// Merge contract (see SeedFaradhavenClasses): seed.go applies global defaults per level first
+// (proficiency, max spell points, ASI, hp gain), then overlays any fields set here for that level.
+// Nil pointers mean "keep the default from seed.go helpers" for CantripsKnown, SpellsKnown,
+// MaxSpellPoints, ProficiencyBonus, and AbilityScoreImprovement.
 type ClassLevelSeed struct {
-	CantripsKnown     *int // cantrips known at this level (nil = no change)
-	SpellsKnown       *int // spells known/prepared at this level (nil = no change)
-	MaxSpellPoints    *int // override for spell point pool (nil = use default formula; &0 = non-caster)
+	ProficiencyBonus        *int // override proficiency bonus (nil = use proficiencyByLevel)
+	AbilityScoreImprovement *int // override ASI points at this level (nil = use abilityScoreImprovementByLevel)
+	CantripsKnown           *int // cantrips known at this level (nil = no change)
+	SpellsKnown             *int // spells known/prepared at this level (nil = no change)
+	MaxSpellPoints          *int // override for spell point pool (nil = use default formula; &0 = non-caster)
 	ExtraAttackCount  int  // 0, 1, 2, or 3 for multiattack progression
 	SneakAttackDice   int  // e.g. 2 for 2d6 sneak attack (rogue-like)
 	RageDamageBonus   int  // bonus melee damage when raging (barbarian-like)
@@ -89,18 +96,18 @@ type ResourceDefinitionSeed struct {
 
 // FaradhavenClassSeed defines the full class data for seeding
 type FaradhavenClassSeed struct {
-	Name           string
-	Description    string // Short 2-sentence description of how this class uniquely plays
-	HitDie         int
-	PrimaryAbility string
-	PhotoURL       string // URL to class artwork/photo
-	Archetype      string // Legacy: thematic archetype description
-	Concept        string
-	DnDSkillFocus  []string
-	Proficiencies  string
-	SkillChoice    []string
-	Tools          []string
-	SavingThrows   []string
+	Name                 string
+	Description          string // Short 2-sentence description of how this class uniquely plays
+	HitDie               int
+	PrimaryAbility       string
+	PhotoURL             string // URL to class artwork/photo
+	Archetype            string // Legacy: thematic archetype description
+	Concept              string
+	DnDSkillFocus        []string
+	Proficiencies        string
+	SkillChoice          []string
+	Tools                []string
+	SavingThrows         []string
 	AutomaticEquipNames  []string // Generic names
 	AutomaticWeaponNames []string // Names of weapons to look up and link
 	AutomaticItemNames   []string // Names of items to look up and link

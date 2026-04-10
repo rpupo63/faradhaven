@@ -1,10 +1,14 @@
 package faradhaven_races
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // Aasimar returns the Aasimar race seed
 func Aasimar() FaradhavenRaceSeed {
 	return FaradhavenRaceSeed{
 		Name:         "Aasimar",
-		PhotoURL:     "https://photos-for-apps.s3.us-east-2.amazonaws.com/aasimar.jpg",
+		PhotoURL:     seedmedia.URL("aasimar.jpg"),
 		Description:  "Aasimar (pronounced AH-sih-mar) are mortals who carry a spark of the Upper Planes within their souls. Whether descended from an angelic being or infused with celestial power, they can fan that spark to bring light, healing, and heavenly fury. Aasimar can arise among any population of mortals. They resemble their parents, but they live for up to 160 years and have features that hint at their celestial heritage, such as metallic freckles, luminous eyes, a halo, or the skin color of an angel (silver, opalescent green, or coppery red). These features start subtle and become obvious when the aasimar learns to reveal their full celestial nature.",
 		CreatureType: "Humanoid",
 		Size:         "Medium (4–7 ft) or Small (2–4 ft)",
@@ -13,8 +17,8 @@ func Aasimar() FaradhavenRaceSeed {
 			"charisma": 2,
 			"wisdom":   1,
 		},
-		Languages:      []string{"Common", "Celestial"},
-		Traits: aasimarTraits(),
+		Languages: []string{"Common", "Celestial"},
+		Traits:    aasimarTraits(),
 	}
 }
 

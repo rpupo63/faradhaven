@@ -27,6 +27,7 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Get("/api/items", handlers.itemHandler.getAllItems())
 		r.Get("/api/items/{itemID}", handlers.itemHandler.getItemByID())
 		r.Get("/api/store-owners", handlers.storeOwnerHandler.getStoreOwners())
+		r.Get("/api/store-owners/{storeOwnerID}/portrait", handlers.storeOwnerHandler.getStoreOwnerPortrait())
 		// Component compendium (reference data for periodic table, no auth required)
 		r.Get("/api/components", handlers.componentHandler.getAllComponents())
 		r.Get("/api/components/{componentID}", handlers.componentHandler.getComponentByID())
@@ -181,6 +182,7 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		// Map endpoints (protected)
 		r.Get("/api/user/{userID}/maps", handlers.gameMapHandler.getUserMaps())
 		r.Post("/api/map", handlers.gameMapHandler.createMap())
+		r.Post("/api/map/{mapID}/background", handlers.gameMapHandler.uploadBackgroundImage())
 		r.Put("/api/map/{mapID}", handlers.gameMapHandler.updateMap())
 		r.Delete("/api/map/{mapID}", handlers.gameMapHandler.deleteMap())
 

@@ -32,7 +32,11 @@ export function HitDiceTracker({
     if (diceToUse > hitDiceRemaining || diceToUse < 1) return;
 
     // Roll all dice as one animation, then apply CON mod to each.
-    const diceRolls = await rollHitDice(diceToUse, hitDie);
+    const diceRolls = await rollHitDice(
+      diceToUse,
+      hitDie,
+      diceToUse === 1 ? `Hit die (d${hitDie})` : `Hit dice (${diceToUse}×d${hitDie})`
+    );
     if (!diceRolls) return;
 
     const rolls: { die: number; total: number }[] = diceRolls.map(die => ({

@@ -1,10 +1,14 @@
 package faradhaven_races
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // Gnome returns the Gnome race seed
 func Gnome() FaradhavenRaceSeed {
 	return FaradhavenRaceSeed{
 		Name:         "Gnome",
-		PhotoURL:     "https://photos-for-apps.s3.us-east-2.amazonaws.com/gnome.jpg",
+		PhotoURL:     seedmedia.URL("gnome.jpg"),
 		Description:  "Gnomes are magical folk created by gods of invention, illusions, and life underground. The earliest gnomes were seldom seen by other folk due to their secretive nature and their propensity for living in forests and burrows. What they lacked in size, they made up for in cleverness. They confounded predators with traps and labyrinthine tunnels. They also learned magic from gods like Garl Glittergold, Baervan Wildwanderer, and Baravar Cloakshadow, who visited them in disguise. That magic eventually created the lineages of forest gnomes and rock gnomes. Gnomes are petite folk with big eyes and pointed ears, who live around 425 years. Many gnomes like the feeling of a roof over their head, even if that \"roof\" is nothing more than a hat.",
 		CreatureType: "Humanoid",
 		Size:         "Small (about 3-4 feet tall)",
@@ -12,8 +16,8 @@ func Gnome() FaradhavenRaceSeed {
 		AbilityScoreBonuses: map[string]int{
 			"intelligence": 2,
 		},
-		Languages:      []string{"Common", "Gnomish"},
-		Traits: gnomeTraits(),
+		Languages: []string{"Common", "Gnomish"},
+		Traits:    gnomeTraits(),
 	}
 }
 

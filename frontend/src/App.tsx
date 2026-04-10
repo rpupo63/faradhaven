@@ -18,6 +18,7 @@ import DMToolsPage from "./pages/DMToolsPage";
 import MonsterSheetPage from "./pages/MonsterSheetPage";
 import BattleMapPage from "./pages/BattleMapPage";
 import GameRulesPage from "./pages/GameRulesPage";
+import LorePage from "./pages/LorePage";
 import CharacterSheetPage from "./pages/CharacterSheetPage";
 import GMSpellReviewPage from "./pages/GMSpellReviewPage";
 
@@ -130,6 +131,14 @@ const AppRoutes = () => {
         element={
           <Layout>
             <BulletinPage />
+          </Layout>
+        }
+      />
+      <Route
+        path="/lore"
+        element={
+          <Layout>
+            <LorePage />
           </Layout>
         }
       />

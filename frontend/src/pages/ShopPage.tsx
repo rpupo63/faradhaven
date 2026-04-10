@@ -138,6 +138,38 @@ function DamageDisplay({ damage }: { damage: ApiWeaponDamage }) {
 
 type ShopItem = (ApiItem & { type: 'item' }) | (ApiWeapon & { type: 'weapon' });
 
+/** Vendor portrait from API image_url (S3); placeholder if missing or load error. */
+function VendorPortraitImg({
+  owner,
+  className,
+}: {
+  owner: ApiStoreOwner;
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const src = owner.image_url;
+  if (!src || failed) {
+    return (
+      <div
+        className={cn(
+          'flex items-center justify-center bg-gradient-to-br from-muted/50 to-muted/20 text-muted-foreground',
+          className
+        )}
+      >
+        <Store className="w-14 h-14 opacity-35" aria-hidden />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={`Portrait of ${owner.name}`}
+      className={cn('w-full h-full object-cover object-top', className)}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 function storeOwnerSellsItem(owner: ApiStoreOwner, shopItem: ShopItem): boolean {
   const rules = owner.catalog_rules ?? [];
   const isWeapon = shopItem.type === 'weapon';
@@ -719,24 +751,28 @@ export default function ShopPage() {
                       type="button"
                       onClick={() => setSelectedVendorId(owner.id)}
                       className={cn(
-                        'flex-shrink-0 w-72 text-left transition-all snap-start rounded-xl p-4 border-2 relative overflow-hidden group/vendor',
+                        'flex-shrink-0 w-80 text-left transition-all snap-start rounded-xl border-2 relative overflow-hidden group/vendor flex flex-col',
                         selected
                           ? 'bg-primary/15 border-primary shadow-lg shadow-primary/10'
                           : 'bg-background/40 border-faded-gold/20 hover:border-primary/40 hover:bg-primary/5'
                       )}
                     >
-                      {/* Decorative corner for selected state */}
-                      {selected && (
-                        <div className="absolute top-0 right-0 w-8 h-8 bg-primary/10 rotate-45 translate-x-4 -translate-y-4 border-b-2 border-primary" />
-                      )}
-                      
-                      <p className="font-tome-heading text-lg text-primary leading-tight truncate group-hover/vendor:glow-text">
-                        {owner.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground font-tome-marginalia mt-2 flex items-start gap-1.5 opacity-80">
-                        <MapPin className="w-3 h-3 shrink-0 mt-0.5 text-primary/60" />
-                        <span className="line-clamp-1">{owner.location}</span>
-                      </p>
+                      <div className="relative h-44 w-full overflow-hidden shrink-0">
+                        <VendorPortraitImg owner={owner} />
+                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/25 to-transparent" />
+                        {selected && (
+                          <div className="absolute top-0 right-0 w-10 h-10 bg-primary/20 rotate-45 translate-x-5 -translate-y-5 border-b border-primary/50" />
+                        )}
+                      </div>
+                      <div className="p-4 pt-3 space-y-2">
+                        <p className="font-tome-heading text-lg text-primary leading-tight line-clamp-2 group-hover/vendor:glow-text">
+                          {owner.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground font-tome-marginalia flex items-start gap-1.5 opacity-90">
+                          <MapPin className="w-3 h-3 shrink-0 mt-0.5 text-primary/60" />
+                          <span className="line-clamp-2">{owner.location}</span>
+                        </p>
+                      </div>
                     </button>
                   );
                 })}
@@ -753,20 +789,32 @@ export default function ShopPage() {
               <div className="absolute top-0 right-0 p-3 opacity-10">
                 <Store className="w-16 h-16" />
               </div>
-              
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="h-px w-8 bg-primary/30" />
-                  <p className="text-xs uppercase tracking-[0.2em] text-primary/70 font-tome-marginalia font-bold">
-                    Vendor Profile
+
+              <div className="relative z-10 flex flex-col sm:flex-row gap-6">
+                <div className="shrink-0 mx-auto sm:mx-0 w-full max-w-[220px] sm:max-w-[200px]">
+                  <div className="aspect-[4/5] rounded-lg overflow-hidden border-2 border-primary/25 shadow-lg ring-1 ring-faded-gold/20">
+                    <VendorPortraitImg owner={selectedVendor} />
+                  </div>
+                  <p className="mt-3 text-center sm:text-left font-tome-heading text-xl text-primary leading-tight">
+                    {selectedVendor.name}
                   </p>
                 </div>
-                <p className="text-base text-foreground/90 leading-relaxed font-tome-marginalia italic pl-2 border-l-2 border-primary/20">
-                  &ldquo;{selectedVendor.personality}&rdquo;
-                </p>
-              </div>
+                <div className="min-w-0 flex-1 space-y-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="h-px w-8 bg-primary/30" />
+                      <p className="text-xs uppercase tracking-[0.2em] text-primary/70 font-tome-marginalia font-bold">
+                        Vendor Profile
+                      </p>
+                    </div>
+                    {selectedVendor.personality && (
+                      <p className="text-base text-foreground/90 leading-relaxed font-tome-marginalia italic pl-2 border-l-2 border-primary/20">
+                        &ldquo;{selectedVendor.personality}&rdquo;
+                      </p>
+                    )}
+                  </div>
 
-              <div className="grid sm:grid-cols-2 gap-4 pt-2">
+                  <div className="grid sm:grid-cols-2 gap-4 pt-1">
                 <div className="flex items-start gap-3">
                   <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
@@ -775,22 +823,24 @@ export default function ShopPage() {
                   </div>
                 </div>
 
-                {(selectedVendor.categories_obtained?.length ?? 0) > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-[10px] uppercase text-muted-foreground font-tome-marginalia">Trading Specialities</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {selectedVendor.categories_obtained!.map(cat => (
-                        <Badge
-                          key={cat}
-                          variant="secondary"
-                          className="text-micro font-tome-marginalia bg-primary/10 text-primary border-primary/20"
-                        >
-                          {cat}
-                        </Badge>
-                      ))}
-                    </div>
+                    {(selectedVendor.categories_obtained?.length ?? 0) > 0 && (
+                      <div className="space-y-2 sm:col-span-2">
+                        <p className="text-[10px] uppercase text-muted-foreground font-tome-marginalia">Trading Specialities</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {selectedVendor.categories_obtained!.map(cat => (
+                            <Badge
+                              key={cat}
+                              variant="secondary"
+                              className="text-micro font-tome-marginalia bg-primary/10 text-primary border-primary/20"
+                            >
+                              {cat}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             </div>
           )}

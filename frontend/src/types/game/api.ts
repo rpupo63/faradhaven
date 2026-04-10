@@ -177,6 +177,8 @@ export interface ApiStoreOwner {
   exchange_rate: number;
   categories_obtained?: string[];
   catalog_rules?: ApiStoreOwnerCatalogRule[];
+  /** Public S3 URL for storeowners/{name}.png when BUCKET is configured */
+  image_url?: string;
   created_at?: string;
   updated_at?: string;
 }

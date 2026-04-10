@@ -1,21 +1,25 @@
 package faradhaven_classes
 
+import (
+	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+)
+
 // Ironwright returns the Ironwright class seed
 func Ironwright() FaradhavenClassSeed {
 	archetypeLevel := 3
 	return FaradhavenClassSeed{
-		Name:             "The Ironwright",
-		Description:      "A resource-management class that scavenges distinct Components from fallen enemies to build independent constructs and fuel their abilities. Instead of spell slots, they manage an inventory of specific Components that function as 'Scrap' for their schematics. Their power scales through Concurrency (total available slots for constructs) and Yield (scavenging dice).",
-		HitDie:           8,
-		PrimaryAbility:   "intelligence",
-		PhotoURL:         "https://photos-for-apps.s3.us-east-2.amazonaws.com/ironwright.jpg",
-		Archetype:        "Resource Manager / Summoner",
-		Concept:          "An engineer who realizes that machinery is just magic with better documentation. They rely on a looting-and-crafting economy, fueling their independent constructs with parts salvaged from the dead.",
-		DnDSkillFocus:    []string{"Investigation", "Arcana"},
-		Proficiencies:    "Simple weapons, Light Armor, Hand Crossbows",
-		SkillChoice:      []string{"Sleight of Hand", "History", "Medicine", "Investigation", "Survival"},
-		Tools:            []string{"Tinker's Tools", "Smith's Tools"},
-		SavingThrows:     []string{"Intelligence", "Constitution"},
+		Name:                "The Ironwright",
+		Description:         "A resource-management class that scavenges distinct Components from fallen enemies to build independent constructs and fuel their abilities. Instead of spell slots, they manage an inventory of specific Components that function as 'Scrap' for their schematics. Their power scales through Concurrency (total available slots for constructs) and Yield (scavenging dice).",
+		HitDie:              8,
+		PrimaryAbility:      "intelligence",
+		PhotoURL:            seedmedia.URL("ironwright.jpg"),
+		Archetype:           "Resource Manager / Summoner",
+		Concept:             "An engineer who realizes that machinery is just magic with better documentation. They rely on a looting-and-crafting economy, fueling their independent constructs with parts salvaged from the dead.",
+		DnDSkillFocus:       []string{"Investigation", "Arcana"},
+		Proficiencies:       "Simple weapons, Light Armor, Hand Crossbows",
+		SkillChoice:         []string{"Sleight of Hand", "History", "Medicine", "Investigation", "Survival"},
+		Tools:               []string{"Tinker's Tools", "Smith's Tools"},
+		SavingThrows:        []string{"Intelligence", "Constitution"},
 		AutomaticEquipNames: []string{"Leather apron (light armor)", "Protective goggles", "Bag of gears and springs"},
 		AutomaticItemNames:  []string{"Tinker's Tools"},
 		EquipmentChoices: []EquipmentChoiceSeed{
@@ -34,10 +38,10 @@ func Ironwright() FaradhavenClassSeed {
 				},
 			},
 		},
-		LevelFeatures:       ironwrightLevelFeatures(),
-		LevelProgression:    ironwrightLevelProgression(),
-		ArchetypeLevel:      &archetypeLevel,
-		Archetypes:          ironwrightArchetypes(),
+		LevelFeatures:    ironwrightLevelFeatures(),
+		LevelProgression: ironwrightLevelProgression(),
+		ArchetypeLevel:   &archetypeLevel,
+		Archetypes:       ironwrightArchetypes(),
 		ComponentPool: []string{
 			// Forma (Shape)
 			"Projectile", "Beam", "Nova", "Wall", "Zone", "Cone", "Aura",
@@ -65,7 +69,7 @@ func ironwrightLevelFeatures() map[int][]FeatureSeed {
 	return map[int][]FeatureSeed{
 		1: {
 			{Name: "Scavenge", Description: "As an action, you harvest 1d4 distinct Components (e.g., 'Cog', 'Gear', 'Ignis') from a fallen creature (died within 1 hour, size Small or larger). This consumes the corpse. These Components are used as Scrap for your abilities."},
-			{Name: "Construct Assembly", Description: "As an action, spend Components to build a construct in an unoccupied space within 10 feet. Constructs act immediately after your turn and last for (Component Cost × 10) minutes. Construct (Sentry): Cost: 2 Components (any type). Slot Cost: 1. AC: 13, HP: 10 + (2 * Level), Atk: + (Proficiency + INT), Dmg: 1d8 + INT force, Range: 60ft. Duration: 20 minutes."},
+			{Name: "Construct Assembly", Description: "As an action, spend the schematic’s listed Components from your inventory to build a construct in an unoccupied space within 10 feet. Constructs act immediately after your turn and last for (component slots spent × 10) minutes. Construct (Sentry): **1 Fulgur + 1 Ferrum**. Slot cost: 1. AC 12, HP 5 + (2 × your Ironwright level), ranged force attack (proficiency + INT to hit, 1d8 + INT), 60 ft. The app deducts these exact parts when you summon a Sentry."},
 			{Name: "Concurrency", Description: "You can maintain a number of 'Live' constructs simultaneously. Max Concurrency Slots: 1."},
 		},
 		2: {
@@ -78,7 +82,7 @@ func ironwrightLevelFeatures() map[int][]FeatureSeed {
 			{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1."},
 		},
 		5: {
-			{Name: "Extra Attack, Striker Construct", Description: "You can attack twice when you take the Attack action. Construct (Striker): A melee combatant construct. Cost: 5 Components (any type). Slot Cost: 2. AC: 15, HP: 15 + (4 * Level), Atk: + (Proficiency + INT), Dmg: 1d10 + INT force. Duration: 50 minutes. Max Concurrency Slots: 2. Scavenge Yield: 1d6."},
+			{Name: "Extra Attack, Striker Construct", Description: "You can attack twice when you take the Attack action. Construct (Striker): **1 Ferrum, 1 Ignis, 1 Crush, 1 Push, 1 Arcanum** (five distinct parts). Slot cost: 2. AC 14, HP 8 + (2 × your Ironwright level), melee force attack (proficiency + INT, 1d10 + INT). Max Concurrency Slots: 2. Scavenge Yield: 1d6."},
 		},
 		6: {
 			{Name: "Specialized Salvage", Description: "Scavenging CR 5+ enemies yields 1 'Primal Component' (Fire, Cold, Lightning, or Acid). As an action, you can expend this item to grant one of your constructs resistance to that damage type for 1 hour or add 1d6 of that damage type to its attacks for 1 minute."},
@@ -90,13 +94,13 @@ func ironwrightLevelFeatures() map[int][]FeatureSeed {
 			{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1."},
 		},
 		9: {
-			{Name: "Construct (Titan)", Description: "Build a Large mountable construct. Cost: 10 Components (any type). Slot Cost: 3. AC: 18, HP: 30 + (6 * Level), Atk: + (Proficiency + INT), Dmg: 2d8 + INT force. Duration: 100 minutes. Max Concurrency Slots: 3. Scavenge Yield: 1d8."},
+			{Name: "Construct (Titan)", Description: "Build a Large mountable construct. **Recipe:** Fulgur, Ferrum, Ignis, Push, Crush, Zone, Arcanum, Terra, Vita, Ward (10 parts). Slot cost: 3. AC 16, HP 15 + (2 × your Ironwright level), melee force attack (proficiency + INT, 2d8 + INT). Max Concurrency Slots: 3. Scavenge Yield: 1d8."},
 		},
 		10: {
 			{Name: "Fortified Assembly", Description: "Your constructs gain +1 AC and +5 max HP. Additionally, when one of your constructs is destroyed, you automatically recover 1 bonus Component. This is in addition to the Components recovered via your Efficiency feature."},
 		},
 		11: {
-			{Name: "Rapid Assembly", Description: "You can summon a construct as a bonus action instead of an action. Additionally, as a bonus action, you can spend Components to execute Instant Schematics: 'Construct Triage' (Cost: 1 Mend Component — command a construct to repair an adjacent construct for 2d8 + INT HP), 'Kinetic Barrier' (Cost: 1 Push and 1 Zone Component — grant yourself +5 AC as a reaction until the start of your next turn), or 'Emergency Reboot' (Cost: 1 Fulgur, 1 Conduct, and 1 Mend Component, once per long rest — reconstruct all downed constructs to full HP). This feature also includes 'Salvage Protocol' (passive — your Efficiency feature now recovers 75% of a construct's Component cost, rounded down)."},
+			{Name: "Rapid Assembly", Description: "You can summon a construct as a bonus action instead of an action. Additionally, as a bonus action, you can spend Components to execute Instant Schematics: 'Construct Triage' (Cost: 1 **Vita** — command a construct to repair an adjacent construct for 2d8 + INT HP), 'Kinetic Barrier' (Cost: 1 **Push** and 1 **Zone** — grant yourself +5 AC as a reaction until the start of your next turn), or 'Emergency Reboot' (Cost: 1 **Fulgur**, 1 **Ferrum**, and 1 **Vita**, once per long rest — reconstruct all downed constructs to full HP). This feature also includes 'Salvage Protocol' (passive — your Efficiency feature now recovers 75% of a construct's Component cost, rounded down)."},
 		},
 		12: {
 			{Name: "Ability Score Improvement", Description: "Increase one ability score by 2, or two ability scores by 1."},

@@ -257,7 +257,11 @@ export function WeaponAttackDialog({ open, onOpenChange, selectedWeapon, sheet, 
           const critMultiplier = isCrit ? 2 : 1;
           const animNotation = `${parsed.count * critMultiplier}d${parsed.sides}`;
 
-          const result = await rollDiceNotation(animNotation);
+          const modLabel = MODIFIER_DISPLAY_NAMES[mod.modifier_type] || mod.modifier_type;
+          const result = await rollDiceNotation(
+            animNotation,
+            `${weapon.name} — ${modLabel}${bd.damage_type ? ` (${bd.damage_type})` : ''}`
+          );
           if (!result) return;
 
           const total = result.rolls.reduce((a, b) => a + b, 0) + result.modifier;

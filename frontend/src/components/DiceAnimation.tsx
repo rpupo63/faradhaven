@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { DICE_CLEAR_EVENT } from '@/lib/dice';
@@ -15,6 +16,16 @@ interface ResultDisplay extends DiceResult {
   notation: string;
 }
 
+/**
+ * Portaled to body. Use 100dvh + w-screen so the flex center matches the *visual* viewport
+ * (inset-0 / 100vh alone often sits low on mobile when the URL bar resizes the layout viewport).
+ */
+const DICE_LAYER_BASE =
+  'fixed left-0 right-0 top-0 flex h-[100dvh] w-screen max-w-[100vw] min-h-0';
+
+/** @3d-dice/dice-box: height where the toss starts (default 8). We had 4–5 which read as “too low”. */
+const STARTING_HEIGHT = { narrow: 12, wide: 14 } as const;
+
 export function DiceAnimation() {
   const trayPx = useDiceTraySize();
   const [diceBoxGeneration, setDiceBoxGeneration] = useState(0);
@@ -28,21 +39,30 @@ export function DiceAnimation() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const boxRef = useRef<any | null>(null);
 
-  // Initialize dice-box once on mount and register with DiceManager.
+  // Pre-load audio (effect — no DOM dependency)
   useEffect(() => {
-    let cancelled = false;
-
-    // Pre-load audio
     const audio = new Audio('/dice-rolling.mp3');
     audio.load();
     audioRef.current = audio;
+  }, []);
+
+  // Init dice-box after #dice-box is in the portaled DOM (layout phase beats async paint races).
+  useLayoutEffect(() => {
+    let cancelled = false;
 
     import('@3d-dice/dice-box').then(({ default: DiceBox }) => {
-      if (cancelled) return;
+      let didInit = false;
+      const attach = () => {
+        if (cancelled || didInit) return;
+        if (!document.getElementById('dice-box')) {
+          requestAnimationFrame(attach);
+          return;
+        }
+        didInit = true;
 
       const tray = computeTrayPixelSize();
       const scale = computeDiceScale(tray);
-      const narrow = tray < 520;
+      const narrow = tray < 400;
 
       const box = new DiceBox({
         container: '#dice-box',
@@ -56,7 +76,7 @@ export function DiceAnimation() {
         linearDamping: 0.4,
         spinForce: narrow ? 4 : 6,
         throwForce: narrow ? 2 : 3,
-        startingHeight: narrow ? 4 : 5,
+        startingHeight: narrow ? STARTING_HEIGHT.narrow : STARTING_HEIGHT.wide,
         lightIntensity: 1,
         theme: activeDicePrefs.dice_theme,
         themeColor: activeDicePrefs.dice_theme_color,
@@ -69,6 +89,8 @@ export function DiceAnimation() {
         DiceManager.register(box);
         setDiceBoxGeneration((n) => n + 1);
       }).catch(console.error);
+      };
+      requestAnimationFrame(attach);
     }).catch(console.error);
 
     return () => {
@@ -93,12 +115,12 @@ export function DiceAnimation() {
     const box = boxRef.current;
     if (!box) return;
     const scale = computeDiceScale(trayPx);
-    const narrow = trayPx < 520;
+    const narrow = trayPx < 400;
     void box.updateConfig({
       scale,
       spinForce: narrow ? 4 : 6,
       throwForce: narrow ? 2 : 3,
-      startingHeight: narrow ? 4 : 5,
+      startingHeight: narrow ? STARTING_HEIGHT.narrow : STARTING_HEIGHT.wide,
     });
     if (typeof box.resizeWorld === 'function') {
       box.resizeWorld();
@@ -162,7 +184,12 @@ export function DiceAnimation() {
     };
   }, []);
 
-  return (
+  /*
+   * Portal to document.body so fixed layers use the real viewport (Layout uses transforms /
+   * overflow / blur that break fixed + getBoundingClientRect combos).
+   * @3d-dice/dice-box appends an inline <canvas> — force it to fill #dice-box or it stays ~300×150.
+   */
+  const layers = (
     <>
       {/* Dim backdrop while something is rolling or result is showing */}
       <AnimatePresence>
@@ -172,17 +199,13 @@ export function DiceAnimation() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-sm pointer-events-auto"
+            className={`${DICE_LAYER_BASE} z-[9998] bg-black/60 backdrop-blur-sm pointer-events-auto`}
           />
         )}
       </AnimatePresence>
 
-      {/*
-        Result panel — Centered on screen.
-        Z-index 9999 so it's behind the dice (Z-index 10000).
-      */}
       <div
-        className="pointer-events-none fixed inset-0 flex items-center justify-center z-[9999]"
+        className={`${DICE_LAYER_BASE} z-[9999] pointer-events-none items-center justify-center`}
       >
         <AnimatePresence>
           {result && (
@@ -192,7 +215,7 @@ export function DiceAnimation() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: -20 }}
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              className="bg-background/95 border-2 border-primary/30 rounded-3xl p-4 sm:p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] backdrop-blur-xl flex flex-col items-center gap-4 min-w-0 max-w-[calc(100vw-2rem)] mx-4"
+              className="bg-background/95 border-2 border-primary/30 rounded-3xl p-4 sm:p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] backdrop-blur-xl flex flex-col items-center gap-4 min-w-0 max-w-[calc(100%-2rem)] mx-4"
             >
               {result.label && (
                 <span className="text-sm font-tome-marginalia text-muted-foreground uppercase tracking-[0.2em]">
@@ -255,10 +278,12 @@ export function DiceAnimation() {
         </AnimatePresence>
       </div>
 
-      {/* Centered dice tray wrapper — ensures physical dice land in screen center */}
-      <div className="fixed inset-0 z-[10000] pointer-events-none flex items-center justify-center">
+      <div
+        className={`${DICE_LAYER_BASE} z-[10000] pointer-events-none items-center justify-center`}
+      >
         <div
           id="dice-box"
+          className="relative shrink-0 [&>canvas.dice-box-canvas]:block [&>canvas.dice-box-canvas]:h-full [&>canvas.dice-box-canvas]:w-full"
           style={{
             width: `${trayPx}px`,
             height: `${trayPx}px`,
@@ -267,4 +292,10 @@ export function DiceAnimation() {
       </div>
     </>
   );
+
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(layers, document.body);
 }

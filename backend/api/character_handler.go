@@ -108,6 +108,11 @@ func (h *characterHandler) uploadProfilePicture() http.HandlerFunc {
 			return
 		}
 
+		if h.s3Service == nil {
+			respondError(w, http.StatusInternalServerError, "File upload is not available")
+			return
+		}
+
 		// Parse multipart form
 		// Limit upload size to 10MB
 		r.ParseMultipartForm(10 << 20)

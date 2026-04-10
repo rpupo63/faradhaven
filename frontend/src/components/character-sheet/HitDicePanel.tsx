@@ -30,7 +30,11 @@ export function HitDicePanel({ sheet, onUseHitDice }: HitDicePanelProps) {
     if (hitDiceToUse < 1 || hitDiceToUse > hitDiceRemaining) return;
 
     // Roll all hit dice as one animation, then apply CON mod to each.
-    const diceRolls = await rollHitDice(hitDiceToUse, hitDie);
+    const diceRolls = await rollHitDice(
+      hitDiceToUse,
+      hitDie,
+      hitDiceToUse === 1 ? `Hit die (d${hitDie})` : `Hit dice (${hitDiceToUse}×d${hitDie})`
+    );
     if (!diceRolls) return;
 
     const results: { die: number; total: number }[] = diceRolls.map(die => ({

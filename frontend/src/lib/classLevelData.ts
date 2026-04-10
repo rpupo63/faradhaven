@@ -1,5 +1,6 @@
 import type {
   ApiCharacterSheet,
+  ApiCharacterWeapon,
   ApiClass,
   ApiClassLevel,
   ApiClassWithLevels,
@@ -89,6 +90,154 @@ function primaryAbilityMod(
   return s(getAbilityScoreValue(character, primaryAbility));
 }
 
+/** Canonical ability scores for sheet math (shared by API + computed paths). */
+export function readAbilityScoresForSheet(character: {
+  strength?: number;
+  dexterity?: number;
+  constitution?: number;
+  intelligence?: number;
+  wisdom?: number;
+  charisma?: number;
+}): { str: number; dex: number; con: number; int: number; wis: number; cha: number } {
+  return {
+    str: getAbilityScoreValue(character, 'strength'),
+    dex: getAbilityScoreValue(character, 'dexterity'),
+    con: getAbilityScoreValue(character, 'constitution'),
+    int: getAbilityScoreValue(character, 'intelligence'),
+    wis: getAbilityScoreValue(character, 'wisdom'),
+    cha: getAbilityScoreValue(character, 'charisma'),
+  };
+}
+
+/** Modifiers record + individual mods from scores. */
+export function abilityModsFromScores(scores: ReturnType<typeof readAbilityScoresForSheet>): {
+  strMod: number;
+  dexMod: number;
+  conMod: number;
+  intMod: number;
+  wisMod: number;
+  chaMod: number;
+  abilityMods: Record<AbilityId, number>;
+} {
+  const strMod = abilityMod(scores.str);
+  const dexMod = abilityMod(scores.dex);
+  const conMod = abilityMod(scores.con);
+  const intMod = abilityMod(scores.int);
+  const wisMod = abilityMod(scores.wis);
+  const chaMod = abilityMod(scores.cha);
+  return {
+    strMod,
+    dexMod,
+    conMod,
+    intMod,
+    wisMod,
+    chaMod,
+    abilityMods: {
+      strength: strMod,
+      dexterity: dexMod,
+      constitution: conMod,
+      intelligence: intMod,
+      wisdom: wisMod,
+      charisma: chaMod,
+    },
+  };
+}
+
+/** Skill bonus map: proficient skills add full proficiency bonus. */
+export function buildSkillBonusMap(
+  abilityMods: Record<AbilityId, number>,
+  skillProfs: string[],
+  prof: number
+): Record<string, number> {
+  const skills: Record<string, number> = {};
+  for (const skill of DND5E_SKILLS) {
+    const base = abilityMods[skill.ability];
+    skills[skill.id] = base + (skillProfs.includes(skill.id) ? prof : 0);
+  }
+  return skills;
+}
+
+/** Saving throw bonus map. */
+export function buildSavingThrowBonusMap(
+  abilityMods: Record<AbilityId, number>,
+  saveProfs: AbilityId[],
+  prof: number
+): Record<AbilityId, number> {
+  const saving_throws = {} as Record<AbilityId, number>;
+  for (const save of DND5E_SAVING_THROWS) {
+    const base = abilityMods[save.id];
+    saving_throws[save.id] = base + (saveProfs.includes(save.id) ? prof : 0);
+  }
+  return saving_throws;
+}
+
+/** Level features from class.levels up to current level, filtered by archetype. */
+export function collectFeaturesThroughLevel(
+  classLevels: ApiClassLevel[] | undefined,
+  currentLevel: number,
+  archetypeId: string | undefined,
+  singleLevelFallback: ApiLevelFeature[] | undefined
+): ApiLevelFeature[] {
+  const allFeatures: ApiLevelFeature[] = [];
+  if (classLevels) {
+    const sortedLevels = [...classLevels].sort((a, b) => a.level - b.level);
+    for (const level of sortedLevels) {
+      if (level.level > currentLevel) break;
+      if (level.level_features) {
+        for (const feature of level.level_features) {
+          if (!feature.archetype_id || feature.archetype_id === archetypeId) {
+            allFeatures.push(feature);
+          }
+        }
+      }
+    }
+  } else if (singleLevelFallback) {
+    allFeatures.push(...singleLevelFallback);
+  }
+  return allFeatures;
+}
+
+export function computeInitiativeModifier(
+  dexMod: number,
+  prof: number,
+  levelFeatures: ApiLevelFeature[] | undefined
+): number {
+  let initiative = dexMod;
+  if (levelFeatures?.some((f) => f.name === 'Jack of All Trades')) {
+    initiative += Math.floor(prof / 2);
+  }
+  return initiative;
+}
+
+/** Virtual Bite row for Sanguinist when the natural weapon is not in inventory. */
+export function virtualSanguinistBiteWeapon(): ApiCharacterWeapon {
+  return {
+    character_weapon_id: 'virtual-bite',
+    is_primary: false,
+    is_equipped: true,
+    weapon: {
+      id: 'bite-id',
+      name: 'Bite',
+      description: 'A vampiric bite that extracts blood ichor.',
+      category: 'Natural Melee',
+      rarity: 'Common',
+      range_type: 'Melee',
+      attack_modifier: 'Charisma',
+      properties: ['Finesse'],
+      range_normal: 5,
+      damages: [
+        { damage_dice: '2d8', damage_type: 'Necrotic', damage_category: 'Base' },
+      ] as ApiWeaponDamage[],
+    } as ApiWeapon,
+  };
+}
+
+export function ensureSanguinistBiteWeapon(weapons: ApiCharacterWeapon[], className: string): ApiCharacterWeapon[] {
+  if (className !== 'The Sanguinist') return weapons;
+  if (weapons.some((w) => w.weapon.name === 'Bite')) return weapons;
+  return [...weapons, virtualSanguinistBiteWeapon()];
+}
+
 export interface CharacterForSheet {
   id: string;
   name: string;
@@ -139,26 +288,12 @@ export function computeCharacterSheetFromApi(
   const chaMod = abilityMod(character.charisma ?? 10);
   const primaryMod = primaryAbilityMod(character, apiClass.primary_ability);
 
-  // Collect all features up to current level
-  const allFeatures: ApiLevelFeature[] = [];
-  if (apiClass.levels) {
-    const sortedLevels = [...apiClass.levels].sort((a, b) => a.level - b.level);
-    for (const level of sortedLevels) {
-      if (level.level <= character.level) {
-        if (level.level_features) {
-          for (const feature of level.level_features) {
-            // Include if no archetype requirement, or if it matches character's archetype
-            const charArchetypeId = character.archetype_id;
-            if (!feature.archetype_id || feature.archetype_id === charArchetypeId) {
-              allFeatures.push(feature);
-            }
-          }
-        }
-      }
-    }
-  } else if (apiClassLevel.level_features) {
-    allFeatures.push(...apiClassLevel.level_features);
-  }
+  const allFeatures = collectFeaturesThroughLevel(
+    apiClass.levels,
+    character.level,
+    character.archetype_id,
+    apiClassLevel.level_features
+  );
 
   // Calculate AC including Unarmored Defense logic
   let ac = 8 + apiClassLevel.proficiency_bonus + dexMod;
@@ -216,88 +351,45 @@ export function normalizeApiSheet(api: ApiCharacterSheet): NormalizedCharacterSh
   const c = api.character;
   const cls = api.class;
   const cl = api.class_level;
-  const str = getAbilityScoreValue(c, 'strength');
-  const dex = getAbilityScoreValue(c, 'dexterity');
-  const con = getAbilityScoreValue(c, 'constitution');
-  const int = getAbilityScoreValue(c, 'intelligence');
-  const wis = getAbilityScoreValue(c, 'wisdom');
-  const cha = getAbilityScoreValue(c, 'charisma');
-  const strMod = abilityMod(str);
-  const dexMod = abilityMod(dex);
-  const conMod = abilityMod(con);
-  const intMod = abilityMod(int);
-  const wisMod = abilityMod(wis);
-  const chaMod = abilityMod(cha);
+  const scores = readAbilityScoresForSheet(c);
+  const { strMod, dexMod, conMod, intMod, wisMod, chaMod, abilityMods } = abilityModsFromScores(scores);
   const primaryMod = primaryAbilityMod(
-    { strength: str, dexterity: dex, constitution: con, intelligence: int, wisdom: wis, charisma: cha },
+    {
+      strength: scores.str,
+      dexterity: scores.dex,
+      constitution: scores.con,
+      intelligence: scores.int,
+      wisdom: scores.wis,
+      charisma: scores.cha,
+    },
     cls.primary_ability
   );
   const prof = cl.proficiency_bonus;
   const skillProfs = [...(c.skill_proficiencies ?? [])];
-  
+
   // Kalashtar daily skill logic
   const kalashtarSkill = localStorage.getItem(`kalashtar_skill_${c.id}`);
-  if (kalashtarSkill && (c.race?.name === 'Kalashtar') && !skillProfs.includes(kalashtarSkill)) {
+  if (kalashtarSkill && c.race?.name === 'Kalashtar' && !skillProfs.includes(kalashtarSkill)) {
     skillProfs.push(kalashtarSkill);
   }
 
   const saveProfs = api.saving_throw_proficiencies ?? c.saving_throw_proficiencies ?? [];
 
-  const abilityMods: Record<AbilityId, number> = {
-    strength: strMod,
-    dexterity: dexMod,
-    constitution: conMod,
-    intelligence: intMod,
-    wisdom: wisMod,
-    charisma: chaMod,
-  };
-
-  const skills: Record<string, number> = {};
-  for (const skill of DND5E_SKILLS) {
-    const base = abilityMods[skill.ability];
-    skills[skill.id] = base + (skillProfs.includes(skill.id) ? prof : 0);
-  }
-
-  const saving_throws: Record<AbilityId, number> = {} as Record<AbilityId, number>;
-  for (const save of DND5E_SAVING_THROWS) {
-    const base = abilityMods[save.id];
-    saving_throws[save.id] = base + (saveProfs.includes(save.id) ? prof : 0);
-  }
+  const skills = buildSkillBonusMap(abilityMods, skillProfs, prof);
+  const saving_throws = buildSavingThrowBonusMap(abilityMods, saveProfs as AbilityId[], prof);
 
   // Combine race traits from sheet (backend now combines them)
-  const combinedTraits = (api.race_traits ?? (c.race as { traits?: ApiTrait[] })?.traits ?? [])
-    .filter(trait => (trait.level_req || 1) <= c.level);
+  const combinedTraits = (api.race_traits ?? (c.race as { traits?: ApiTrait[] })?.traits ?? []).filter(
+    (trait) => (trait.level_req || 1) <= c.level
+  );
   const speed = (c.race as { base_speed?: number })?.base_speed;
 
-  // Collect all features up to current level, filtering by archetype
-  const allFeatures: ApiLevelFeature[] = [];
-  if (cls.levels) {
-    const sortedLevels = [...cls.levels].sort((a, b) => a.level - b.level);
-    for (const level of sortedLevels) {
-      if (level.level <= c.level) {
-        if (level.level_features) {
-          for (const feature of level.level_features) {
-            // Include if no archetype requirement, or if it matches character's archetype
-            if (!feature.archetype_id || feature.archetype_id === c.archetype_id) {
-              allFeatures.push(feature);
-            }
-          }
-        }
-      }
-    }
-  } else if (cl.level_features) {
-    // Fallback to just current level features if levels list is missing
-    allFeatures.push(...cl.level_features);
-  }
+  const allFeatures = collectFeaturesThroughLevel(cls.levels, c.level, c.archetype_id, cl.level_features);
 
   // AC is fully computed by the backend (armor, unarmored defense, shields all factored in)
   const finalAc = api.ac;
 
-  // Calculate initiative (base Dex mod, + half proficiency if Jack of All Trades)
-  let initiative = dexMod;
-  if (allFeatures.some(f => f.name === 'Jack of All Trades')) {
-    initiative += Math.floor(prof / 2);
-  }
+  const initiative = computeInitiativeModifier(dexMod, prof, allFeatures);
 
   return {
     character: {
@@ -309,12 +401,12 @@ export function normalizeApiSheet(api: ApiCharacterSheet): NormalizedCharacterSh
       archetypeName: c.archetype?.name,
       level: c.level,
       spellbook: c.spellbook ?? [],
-      strength: str,
-      dexterity: dex,
-      constitution: con,
-      intelligence: int,
-      wisdom: wis,
-      charisma: cha,
+      strength: scores.str,
+      dexterity: scores.dex,
+      constitution: scores.con,
+      intelligence: scores.int,
+      wisdom: scores.wis,
+      charisma: scores.cha,
       current_spell_points: api.current_spell_points,
       sanguine_mp: c.sanguine_mp,
       sanguine_br: c.sanguine_br,
@@ -350,30 +442,7 @@ export function normalizeApiSheet(api: ApiCharacterSheet): NormalizedCharacterSh
     lineage: api.lineage,
     speed,
     available_components: resolveSpellPoolComponents(api),
-    inventory_weapons: (function() {
-      const weapons = [...(api.inventory_weapons || [])];
-      // Inject virtual Bite weapon for Sanguinists if not already present
-      if (cls.name === 'The Sanguinist' && !weapons.some(w => w.weapon.name === 'Bite')) {
-        weapons.push({
-          character_weapon_id: 'virtual-bite',
-          is_primary: false,
-          is_equipped: true, // Should be true since it's a natural weapon
-          weapon: {
-            id: 'bite-id',
-            name: 'Bite',
-            description: 'A vampiric bite that extracts blood ichor.',
-            category: 'Natural Melee',
-            rarity: 'Common',
-            range_type: 'Melee',
-            attack_modifier: 'Charisma',
-            properties: ['Finesse'],
-            range_normal: 5,
-            damages: [{ damage_dice: '2d8', damage_type: 'Necrotic', damage_category: 'Base' }] as ApiWeaponDamage[]
-          } as ApiWeapon
-        });
-      }
-      return weapons;
-    })(),
+    inventory_weapons: ensureSanguinistBiteWeapon([...(api.inventory_weapons || [])], cls.name),
     inventory_items: api.inventory_items,
     class: {
       name: cls.name,
@@ -420,18 +489,8 @@ export function normalizeComputedSheet(
   const c = computed.character;
   const cls = computed.class;
   const cl = computed.class_level;
-  const str = getAbilityScoreValue(c, 'strength');
-  const dex = getAbilityScoreValue(c, 'dexterity');
-  const con = getAbilityScoreValue(c, 'constitution');
-  const int = getAbilityScoreValue(c, 'intelligence');
-  const wis = getAbilityScoreValue(c, 'wisdom');
-  const cha = getAbilityScoreValue(c, 'charisma');
-  const strMod = abilityMod(str);
-  const dexMod = abilityMod(dex);
-  const conMod = abilityMod(con);
-  const intMod = abilityMod(int);
-  const wisMod = abilityMod(wis);
-  const chaMod = abilityMod(cha);
+  const scores = readAbilityScoresForSheet(c);
+  const { strMod, dexMod, conMod, intMod, wisMod, chaMod, abilityMods } = abilityModsFromScores(scores);
   const primaryMod = primaryAbilityMod(c, cls.primary_ability);
   const prof = cl.proficiency_bonus;
   const skillProfs =
@@ -443,26 +502,10 @@ export function normalizeComputedSheet(
       ? c.saving_throw_proficiencies ?? []
       : saveDefaults ?? [];
 
-  const abilityMods: Record<AbilityId, number> = {
-    strength: strMod,
-    dexterity: dexMod,
-    constitution: conMod,
-    intelligence: intMod,
-    wisdom: wisMod,
-    charisma: chaMod,
-  };
+  const skills = buildSkillBonusMap(abilityMods, skillProfs, prof);
+  const saving_throws = buildSavingThrowBonusMap(abilityMods, saveProfs, prof);
 
-  const skills: Record<string, number> = {};
-  for (const skill of DND5E_SKILLS) {
-    const base = abilityMods[skill.ability];
-    skills[skill.id] = base + (skillProfs.includes(skill.id) ? prof : 0);
-  }
-
-  const saving_throws: Record<AbilityId, number> = {} as Record<AbilityId, number>;
-  for (const save of DND5E_SAVING_THROWS) {
-    const base = abilityMods[save.id];
-    saving_throws[save.id] = base + (saveProfs.includes(save.id) ? prof : 0);
-  }
+  const initiative = computeInitiativeModifier(dexMod, prof, cl.level_features);
 
   return {
     character: {
@@ -472,12 +515,12 @@ export function normalizeComputedSheet(
       className: cls.name,
       level: c.level,
       spellbook: c.spellbook ?? [],
-      strength: str,
-      dexterity: dex,
-      constitution: con,
-      intelligence: int,
-      wisdom: wis,
-      charisma: cha,
+      strength: scores.str,
+      dexterity: scores.dex,
+      constitution: scores.con,
+      intelligence: scores.int,
+      wisdom: scores.wis,
+      charisma: scores.cha,
       current_spell_points: computed.current_spell_points,
       backstory: c.backstory,
       notes: c.notes,
@@ -508,29 +551,7 @@ export function normalizeComputedSheet(
     current_spell_points: computed.current_spell_points,
     skill_proficiencies: skillProfs,
     saving_throw_proficiencies: saveProfs,
-    inventory_weapons: (function() {
-      // Inject virtual Bite weapon for Sanguinists
-      if (cls.name === 'The Sanguinist') {
-        return [{
-          character_weapon_id: 'virtual-bite',
-          is_primary: false,
-          is_equipped: true,
-          weapon: {
-            id: 'bite-id',
-            name: 'Bite',
-            description: 'A vampiric bite that extracts blood ichor.',
-            category: 'Natural Melee',
-            rarity: 'Common',
-            range_type: 'Melee',
-            attack_modifier: 'Charisma',
-            properties: ['Finesse'],
-            range_normal: 5,
-            damages: [{ damage_dice: '2d8', damage_type: 'Necrotic', damage_category: 'Base' }] as ApiWeaponDamage[]
-          } as ApiWeapon
-        }];
-      }
-      return [];
-    })(),
+    inventory_weapons: ensureSanguinistBiteWeapon([], cls.name),
     modifiers: {
       strength: strMod,
       dexterity: dexMod,
@@ -540,7 +561,7 @@ export function normalizeComputedSheet(
       charisma: chaMod,
       primary: primaryMod,
       proficiency: prof,
-      initiative: dexMod,
+      initiative,
       spell_attack: prof + primaryMod,
       melee_attack: prof + strMod,
       ranged_attack: prof + dexMod,
