@@ -5,16 +5,16 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/models"
 	"gorm.io/gorm"
 )
 
 // Change is one class_resource_definitions row update.
 type Change struct {
-	ID           uuid.UUID
-	ClassID      uuid.UUID
-	ResourceKey  string
-	Updates      map[string]interface{}
+	ID          uuid.UUID
+	ClassID     uuid.UUID
+	ResourceKey string
+	Updates     map[string]interface{}
 }
 
 type row struct {

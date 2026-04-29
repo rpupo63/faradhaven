@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/lib/pq"
-	"github.com/rpupo63/unified-personal-site-backend/models"
-	"github.com/rpupo63/unified-personal-site-backend/seed/batch"
-	"github.com/rpupo63/unified-personal-site-backend/seed/uuids"
+	"github.com/rpupo63/faradhaven/backend/models"
+	"github.com/rpupo63/faradhaven/backend/seed/batch"
+	"github.com/rpupo63/faradhaven/backend/seed/uuids"
 	"gorm.io/gorm"
 )
 

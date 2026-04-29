@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"github.com/rpupo63/unified-personal-site-backend/models"
-	"github.com/rpupo63/unified-personal-site-backend/seed/batch"
-	"github.com/rpupo63/unified-personal-site-backend/seed/uuids"
+	"github.com/rpupo63/faradhaven/backend/models"
+	"github.com/rpupo63/faradhaven/backend/seed/batch"
+	"github.com/rpupo63/faradhaven/backend/seed/uuids"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -23,10 +23,9 @@ func AllClasses() []FaradhavenClassSeed {
 		Sanguinist(),
 		PistonBrawler(),
 		PowderMage(),
-		RiftWeaver(),
-		VaporBlade(),
 		Lorewright(),
 		Syllogist(),
+		Elixirist(),
 	}
 }
 
@@ -148,22 +147,24 @@ func SeedFaradhavenClasses(tx *gorm.DB) error {
 		}
 
 		classes = append(classes, models.Class{
-			ID:                classID,
-			Name:              cs.Name,
-			Description:       cs.Description,
-			HitDie:            cs.HitDie,
-			PrimaryAbility:    cs.PrimaryAbility,
-			PhotoURL:          cs.PhotoURL,
-			ArchetypeLevel:    cs.ArchetypeLevel,
-			Proficiencies:     cs.Proficiencies,
-			SkillFocus:        pq.StringArray(cs.DnDSkillFocus),
-			SkillChoice:       pq.StringArray(cs.SkillChoice),
-			SkillChoiceCount:  2, // D&D 5e standard
-			Tools:             pq.StringArray(cs.Tools),
-			SavingThrows:      pq.StringArray(cs.SavingThrows),
-			StartingEquip:     pq.StringArray(cs.AutomaticEquipNames),
-			StartingWeaponIDs: pq.StringArray(weaponIDs),
-			StartingItemIDs:   pq.StringArray(itemIDs),
+			ID:                      classID,
+			Name:                    cs.Name,
+			Description:             cs.Description,
+			HitDie:                  cs.HitDie,
+			PrimaryAbility:          cs.PrimaryAbility,
+			PhotoURL:                cs.PhotoURL,
+			SpellCastingComponent:   cs.SpellCastingComponent,
+			SpellCastingDescription: cs.SpellCastingDescription,
+			ArchetypeLevel:          cs.ArchetypeLevel,
+			Proficiencies:           cs.Proficiencies,
+			SkillFocus:              pq.StringArray(cs.DnDSkillFocus),
+			SkillChoice:             pq.StringArray(cs.SkillChoice),
+			SkillChoiceCount:        2, // D&D 5e standard
+			Tools:                   pq.StringArray(cs.Tools),
+			SavingThrows:            pq.StringArray(cs.SavingThrows),
+			StartingEquip:           pq.StringArray(cs.AutomaticEquipNames),
+			StartingWeaponIDs:       pq.StringArray(weaponIDs),
+			StartingItemIDs:         pq.StringArray(itemIDs),
 		})
 
 		// Collect archetypes

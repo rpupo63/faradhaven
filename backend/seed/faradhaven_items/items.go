@@ -16,6 +16,7 @@ type ItemSeed struct {
 	BaseAC              *int
 	StrengthRequirement *int
 	StealthDisadvantage *bool
+	LootTags            LootTags
 }
 
 // Potions returns the potion seeds
@@ -317,5 +318,144 @@ func AllItems() []ItemSeed {
 	all = append(all, StandardAdventuringGear()...)
 	all = append(all, Armor()...)
 	all = append(all, VendorThematicItems()...)
+	all = append(all, ThemedLootItems()...)
 	return all
+}
+
+func ThemedLootItems() []ItemSeed {
+	return []ItemSeed{
+		{
+			Name:         "Rusted Reliquary Key",
+			Description:  "A heavy iron key stamped with an ancient chapel sigil.",
+			Category:     "Gear",
+			Rarity:       "Uncommon",
+			Cost:         "65 gp",
+			Weight:       "1 lb.",
+			Effects:      "Can unlock forgotten reliquary locks and grants advantage on checks to identify old dungeon mechanisms.",
+			IsConsumable: false,
+			LootTags: LootTags{
+				Themes:        []string{"dungeon"},
+				Locations:     []string{"underground"},
+				Sources:       []string{"room", "boss_enemy"},
+				Tiers:         []string{"medium", "high"},
+				RewardAmounts: []string{"standard", "bountiful"},
+				LevelBands:    []string{"adventurer", "veteran"},
+				Weight:        1.35,
+			},
+		},
+		{
+			Name:         "Executive Seal Stamp",
+			Description:  "A polished brass stamp used to authorize guild payroll and permits.",
+			Category:     "Tool",
+			Rarity:       "Common",
+			Cost:         "55 gp",
+			Weight:       "0.5 lb.",
+			Effects:      "Provides leverage in office and bureaucracy social checks.",
+			IsConsumable: false,
+			LootTags: LootTags{
+				Themes:        []string{"office"},
+				Locations:     []string{"indoor", "urban"},
+				Sources:       []string{"room", "common_enemy"},
+				Tiers:         []string{"low", "medium"},
+				RewardAmounts: []string{"scarce", "standard"},
+				LevelBands:    []string{"novice", "adventurer"},
+				Weight:        1.15,
+			},
+		},
+		{
+			Name:         "Velvet Coin Ledger",
+			Description:  "A lacquered account book that includes hidden noble debt transactions.",
+			Category:     "Gear",
+			Rarity:       "Rare",
+			Cost:         "220 gp",
+			Weight:       "2 lb.",
+			Effects:      "Can be traded for favors with wealthy factions.",
+			IsConsumable: false,
+			LootTags: LootTags{
+				Themes:        []string{"rich"},
+				Locations:     []string{"estate", "indoor"},
+				Sources:       []string{"room", "boss_enemy"},
+				Tiers:         []string{"medium", "high"},
+				RewardAmounts: []string{"bountiful", "jackpot"},
+				LevelBands:    []string{"adventurer", "veteran", "legend"},
+				Weight:        1.55,
+			},
+		},
+		{
+			Name:         "Patchwork Ration Bundle",
+			Description:  "A tightly wrapped bundle of dried roots, stale bread, and preserved fish.",
+			Category:     "Gear",
+			Rarity:       "Common",
+			Cost:         "18 gp",
+			Weight:       "2 lb.",
+			Effects:      "Counts as 5 days of rations.",
+			IsConsumable: true,
+			LootTags: LootTags{
+				Themes:        []string{"poor"},
+				Locations:     []string{"slums", "urban"},
+				Sources:       []string{"room", "common_enemy"},
+				Tiers:         []string{"low", "medium"},
+				RewardAmounts: []string{"scarce", "standard"},
+				LevelBands:    []string{"novice", "adventurer"},
+				Weight:        1.2,
+			},
+		},
+		{
+			Name:         "Contraband Cipher Notebook",
+			Description:  "A cramped notebook filled with turf maps and coded extortion records.",
+			Category:     "Tool",
+			Rarity:       "Uncommon",
+			Cost:         "95 gp",
+			Weight:       "1 lb.",
+			Effects:      "Grants advantage on checks for underground contacts and street intel.",
+			IsConsumable: false,
+			LootTags: LootTags{
+				Themes:        []string{"gangster"},
+				Locations:     []string{"street", "urban"},
+				Sources:       []string{"common_enemy", "boss_enemy", "room"},
+				Tiers:         []string{"medium", "high"},
+				RewardAmounts: []string{"standard", "bountiful"},
+				LevelBands:    []string{"adventurer", "veteran"},
+				Weight:        1.4,
+			},
+		},
+		{
+			Name:         "Fractured Mana Prism",
+			Description:  "A cracked crystal prism that leaks motes of arcane static.",
+			Category:     "Gear",
+			Rarity:       "Rare",
+			Cost:         "310 gp",
+			Weight:       "1 lb.",
+			Effects:      "Can be consumed to restore 12 spell points.",
+			IsConsumable: true,
+			LootTags: LootTags{
+				Themes:        []string{"arcane"},
+				Locations:     []string{"indoor", "underground"},
+				Sources:       []string{"room", "boss_enemy"},
+				Tiers:         []string{"medium", "high"},
+				RewardAmounts: []string{"bountiful", "jackpot"},
+				LevelBands:    []string{"adventurer", "veteran", "legend"},
+				Weight:        1.6,
+			},
+		},
+		{
+			Name:         "Predator Scent Satchel",
+			Description:  "A leather pouch packed with wild herbs, resin, and beast musk.",
+			Category:     "Gear",
+			Rarity:       "Uncommon",
+			Cost:         "55 gp",
+			Weight:       "0.8 lb.",
+			Effects:      "Provides advantage on tracking checks in wilderness terrain.",
+			IsConsumable: false,
+			LootTags: LootTags{
+				Themes:        []string{"wilderness"},
+				Locations:     []string{"wilds"},
+				Sources:       []string{"common_enemy", "room", "boss_enemy"},
+				Tiers:         []string{"low", "medium", "high"},
+				RewardAmounts: []string{"standard", "bountiful"},
+				LevelBands:    []string{"novice", "adventurer", "veteran"},
+				Weight:        1.3,
+			},
+		},
+	}
 }

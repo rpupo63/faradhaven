@@ -48,6 +48,7 @@ func AllModels() []interface{} {
 		&Monster{},
 		&MonsterAttack{},
 		&MonsterAction{},
+		&MonsterGenerationEvent{},
 
 		// Beast hierarchy
 		&Beast{},
@@ -59,6 +60,19 @@ func AllModels() []interface{} {
 		&Weapon{},
 		&WeaponDamage{},
 		&Item{},
+		&ItemLootTheme{},
+		&ItemLootLocation{},
+		&ItemLootSource{},
+		&ItemLootTier{},
+		&ItemLootRewardAmount{},
+		&ItemLootLevelBand{},
+		&WeaponLootTheme{},
+		&WeaponLootLocation{},
+		&WeaponLootSource{},
+		&WeaponLootTier{},
+		&WeaponLootRewardAmount{},
+		&WeaponLootLevelBand{},
+		&LootLevelBudgetProfile{},
 		&Effect{},
 		&CharacterEffect{},
 

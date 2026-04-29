@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
-import { getUncheckedSpells, gmUpdateSpell } from '@/lib/api/character';
+import { getCheckedSpells, getUncheckedSpells, gmUpdateSpell } from '@/lib/api/character';
 import type { ApiSpell } from '@/types/game';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,10 +10,11 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { isValidSpellDuration, SPELL_TYPES, SPELL_SAVE_ATTRIBUTES, STANDARD_SPELL_DIE_SIZES } from '@/lib/spellMechanics';
 import { DAMAGE_TYPES } from '@/types/game/state';
-import { CheckCircle, ChevronDown, ChevronUp, Shield, Wand2, Sparkles } from 'lucide-react';
+import { CheckCircle, ChevronDown, ChevronUp, RotateCcw, Shield, Wand2, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Navigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const GM_EMAIL = 'rpupo63@gmail.com';
 
@@ -119,7 +120,15 @@ function AIHint({
   );
 }
 
-function SpellCard({ spell, token }: { spell: ApiSpell; token: string }) {
+function SpellCard({
+  spell,
+  token,
+  variant,
+}: {
+  spell: ApiSpell;
+  token: string;
+  variant: 'pending' | 'reviewed';
+}) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [expanded, setExpanded] = useState(false);
@@ -128,12 +137,17 @@ function SpellCard({ spell, token }: { spell: ApiSpell; token: string }) {
   const set = (field: keyof SpellEditState) => (v: string | number) =>
     setEdit((s) => ({ ...s, [field]: v }));
 
+  const invalidateGmSpellLists = () => {
+    queryClient.invalidateQueries({ queryKey: ['gm-unchecked-spells'] });
+    queryClient.invalidateQueries({ queryKey: ['gm-checked-spells'] });
+  };
+
   const approveMutation = useMutation({
     mutationFn: () =>
       gmUpdateSpell(spell.id, { ...buildGmSpellUpdatePayload(edit), checked: true }, token),
     onSuccess: () => {
       toast({ title: 'Spell approved', description: `"${edit.name}" marked as checked.` });
-      queryClient.invalidateQueries({ queryKey: ['gm-unchecked-spells'] });
+      invalidateGmSpellLists();
     },
     onError: () => toast({ title: 'Error', description: 'Failed to approve spell.', variant: 'destructive' }),
   });
@@ -144,12 +158,29 @@ function SpellCard({ spell, token }: { spell: ApiSpell; token: string }) {
     onSuccess: (updated) => {
       toast({ title: 'Spell saved', description: `"${updated.name}" updated.` });
       setEdit(spellToEditState(updated));
+      if (variant === 'reviewed') {
+        queryClient.invalidateQueries({ queryKey: ['gm-checked-spells'] });
+      }
     },
     onError: () => toast({ title: 'Error', description: 'Failed to save spell.', variant: 'destructive' }),
   });
 
+  const uncheckMutation = useMutation({
+    mutationFn: () =>
+      gmUpdateSpell(spell.id, { ...buildGmSpellUpdatePayload(edit), checked: false }, token),
+    onSuccess: () => {
+      toast({
+        title: 'Returned to review queue',
+        description: `"${edit.name}" is unchecked until you approve it again.`,
+      });
+      invalidateGmSpellLists();
+    },
+    onError: () =>
+      toast({ title: 'Error', description: 'Failed to return spell to queue.', variant: 'destructive' }),
+  });
+
   const hasAI = !!spell.ai_overall_verdict;
-  const busy = saveMutation.isPending || approveMutation.isPending;
+  const busy = saveMutation.isPending || approveMutation.isPending || uncheckMutation.isPending;
   const durationOk = edit.duration.trim() === '' || isValidSpellDuration(edit.duration.trim());
 
   return (
@@ -165,6 +196,11 @@ function SpellCard({ spell, token }: { spell: ApiSpell; token: string }) {
           <span className="font-medium">{spell.name}</span>
           <Badge variant="outline" className="text-xs">Level {spell.slot_level ?? spell.level}</Badge>
           {spell.type && <Badge variant="secondary" className="text-xs">{spell.type}</Badge>}
+          {variant === 'reviewed' && (
+            <Badge variant="secondary" className="text-xs gap-1">
+              <CheckCircle className="w-3 h-3" /> GM approved
+            </Badge>
+          )}
           {hasAI && (
             <Badge
               variant="outline"
@@ -453,7 +489,7 @@ function SpellCard({ spell, token }: { spell: ApiSpell; token: string }) {
           )}
 
           {/* Actions */}
-          <div className="flex gap-2 pt-2">
+          <div className="flex flex-wrap gap-2 pt-2">
             <Button
               size="sm"
               variant="outline"
@@ -462,16 +498,29 @@ function SpellCard({ spell, token }: { spell: ApiSpell; token: string }) {
             >
               Save Changes
             </Button>
-            <div className="flex-grow" />
-            <Button
-              size="sm"
-              className="gap-2"
-              onClick={() => approveMutation.mutate()}
-              disabled={busy || !durationOk}
-            >
-              <CheckCircle className="w-4 h-4" />
-              Approve & Check
-            </Button>
+            <div className="flex-grow min-w-[1rem]" />
+            {variant === 'reviewed' ? (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2"
+                onClick={() => uncheckMutation.mutate()}
+                disabled={busy || !durationOk}
+              >
+                <RotateCcw className="w-4 h-4" />
+                Return to review queue
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                className="gap-2"
+                onClick={() => approveMutation.mutate()}
+                disabled={busy || !durationOk}
+              >
+                <CheckCircle className="w-4 h-4" />
+                Approve & Check
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -483,9 +532,15 @@ export default function GMSpellReviewPage() {
   const { user, token, isLoading } = useAuth();
   const isGM = user?.email === GM_EMAIL;
 
-  const { data: spells, isLoading: spellsLoading } = useQuery({
+  const { data: pendingSpells, isLoading: pendingLoading } = useQuery({
     queryKey: ['gm-unchecked-spells'],
     queryFn: () => getUncheckedSpells(token!),
+    enabled: !!token && isGM,
+  });
+
+  const { data: reviewedSpells, isLoading: reviewedLoading } = useQuery({
+    queryKey: ['gm-checked-spells'],
+    queryFn: () => getCheckedSpells(token!),
     enabled: !!token && isGM,
   });
 
@@ -504,31 +559,81 @@ export default function GMSpellReviewPage() {
         <div>
           <h1 className="text-3xl font-bold text-primary glow-text">GM Spell Review</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Unchecked spells submitted by players — review and approve them here.
+            Pending submissions and already-approved spells — edit mechanics or send a spell back to the queue.
           </p>
         </div>
       </div>
 
-      {spellsLoading && <p className="text-muted-foreground">Loading spells...</p>}
+      <Tabs defaultValue="pending" className="w-full">
+        <TabsList className="flex flex-wrap h-auto gap-1 py-1">
+          <TabsTrigger value="pending" className="gap-1.5">
+            Pending
+            {pendingLoading ? (
+              <span className="text-muted-foreground text-xs">…</span>
+            ) : (
+              <Badge variant="secondary" className="text-micro px-1.5 py-0 font-normal">
+                {pendingSpells?.length ?? 0}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="reviewed" className="gap-1.5">
+            Reviewed
+            {reviewedLoading ? (
+              <span className="text-muted-foreground text-xs">…</span>
+            ) : (
+              <Badge variant="secondary" className="text-micro px-1.5 py-0 font-normal">
+                {reviewedSpells?.length ?? 0}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
-      {!spellsLoading && (!spells || spells.length === 0) && (
-        <div className="text-center py-16 text-muted-foreground">
-          <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-lg font-medium">All caught up!</p>
-          <p className="text-sm">No spells are awaiting review.</p>
-        </div>
-      )}
+        <TabsContent value="pending" className="space-y-3 mt-4">
+          {pendingLoading && <p className="text-muted-foreground">Loading spells...</p>}
 
-      {spells && spells.length > 0 && (
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            {spells.length} spell{spells.length !== 1 ? 's' : ''} pending review
-          </p>
-          {spells.map((spell) => (
-            <SpellCard key={spell.id} spell={spell} token={token!} />
-          ))}
-        </div>
-      )}
+          {!pendingLoading && (!pendingSpells || pendingSpells.length === 0) && (
+            <div className="text-center py-16 text-muted-foreground">
+              <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p className="text-lg font-medium">All caught up!</p>
+              <p className="text-sm">No spells are awaiting review.</p>
+            </div>
+          )}
+
+          {pendingSpells && pendingSpells.length > 0 && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                {pendingSpells.length} spell{pendingSpells.length !== 1 ? 's' : ''} pending review
+              </p>
+              {pendingSpells.map((spell) => (
+                <SpellCard key={spell.id} spell={spell} token={token!} variant="pending" />
+              ))}
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="reviewed" className="space-y-3 mt-4">
+          {reviewedLoading && <p className="text-muted-foreground">Loading spells...</p>}
+
+          {!reviewedLoading && (!reviewedSpells || reviewedSpells.length === 0) && (
+            <div className="text-center py-16 text-muted-foreground">
+              <Wand2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p className="text-lg font-medium">No reviewed spells yet</p>
+              <p className="text-sm">Approved spells will appear here for later edits.</p>
+            </div>
+          )}
+
+          {reviewedSpells && reviewedSpells.length > 0 && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                {reviewedSpells.length} spell{reviewedSpells.length !== 1 ? 's' : ''} approved (newest updates first)
+              </p>
+              {reviewedSpells.map((spell) => (
+                <SpellCard key={spell.id} spell={spell} token={token!} variant="reviewed" />
+              ))}
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

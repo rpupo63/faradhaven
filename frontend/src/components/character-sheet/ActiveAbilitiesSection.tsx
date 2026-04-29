@@ -11,6 +11,7 @@ import { ApiTrait, ApiLevelFeature, ApiClassResource } from '@/types/game/api';
 import { cn } from '@/lib/utils';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { callTraitAbility, callFeatureAbility, restoreTraitAbility } from '@/lib/api/abilities';
+import { useToast } from '@/hooks/use-toast';
 
 interface ActiveAbilitiesSectionProps {
   sheet: NormalizedCharacterSheet;
@@ -44,6 +45,24 @@ function ResourceCostLabel({
   });
   return (
     <span className="text-xs text-muted-foreground">Costs: {labels.join(', ')}</span>
+  );
+}
+
+function ResourceGainLabel({
+  gains,
+  classResources,
+}: {
+  gains: Array<{ key: string; amount: number }>;
+  classResources?: ApiClassResource[];
+}) {
+  if (!gains.length) return null;
+  const labels = gains.map((g) => {
+    const res = classResources?.find((r) => r.key === g.key);
+    const name = res?.display_name ?? g.key;
+    return `+${g.amount} ${name}`;
+  });
+  return (
+    <span className="text-xs text-muted-foreground">Grants: {labels.join(', ')}</span>
   );
 }
 
@@ -244,15 +263,27 @@ interface FeatureAbilityCardProps {
 
 function FeatureAbilityCard({ feature, classResources, characterId, token }: FeatureAbilityCardProps) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [expanded, setExpanded] = useState(false);
 
-  const costs = feature.resource_costs ?? [];
+  const costs = Array.isArray(feature.resource_costs) ? feature.resource_costs : [];
+  const gains = Array.isArray(feature.resource_gains) ? feature.resource_gains : [];
   const affordable = canAffordCosts(costs, classResources);
 
   const mutation = useMutation({
     mutationFn: () => callFeatureAbility(characterId, feature.id, token),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['character-sheet', characterId] }),
-    onError: (err) => console.error('Failed to use feature:', err),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['character-sheet', characterId] });
+      await queryClient.refetchQueries({ queryKey: ['character-sheet', characterId] });
+    },
+    onError: (err: Error) => {
+      console.error('Failed to use feature:', err);
+      toast({
+        title: 'Could not use ability',
+        description: err.message || 'Check that class resources are initialized (reload the sheet).',
+        variant: 'destructive',
+      });
+    },
   });
 
   const disabled = mutation.isPending || !affordable;
@@ -281,9 +312,14 @@ function FeatureAbilityCard({ feature, classResources, characterId, token }: Fea
               </Badge>
             )}
           </div>
-          {costs.length > 0 && (
-            <div className="mt-2">
-              <ResourceCostLabel costs={costs} classResources={classResources} />
+          {(costs.length > 0 || gains.length > 0) && (
+            <div className="mt-2 space-y-1">
+              {costs.length > 0 && (
+                <ResourceCostLabel costs={costs} classResources={classResources} />
+              )}
+              {gains.length > 0 && (
+                <ResourceGainLabel gains={gains} classResources={classResources} />
+              )}
             </div>
           )}
         </div>

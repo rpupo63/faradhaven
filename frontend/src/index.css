@@ -74,6 +74,19 @@
     --sidebar-accent-foreground: var(--ink-hsl);
     --sidebar-border: 43 50% 55%;
     --sidebar-ring: var(--faded-gold-hsl);
+
+    /* Leather-bound cover – maroon-brown grain + gold tooling */
+    --leather-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='ln'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23ln)' opacity='0.58'/%3E%3C/svg%3E");
+    /* Coarser “scuffed” grain, different scale */
+    --leather-scuff: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='ls'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.38' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23ls)' opacity='0.34'/%3E%3C/svg%3E");
+    /* Fine scratches / beaten nap */
+    --leather-grain-fine: url("data:image/svg+xml,%3Csvg viewBox='0 0 140 140' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='lf'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.22' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23lf)' opacity='0.38'/%3E%3C/svg%3E");
+
+    /* Beaten vellum – scrollable main column (“inner pages”) */
+    --parchment-sheet-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='psn'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23psn)' opacity='0.68'/%3E%3C/svg%3E");
+    --parchment-sheet-fiber: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='psf'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.22' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23psf)' opacity='0.38'/%3E%3C/svg%3E");
+    /* Large irregular blotches – ink smears / aged pulp */
+    --parchment-sheet-blotch: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='pb'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.038' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23pb)' opacity='0.62'/%3E%3C/svg%3E");
   }
 
   .dark {
@@ -195,6 +208,381 @@
 }
 
 @layer components {
+  /* ═══ Leather-bound tome chrome (header strip + sidebar spine) ═══ */
+  .tome-leather-chrome {
+    position: relative;
+    isolation: isolate;
+    /* Subtle maroon/burgundy cast – nudged redder + a touch lighter */
+    background-color: hsl(5 44% 11%);
+    background-image:
+      radial-gradient(
+        ellipse 140% 90% at 12% 18%,
+        hsl(354 34% 22% / 0.42),
+        transparent 52%
+      ),
+      radial-gradient(
+        ellipse 100% 70% at 88% 78%,
+        hsl(0 0% 0% / 0.29),
+        transparent 55%
+      ),
+      linear-gradient(
+        148deg,
+        hsl(10 36% 24%) 0%,
+        hsl(5 44% 17%) 34%,
+        hsl(2 44% 12%) 66%,
+        hsl(353 42% 9%) 100%
+      ),
+      linear-gradient(
+        90deg,
+        hsl(0 0% 0% / 0.28) 0%,
+        transparent 20%,
+        transparent 80%,
+        hsl(0 0% 0% / 0.22) 100%
+      ),
+      var(--leather-noise),
+      var(--leather-scuff),
+      var(--leather-grain-fine);
+    background-size:
+      auto,
+      auto,
+      auto,
+      auto,
+      256px 256px,
+      180px 180px,
+      140px 140px;
+    background-blend-mode: multiply, multiply, normal, multiply, overlay, soft-light, overlay;
+    box-shadow:
+      inset 0 1px 0 hsl(25 42% 58% / 0.06),
+      inset 0 -18px 40px hsl(0 0% 0% / 0.46);
+  }
+
+  /* Scuffs + uneven fade – sits under content */
+  .tome-leather-chrome::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 1;
+    background-image:
+      repeating-linear-gradient(
+        -14deg,
+        transparent 0 34px,
+        hsl(0 0% 0% / 0.055) 34px 35px,
+        transparent 35px 58px
+      ),
+      repeating-linear-gradient(
+        76deg,
+        transparent 0 84px,
+        hsl(358 36% 9% / 0.1) 84px 86px,
+        transparent 86px 168px
+      ),
+      radial-gradient(ellipse 55% 42% at 50% 108%, hsl(0 0% 0% / 0.22), transparent 62%),
+      radial-gradient(ellipse 70% 45% at 72% 22%, hsl(0 0% 0% / 0.06), transparent 58%);
+    mix-blend-mode: multiply;
+  }
+
+  .tome-leather-chrome > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  .tome-leather-header {
+    border-style: solid;
+    border-width: 0 0 2px;
+    border-color: hsl(var(--faded-gold-hsl) / 0.4);
+    box-shadow:
+      inset 0 1px 0 hsl(28 40% 60% / 0.07),
+      inset 0 -22px 42px hsl(0 0% 0% / 0.42),
+      0 6px 22px hsl(0 0% 0% / 0.44);
+  }
+
+  .tome-leather-sidebar {
+    border-style: solid;
+    border-width: 0 2px 0 0;
+    border-color: hsl(var(--faded-gold-hsl) / 0.38);
+    box-shadow:
+      inset 2px 0 0 hsl(8 30% 38% / 0.1),
+      inset -18px 0 42px hsl(0 0% 0% / 0.4),
+      8px 0 28px hsl(0 0% 0% / 0.3);
+  }
+
+  /* Footer strip – same leather as chrome; gold seam against inner folio */
+  .tome-leather-footer {
+    border-style: solid;
+    border-width: 2px 0 0;
+    border-color: hsl(var(--faded-gold-hsl) / 0.4);
+    box-shadow:
+      inset 0 14px 38px hsl(0 0% 0% / 0.38),
+      inset 0 -1px 0 hsl(28 40% 58% / 0.06),
+      0 12px 28px hsl(0 0% 0% / 0.42);
+  }
+
+  /* Decorative spine stitching – dashed gold along inner edge */
+  .tome-leather-sidebar::after {
+    content: '';
+    position: absolute;
+    top: 1.25rem;
+    bottom: 1.25rem;
+    right: 10px;
+    width: 0;
+    border-right: 1px dashed hsl(var(--faded-gold-hsl) / 0.26);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Gold foil title emboss on dark leather */
+  .tome-leather-foil-title {
+    color: hsl(var(--faded-gold-hsl));
+    text-shadow:
+      0 1px 0 hsl(43 55% 72% / 0.35),
+      0 2px 4px hsl(0 0% 0% / 0.65),
+      0 -1px 1px hsl(0 0% 0% / 0.9);
+  }
+
+  /*
+   * Sidebar / drawer nav on leather: anchors must not inherit body ink — RPG-Awesome + Cinzel
+   * both resolve from explicit `color` on the link (currentColor for icons).
+   */
+  .tome-leather-chrome nav a.tome-leather-nav-link {
+    color: hsl(43 48% 87%);
+    text-decoration: none;
+  }
+
+  .tome-leather-chrome nav a.tome-leather-nav-link:visited {
+    color: hsl(43 48% 87%);
+  }
+
+  .tome-leather-chrome nav a.tome-leather-nav-link:hover {
+    color: hsl(48 100% 96%);
+    background-color: hsl(0 0% 0% / 0.2);
+  }
+
+  .tome-leather-chrome nav a.tome-leather-nav-link.tome-leather-nav-link-active {
+    color: hsl(var(--faded-gold-hsl));
+    background-color: hsl(0 0% 0% / 0.32);
+    border-color: hsl(var(--faded-gold-hsl) / 0.35);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+
+  .tome-leather-chrome nav a.tome-leather-nav-link.tome-leather-nav-link-active:hover {
+    color: hsl(43 75% 62%);
+    background-color: hsl(0 0% 0% / 0.38);
+  }
+
+  .tome-leather-chrome nav a.tome-leather-nav-link:focus-visible {
+    outline: 2px solid hsl(var(--faded-gold-hsl) / 0.55);
+    outline-offset: 2px;
+  }
+
+  /*
+   * Inner folio – heavily worn yellowed vellum: foxing, ink spots, coarse blotches, grain.
+   */
+  .tome-inner-folio {
+    position: relative;
+    isolation: isolate;
+    background-color: hsl(46 44% 83%);
+    background-image:
+      radial-gradient(
+        ellipse 118% 46% at 8% 6%,
+        hsl(50 58% 94% / 0.78),
+        transparent 56%
+      ),
+      radial-gradient(
+        ellipse 96% 44% at 94% 97%,
+        hsl(32 28% 58% / 0.48),
+        transparent 56%
+      ),
+      radial-gradient(
+        ellipse 58% 22% at 72% 11%,
+        hsl(28 22% 58% / 0.22),
+        transparent 66%
+      ),
+      /* Stains: wide smears, vertical streaks, linear smudges – not round blots */
+      radial-gradient(ellipse 50% 9% at 18% 42%, hsl(26 32% 38% / 0.26), transparent 74%),
+      linear-gradient(
+        124deg,
+        transparent 34%,
+        hsl(24 30% 36% / 0.2) 46%,
+        transparent 58%
+      ),
+      radial-gradient(ellipse 12% 48% at 84% 51%, hsl(22 28% 34% / 0.24), transparent 72%),
+      linear-gradient(
+        38deg,
+        transparent 50%,
+        hsl(30 24% 40% / 0.16) 59%,
+        transparent 69%
+      ),
+      radial-gradient(ellipse 46% 12% at 55% 78%, hsl(30 26% 39% / 0.17), transparent 71%),
+      radial-gradient(ellipse 30% 10% at 91% 29%, hsl(18 26% 32% / 0.28), transparent 73%),
+      radial-gradient(ellipse 38% 11% at 8% 88%, hsl(35 22% 44% / 0.15), transparent 69%),
+      linear-gradient(
+        96deg,
+        transparent 41%,
+        hsl(48 48% 62% / 0.3) 48%,
+        transparent 56%
+      ),
+      radial-gradient(ellipse 10% 36% at 76% 64%, hsl(42 38% 52% / 0.26), transparent 76%),
+      linear-gradient(
+        172deg,
+        hsl(46 50% 89%) 0%,
+        hsl(44 44% 83%) 32%,
+        hsl(42 38% 78%) 68%,
+        hsl(38 36% 73%) 100%
+      ),
+      repeating-linear-gradient(
+        -11deg,
+        transparent 0 48px,
+        hsl(36 26% 46% / 0.065) 48px 49px,
+        transparent 49px 112px
+      ),
+      repeating-linear-gradient(
+        93deg,
+        transparent 0 133px,
+        hsl(40 22% 48% / 0.045) 133px 134px,
+        transparent 134px 248px
+      ),
+      repeating-linear-gradient(
+        127deg,
+        transparent 0 220px,
+        hsl(34 20% 52% / 0.035) 220px 221px,
+        transparent 221px 400px
+      ),
+      var(--parchment-sheet-noise),
+      var(--parchment-sheet-fiber),
+      var(--parchment-sheet-blotch);
+    /* 3 washes + 9 stain layers (smears/streaks) + base + 3 repeats + 3 textures */
+    background-size:
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      256px 256px,
+      180px 180px,
+      220px 220px;
+    background-blend-mode:
+      soft-light,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      normal,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      overlay,
+      multiply;
+    box-shadow:
+      inset 0 1px 0 hsl(52 48% 96% / 0.55),
+      inset 0 -28px 90px hsl(30 24% 38% / 0.12),
+      inset 10px 0 52px hsl(24 26% 26% / 0.065),
+      inset -8px 0 44px hsl(40 28% 52% / 0.055);
+  }
+
+  .dark .tome-inner-folio {
+    background-color: hsl(24 16% 14%);
+    background-image:
+      radial-gradient(ellipse 118% 46% at 8% 6%, hsl(40 32% 24% / 0.55), transparent 56%),
+      radial-gradient(ellipse 96% 44% at 94% 96%, hsl(12 38% 5% / 0.72), transparent 56%),
+      radial-gradient(ellipse 58% 22% at 72% 11%, hsl(26 22% 10% / 0.45), transparent 64%),
+      radial-gradient(ellipse 50% 9% at 18% 42%, hsl(0 0% 0% / 0.38), transparent 74%),
+      linear-gradient(
+        124deg,
+        transparent 34%,
+        hsl(0 0% 0% / 0.28) 46%,
+        transparent 58%
+      ),
+      radial-gradient(ellipse 12% 48% at 84% 51%, hsl(0 0% 0% / 0.34), transparent 72%),
+      linear-gradient(
+        38deg,
+        transparent 50%,
+        hsl(0 0% 0% / 0.22) 59%,
+        transparent 69%
+      ),
+      radial-gradient(ellipse 46% 12% at 55% 78%, hsl(28 18% 8% / 0.28), transparent 71%),
+      radial-gradient(ellipse 30% 10% at 91% 29%, hsl(0 0% 0% / 0.4), transparent 73%),
+      radial-gradient(ellipse 38% 11% at 8% 88%, hsl(22 15% 9% / 0.26), transparent 69%),
+      linear-gradient(
+        96deg,
+        transparent 41%,
+        hsl(42 22% 30% / 0.32) 48%,
+        transparent 56%
+      ),
+      radial-gradient(ellipse 10% 36% at 76% 64%, hsl(35 18% 22% / 0.28), transparent 76%),
+      linear-gradient(172deg, hsl(26 14% 17%) 0%, hsl(22 12% 13%) 50%, hsl(18 14% 11%) 100%),
+      repeating-linear-gradient(-11deg, transparent 0 48px, hsl(0 0% 0% / 0.16) 48px 49px, transparent 49px 112px),
+      repeating-linear-gradient(93deg, transparent 0 133px, hsl(0 0% 0% / 0.12) 133px 134px, transparent 134px 248px),
+      repeating-linear-gradient(127deg, transparent 0 220px, hsl(0 0% 0% / 0.1) 220px 221px, transparent 221px 400px),
+      var(--parchment-sheet-noise),
+      var(--parchment-sheet-fiber),
+      var(--parchment-sheet-blotch);
+    background-size:
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      256px 256px,
+      180px 180px,
+      220px 220px;
+    background-blend-mode:
+      soft-light,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      normal,
+      multiply,
+      multiply,
+      multiply,
+      multiply,
+      overlay,
+      multiply;
+    box-shadow:
+      inset 0 1px 0 hsl(38 25% 35% / 0.15),
+      inset 0 -28px 90px hsl(0 0% 0% / 0.38),
+      inset 10px 0 52px hsl(0 0% 0% / 0.28),
+      inset -8px 0 44px hsl(0 0% 0% / 0.22);
+  }
+
   /* Hand-drawn border – irregular quill feel */
   .hand-drawn-border {
     border-style: solid;

@@ -1,39 +1,40 @@
 package database
 
 import (
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/models"
 	"gorm.io/gorm"
 )
 
 type Database struct {
-	db                     *gorm.DB
-	userRepo               *UserRepo
-	characterRepo          *CharacterRepo
-	raceRepo               *RaceRepo
-	classRepo              *ClassRepo
-	archetypeRepo          *ArchetypeRepo
-	spellRepo              *SpellRepo
-	beastRepo              *BeastRepo
-	attackRepo             *AttackRepo
-	levelUpHistoryRepo     *LevelUpHistoryRepo
-	weaponRepo             *WeaponRepo
-	itemRepo               *ItemRepo
-	componentRepo          *ComponentRepo
-	effectRepo             *EffectRepo
-	characterEffectRepo    *CharacterEffectRepo
-	characterResourceRepo  *CharacterResourceRepo
-	minionRepo             *MinionRepo
-	consumptionHistoryRepo *ConsumptionHistoryRepo
-	savedSpellRepo         *SavedSpellRepo
-	corpseRepo             *CorpseRepo
-	characterLinkRepo      *CharacterLinkRepo
-	noteRepo               *NoteRepo
-	gameMapRepo            *GameMapRepo
-	mapTokenRepo           *MapTokenRepo
-	mapElementRepo         *MapElementRepo
-	monsterRepo            *MonsterRepo
-	partyRepo              *PartyRepo // NEW: Party Repository
-	storeOwnerRepo         *StoreOwnerRepo
+	db                         *gorm.DB
+	userRepo                   *UserRepo
+	characterRepo              *CharacterRepo
+	raceRepo                   *RaceRepo
+	classRepo                  *ClassRepo
+	archetypeRepo              *ArchetypeRepo
+	spellRepo                  *SpellRepo
+	beastRepo                  *BeastRepo
+	attackRepo                 *AttackRepo
+	levelUpHistoryRepo         *LevelUpHistoryRepo
+	weaponRepo                 *WeaponRepo
+	itemRepo                   *ItemRepo
+	componentRepo              *ComponentRepo
+	effectRepo                 *EffectRepo
+	characterEffectRepo        *CharacterEffectRepo
+	characterResourceRepo      *CharacterResourceRepo
+	minionRepo                 *MinionRepo
+	consumptionHistoryRepo     *ConsumptionHistoryRepo
+	savedSpellRepo             *SavedSpellRepo
+	corpseRepo                 *CorpseRepo
+	characterLinkRepo          *CharacterLinkRepo
+	noteRepo                   *NoteRepo
+	gameMapRepo                *GameMapRepo
+	mapTokenRepo               *MapTokenRepo
+	mapElementRepo             *MapElementRepo
+	monsterRepo                *MonsterRepo
+	monsterGenerationEventRepo *MonsterGenerationEventRepo
+	partyRepo                  *PartyRepo // NEW: Party Repository
+	storeOwnerRepo             *StoreOwnerRepo
 
 	// New Map Element Properties Repos
 	trapPropertiesRepo             *TrapPropertiesRepo
@@ -45,34 +46,35 @@ type Database struct {
 // New initializes a new Database struct with each repository using a shared GORM database instance
 func New(db *gorm.DB) Database {
 	return Database{
-		db:                     db,
-		userRepo:               NewUserRepo(db),
-		characterRepo:          NewCharacterRepo(db),
-		raceRepo:               NewRaceRepo(db),
-		classRepo:              NewClassRepo(db),
-		archetypeRepo:          NewArchetypeRepo(db),
-		spellRepo:              NewSpellRepo(db),
-		beastRepo:              NewBeastRepo(db),
-		attackRepo:             NewAttackRepo(db),
-		levelUpHistoryRepo:     NewLevelUpHistoryRepo(db),
-		weaponRepo:             NewWeaponRepo(db),
-		itemRepo:               NewItemRepo(db),
-		componentRepo:          NewComponentRepo(db),
-		effectRepo:             NewEffectRepo(db),
-		characterEffectRepo:    NewCharacterEffectRepo(db),
-		characterResourceRepo:  NewCharacterResourceRepo(db),
-		consumptionHistoryRepo: NewConsumptionHistoryRepo(db),
-		minionRepo:             NewMinionRepo(db),
-		savedSpellRepo:         NewSavedSpellRepo(db),
-		corpseRepo:             NewCorpseRepo(db),
-		characterLinkRepo:      NewCharacterLinkRepo(db),
-		noteRepo:               NewNoteRepo(db),
-		gameMapRepo:            NewGameMapRepo(db),
-		mapTokenRepo:           NewMapTokenRepo(db),
-		mapElementRepo:         NewMapElementRepo(db),
-		monsterRepo:            NewMonsterRepo(db),
-		partyRepo:              NewPartyRepo(db), // NEW: Party Repository Initialization
-		storeOwnerRepo:         NewStoreOwnerRepo(db),
+		db:                         db,
+		userRepo:                   NewUserRepo(db),
+		characterRepo:              NewCharacterRepo(db),
+		raceRepo:                   NewRaceRepo(db),
+		classRepo:                  NewClassRepo(db),
+		archetypeRepo:              NewArchetypeRepo(db),
+		spellRepo:                  NewSpellRepo(db),
+		beastRepo:                  NewBeastRepo(db),
+		attackRepo:                 NewAttackRepo(db),
+		levelUpHistoryRepo:         NewLevelUpHistoryRepo(db),
+		weaponRepo:                 NewWeaponRepo(db),
+		itemRepo:                   NewItemRepo(db),
+		componentRepo:              NewComponentRepo(db),
+		effectRepo:                 NewEffectRepo(db),
+		characterEffectRepo:        NewCharacterEffectRepo(db),
+		characterResourceRepo:      NewCharacterResourceRepo(db),
+		consumptionHistoryRepo:     NewConsumptionHistoryRepo(db),
+		minionRepo:                 NewMinionRepo(db),
+		savedSpellRepo:             NewSavedSpellRepo(db),
+		corpseRepo:                 NewCorpseRepo(db),
+		characterLinkRepo:          NewCharacterLinkRepo(db),
+		noteRepo:                   NewNoteRepo(db),
+		gameMapRepo:                NewGameMapRepo(db),
+		mapTokenRepo:               NewMapTokenRepo(db),
+		mapElementRepo:             NewMapElementRepo(db),
+		monsterRepo:                NewMonsterRepo(db),
+		monsterGenerationEventRepo: NewMonsterGenerationEventRepo(db),
+		partyRepo:                  NewPartyRepo(db), // NEW: Party Repository Initialization
+		storeOwnerRepo:             NewStoreOwnerRepo(db),
 
 		// New Map Element Properties Repos
 		trapPropertiesRepo:             NewTrapPropertiesRepo(db),
@@ -182,6 +184,10 @@ func (d Database) MapElementRepo() *MapElementRepo {
 
 func (d Database) MonsterRepo() *MonsterRepo {
 	return d.monsterRepo
+}
+
+func (d Database) MonsterGenerationEventRepo() *MonsterGenerationEventRepo {
+	return d.monsterGenerationEventRepo
 }
 
 func (d Database) PartyRepo() *PartyRepo {

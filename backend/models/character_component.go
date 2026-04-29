@@ -14,6 +14,6 @@ type CharacterComponent struct {
 	CreatedAt   time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedAt   time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
-	Character Character `json:"-" gorm:"foreignKey:CharacterID;references:ID;constraint:OnDelete:CASCADE"`
-	Component Component `json:"component" gorm:"foreignKey:ComponentID;references:ID;constraint:OnDelete:CASCADE"`
+	Character Character `json:"-" gorm:"foreignKey:CharacterID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Component Component `json:"component" gorm:"foreignKey:ComponentID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

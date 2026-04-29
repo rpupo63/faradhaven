@@ -217,11 +217,51 @@ export async function createSpell(
   return handleResponse<ApiSpell>(res, 'Failed to create spell');
 }
 
+/** Same shape as returned by GET /api/spell/:id/opinion and POST preview (SpellAIService). */
+export interface SpellAIOpinion {
+  description_opinion: string;
+  damage_opinion: string;
+  effect_opinion: string;
+  overall_verdict: string;
+  recommended_name?: string | null;
+  recommended_description?: string | null;
+  recommended_type?: string | null;
+  recommended_range?: string | null;
+  recommended_duration?: string | null;
+  recommended_damage_dice_count?: number | null;
+  recommended_damage_die_size?: number | null;
+  recommended_damage_type?: string | null;
+  recommended_save_attr?: string | null;
+}
+
+/**
+ * Runs the same AI spell review as GM tools / spell opinion, using a draft payload (no spell row created).
+ */
+export async function previewSpellAIOpinion(
+  request: CreateSpellRequest,
+  token?: string
+): Promise<SpellAIOpinion> {
+  const base = getBaseUrl();
+  const url = `${base}/api/spell/preview-ai-opinion`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await apiFetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(request),
+  });
+  return handleResponse<SpellAIOpinion>(res, 'Failed to generate spell description');
+}
+
 /**
  * Calls the synthesis preview endpoint to get auto-derived spell properties.
  */
 export async function synthesizeSpell(
   componentIds: string[],
+  draft?: {
+    damageType?: string;
+    range?: number;
+  },
   token?: string
 ): Promise<import('@/types/game').SpellSynthesis> {
   const base = getBaseUrl();
@@ -231,7 +271,11 @@ export async function synthesizeSpell(
   const res = await apiFetch(url, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ component_ids: componentIds }),
+    body: JSON.stringify({
+      component_ids: componentIds,
+      damage_type: draft?.damageType?.trim() ? draft.damageType.trim() : undefined,
+      range: typeof draft?.range === 'number' ? draft.range : undefined,
+    }),
   });
   return handleResponse(res, 'Failed to synthesize spell');
 }
@@ -270,6 +314,18 @@ export async function getUncheckedSpells(token: string): Promise<ApiSpell[]> {
     headers: { Authorization: `Bearer ${token}` },
   });
   return handleResponse<ApiSpell[]>(res, 'Failed to load unchecked spells');
+}
+
+/**
+ * GM: Fetches all spells that have already been reviewed (checked).
+ */
+export async function getCheckedSpells(token: string): Promise<ApiSpell[]> {
+  const base = getBaseUrl();
+  const url = `${base}/api/gm/spells/checked`;
+  const res = await apiFetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse<ApiSpell[]>(res, 'Failed to load checked spells');
 }
 
 /**
@@ -613,6 +669,59 @@ export async function purchaseItem(
     body: JSON.stringify(body),
   });
   return handleResponse<{ message: string; money: number; cost_deducted: number }>(res, 'Failed to purchase item');
+}
+
+/**
+ * Sells an owned item or weapon from a character inventory.
+ */
+export async function sellItem(
+  characterId: string,
+  payload: {
+    item_id: string;
+    item_type: 'item' | 'weapon';
+    character_weapon_id?: string;
+  },
+  token?: string
+): Promise<{ message: string; money: number; value_received: number }> {
+  const base = getBaseUrl();
+  const url = `${base}/api/character/${characterId}/sell`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await apiFetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<{ message: string; money: number; value_received: number }>(
+    res,
+    'Failed to sell item'
+  );
+}
+
+/**
+ * Permanently discards an owned item or weapon without receiving money.
+ */
+export async function tossItem(
+  characterId: string,
+  payload: {
+    item_id: string;
+    item_type: 'item' | 'weapon';
+    character_weapon_id?: string;
+  },
+  token?: string
+): Promise<{ message: string; money: number }> {
+  const base = getBaseUrl();
+  const url = `${base}/api/character/${characterId}/toss`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await apiFetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<{ message: string; money: number }>(res, 'Failed to toss item');
 }
 
 /**

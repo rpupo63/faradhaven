@@ -1,7 +1,7 @@
 package faradhaven_classes
 
 import (
-	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+	"github.com/rpupo63/faradhaven/backend/seed/seedmedia"
 )
 
 // Sanguinist returns the Sanguinist class seed.
@@ -23,6 +23,8 @@ func Sanguinist() FaradhavenClassSeed {
 		AutomaticEquipNames:  []string{"3 blood vials (empty)"},
 		AutomaticWeaponNames: []string{"Bite"},
 		AutomaticItemNames:   []string{"Leather armor", "Healer's kit"},
+		SpellCastingComponent:   "verbal",
+		SpellCastingDescription: "You bind formulae with whispered oaths, pulse-count cadences, and sanguine vows—the voice rides ichor like a conductor. Onlookers hear breath hitch into unnatural resonance; the giveaway is sound unless you choke it down.",
 		EquipmentChoices: []EquipmentChoiceSeed{
 			{
 				Instruction: "Choose your surgical weapon",
@@ -88,7 +90,7 @@ func sanguinistLevelFeatures() map[int][]FeatureSeed {
 				Name:          "Shadow Mist",
 				Description:   "As an action, spend 2 Ichor and 1 Unstable Component to create a 10ft radius cloud centered on you. Other creatures in the cloud must succeed on a Constitution save (DC 8 + Prof + Cha) or take 2d6 necrotic damage and be blinded until the start of your next turn.",
 				ActionType:    "Action",
-				ResourceCosts: []ResourceCostSeed{{Key: "max_blood_ichor", Amount: 2}},
+				ResourceCosts: []ResourceCostSeed{{Key: "max_blood_ichor", Amount: 2}, {Key: "unstable_components", Amount: 1}},
 			},
 		},
 		3: {
@@ -106,7 +108,7 @@ func sanguinistLevelFeatures() map[int][]FeatureSeed {
 				Name:          "Coagulation",
 				Description:   "As an action, spend 3 Ichor and 1 Unstable Component to target a creature within 30ft. It must succeed on a Strength save (DC 8 + Prof + Cha) or be Restrained (as their blood thickens) for 1 minute (save repeats at end of turn).",
 				ActionType:    "Action",
-				ResourceCosts: []ResourceCostSeed{{Key: "max_blood_ichor", Amount: 3}},
+				ResourceCosts: []ResourceCostSeed{{Key: "max_blood_ichor", Amount: 3}, {Key: "unstable_components", Amount: 1}},
 			},
 		},
 		7: {

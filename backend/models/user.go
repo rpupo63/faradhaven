@@ -28,8 +28,8 @@ type User struct {
 	DiceFontColor  string `json:"dice_font_color" gorm:"type:text;default:'#B8860B'"`
 
 	// Relationships (HasMany: children hold FK; constraint ensures ON DELETE CASCADE)
-	Characters      []Character `json:"characters,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	Spells          []Spell     `json:"spells,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	Beasts          []Beast     `json:"beasts,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	ActiveCharacter *Character  `json:"active_character,omitempty" gorm:"foreignKey:ActiveCharacterID;references:ID"`
+	Characters      []Character `json:"characters,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Spells          []Spell     `json:"spells,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Beasts          []Beast     `json:"beasts,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	ActiveCharacter *Character  `json:"active_character,omitempty" gorm:"foreignKey:ActiveCharacterID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 }

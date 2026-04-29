@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/database"
+	"github.com/rpupo63/faradhaven/backend/models"
 	"gorm.io/gorm"
 )
 
@@ -24,17 +24,17 @@ type MinionService struct {
 func NewMinionService(
 	db *gorm.DB,
 	minionRepo *database.MinionRepo,
-		CharacterRepo *database.CharacterRepo,
-		classRepo     *database.ClassRepo,
-		componentRepo *database.ComponentRepo,
-	) *MinionService {
-		return &MinionService{
-			db:            db,
-			minionRepo:    minionRepo,
-			CharacterRepo: CharacterRepo,
-			classRepo:     classRepo,
-			componentRepo: componentRepo,
-		}
+	CharacterRepo *database.CharacterRepo,
+	classRepo *database.ClassRepo,
+	componentRepo *database.ComponentRepo,
+) *MinionService {
+	return &MinionService{
+		db:            db,
+		minionRepo:    minionRepo,
+		CharacterRepo: CharacterRepo,
+		classRepo:     classRepo,
+		componentRepo: componentRepo,
+	}
 }
 
 // CreateConstructRequest contains the data needed to create a construct

@@ -13,9 +13,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/models"
-	"github.com/rpupo63/unified-personal-site-backend/services"
+	"github.com/rpupo63/faradhaven/backend/database"
+	"github.com/rpupo63/faradhaven/backend/models"
+	"github.com/rpupo63/faradhaven/backend/services"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
@@ -258,7 +258,7 @@ func (h *characterHandler) restSpellPoints() http.HandlerFunc {
 			return
 		}
 
-		// Keep CharacterResource spell_points (Rift Weaver) aligned with the character column
+		// Keep CharacterResource spell_points aligned with the character column
 		if h.resourceService != nil {
 			_ = h.resourceService.RestoreResourceToMax(id, "spell_points")
 		}
@@ -723,6 +723,276 @@ func (h *characterHandler) purchaseItem() http.HandlerFunc {
 	}
 }
 
+// sellItem handles selling an owned item or weapon for 50% of its listed value.
+func (h *characterHandler) sellItem() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "characterID")
+		charID, err := uuid.Parse(idStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		authUserIDStr, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		authUserID, _ := uuid.Parse(authUserIDStr)
+		belongs, err := h.characterRepo.CharacterBelongsToUser(charID, authUserID)
+		if err != nil || !belongs {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(charID)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
+			return
+		}
+
+		var req SellItemRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		var soldName string
+		var sellValue int64
+		var soldType string
+		errBadRequest := errors.New("bad sell request")
+
+		err = h.characterRepo.GetDB().Transaction(func(tx *gorm.DB) error {
+			switch req.ItemType {
+			case "weapon":
+				if req.CharacterWeaponID == nil {
+					return fmt.Errorf("%w: missing character_weapon_id", errBadRequest)
+				}
+
+				var owned models.CharacterWeapon
+				if err := tx.Preload("Weapon").
+					Where("id = ? AND character_id = ?", *req.CharacterWeaponID, charID).
+					First(&owned).Error; err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return fmt.Errorf("%w: weapon not owned by character", errBadRequest)
+					}
+					return err
+				}
+
+				if req.ItemID != uuid.Nil && owned.WeaponID != req.ItemID {
+					return fmt.Errorf("%w: item_id does not match owned weapon", errBadRequest)
+				}
+
+				value := parseCost(owned.Weapon.Cost) / 2
+				if value <= 0 {
+					return fmt.Errorf("%w: weapon has no sell value", errBadRequest)
+				}
+
+				if err := tx.Delete(&owned).Error; err != nil {
+					return err
+				}
+
+				soldName = owned.Weapon.Name
+				sellValue = value
+				soldType = "weapon"
+			case "item":
+				item, err := h.itemRepo.FindByID(req.ItemID)
+				if err != nil {
+					return fmt.Errorf("%w: item not found", errBadRequest)
+				}
+				value := parseCost(item.Cost) / 2
+				if value <= 0 {
+					return fmt.Errorf("%w: item has no sell value", errBadRequest)
+				}
+
+				deleteRes := tx.Exec(
+					"WITH target AS (SELECT ctid FROM character_items WHERE character_id = ? AND item_id = ? LIMIT 1) DELETE FROM character_items WHERE ctid IN (SELECT ctid FROM target)",
+					charID,
+					req.ItemID,
+				)
+				if deleteRes.Error != nil {
+					return deleteRes.Error
+				}
+				if deleteRes.RowsAffected == 0 {
+					return fmt.Errorf("%w: item not owned by character", errBadRequest)
+				}
+
+				var remaining int64
+				if err := tx.Table("character_items").
+					Where("character_id = ? AND item_id = ?", charID, req.ItemID).
+					Count(&remaining).Error; err != nil {
+					return err
+				}
+				if remaining == 0 {
+					if character.EquippedArmorID != nil && *character.EquippedArmorID == req.ItemID {
+						if err := tx.Model(&models.Character{}).Where("id = ?", charID).Update("equipped_armor_id", nil).Error; err != nil {
+							return err
+						}
+					}
+					if character.EquippedShieldID != nil && *character.EquippedShieldID == req.ItemID {
+						if err := tx.Model(&models.Character{}).Where("id = ?", charID).Update("equipped_shield_id", nil).Error; err != nil {
+							return err
+						}
+					}
+				}
+
+				soldName = item.Name
+				sellValue = value
+				soldType = "item"
+			default:
+				return fmt.Errorf("%w: invalid item type", errBadRequest)
+			}
+
+			newMoney := character.Money + sellValue
+			if err := tx.Model(&models.Character{}).Where("id = ?", charID).Update("money", newMoney).Error; err != nil {
+				return err
+			}
+			character.Money = newMoney
+
+			return nil
+		})
+		if err != nil {
+			if errors.Is(err, errBadRequest) {
+				respondError(w, http.StatusBadRequest, strings.TrimPrefix(err.Error(), "bad sell request: "))
+				return
+			}
+			log.Error().Err(err).Msg("Failed to sell item")
+			respondError(w, http.StatusInternalServerError, "Failed to sell item")
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"message":        fmt.Sprintf("Sold %s %q for %d cp", soldType, soldName, sellValue),
+			"money":          character.Money,
+			"value_received": sellValue,
+		})
+	}
+}
+
+// tossItem handles permanently discarding an owned item or weapon with no money gained.
+func (h *characterHandler) tossItem() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "characterID")
+		charID, err := uuid.Parse(idStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid character ID")
+			return
+		}
+
+		authUserIDStr, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		authUserID, _ := uuid.Parse(authUserIDStr)
+		belongs, err := h.characterRepo.CharacterBelongsToUser(charID, authUserID)
+		if err != nil || !belongs {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		character, err := h.characterRepo.FindByID(charID)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Character not found")
+			return
+		}
+
+		var req SellItemRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		var tossedName string
+		var tossedType string
+		errBadRequest := errors.New("bad toss request")
+
+		err = h.characterRepo.GetDB().Transaction(func(tx *gorm.DB) error {
+			switch req.ItemType {
+			case "weapon":
+				if req.CharacterWeaponID == nil {
+					return fmt.Errorf("%w: missing character_weapon_id", errBadRequest)
+				}
+
+				var owned models.CharacterWeapon
+				if err := tx.Preload("Weapon").
+					Where("id = ? AND character_id = ?", *req.CharacterWeaponID, charID).
+					First(&owned).Error; err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return fmt.Errorf("%w: weapon not owned by character", errBadRequest)
+					}
+					return err
+				}
+
+				if req.ItemID != uuid.Nil && owned.WeaponID != req.ItemID {
+					return fmt.Errorf("%w: item_id does not match owned weapon", errBadRequest)
+				}
+
+				if err := tx.Delete(&owned).Error; err != nil {
+					return err
+				}
+				tossedName = owned.Weapon.Name
+				tossedType = "weapon"
+			case "item":
+				item, err := h.itemRepo.FindByID(req.ItemID)
+				if err != nil {
+					return fmt.Errorf("%w: item not found", errBadRequest)
+				}
+
+				deleteRes := tx.Exec(
+					"WITH target AS (SELECT ctid FROM character_items WHERE character_id = ? AND item_id = ? LIMIT 1) DELETE FROM character_items WHERE ctid IN (SELECT ctid FROM target)",
+					charID,
+					req.ItemID,
+				)
+				if deleteRes.Error != nil {
+					return deleteRes.Error
+				}
+				if deleteRes.RowsAffected == 0 {
+					return fmt.Errorf("%w: item not owned by character", errBadRequest)
+				}
+
+				var remaining int64
+				if err := tx.Table("character_items").
+					Where("character_id = ? AND item_id = ?", charID, req.ItemID).
+					Count(&remaining).Error; err != nil {
+					return err
+				}
+				if remaining == 0 {
+					if character.EquippedArmorID != nil && *character.EquippedArmorID == req.ItemID {
+						if err := tx.Model(&models.Character{}).Where("id = ?", charID).Update("equipped_armor_id", nil).Error; err != nil {
+							return err
+						}
+					}
+					if character.EquippedShieldID != nil && *character.EquippedShieldID == req.ItemID {
+						if err := tx.Model(&models.Character{}).Where("id = ?", charID).Update("equipped_shield_id", nil).Error; err != nil {
+							return err
+						}
+					}
+				}
+				tossedName = item.Name
+				tossedType = "item"
+			default:
+				return fmt.Errorf("%w: invalid item type", errBadRequest)
+			}
+			return nil
+		})
+		if err != nil {
+			if errors.Is(err, errBadRequest) {
+				respondError(w, http.StatusBadRequest, strings.TrimPrefix(err.Error(), "bad toss request: "))
+				return
+			}
+			log.Error().Err(err).Msg("Failed to toss item")
+			respondError(w, http.StatusInternalServerError, "Failed to toss item")
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"message": fmt.Sprintf("Tossed %s %q", tossedType, tossedName),
+			"money":   character.Money,
+		})
+	}
+}
+
 // castSpell handles deducting spell points and updating class-specific resources (like Madness)
 func (h *characterHandler) castSpell() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -850,10 +1120,7 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 			}
 
 			// Calculate Cost
-			if class.Name == "The Rift Weaver" {
-				// Rift Weaver: Cost is 2 SP per component
-				cost = loadedSpell.Level * 2
-			} else if class.Name == "The Piston Brawler" {
+			if class.Name == "The Piston Brawler" {
 				// Piston Brawler: sum of component tiers (tier 1 +1 stability, tier 2 +2, etc.)
 				for _, comp := range loadedSpell.Components {
 					t := comp.Tier
@@ -892,14 +1159,10 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 			resourceKeyToDeduct = *req.ResourceKey
 		} else {
 			switch class.Name {
-			case "The Rift Weaver":
-				resourceKeyToDeduct = "spell_points"
 			case "The Piston Brawler":
 				resourceKeyToDeduct = "max_stability"
 			case "The Sanguinist":
 				resourceKeyToDeduct = "max_blood_ichor"
-			case "The Vapor Blade":
-				resourceKeyToDeduct = "shadow_points"
 			case "The Lorewright", "The Ironwright":
 				// Components ARE the cost — no pool to deduct from
 				skipResourceDeduction = true
@@ -935,7 +1198,7 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 				return
 			}
 
-			skipPowderCharge := false
+			speedDialFreeCast := false
 			if loadedSpell != nil && h.savedSpellService != nil {
 				savedSpells, err := h.savedSpellService.GetSpeedDial(character.ID)
 				if err != nil {
@@ -943,16 +1206,17 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 					respondError(w, http.StatusInternalServerError, "Failed to load speed dial")
 					return
 				}
-				skipPowderCharge = powderMageSpellMatchesSavedSpeedDial(loadedSpell, savedSpells)
+				speedDialFreeCast = powderMageSpellMatchesSavedSpeedDial(loadedSpell, savedSpells)
 			}
 
-			if !skipPowderCharge {
-				if err := h.resourceService.DeductResource(character.ID, "powder_charges", 1); err != nil {
-					log.Error().Err(err).Str("resource_key", "powder_charges").Msg("Failed to deduct powder charges")
+			// Non-Speed Dial prepared casts cost 1 second from Available Timer (same pool as timed forging).
+			if !speedDialFreeCast {
+				if err := h.resourceService.DeductResource(character.ID, "available_timer", 1); err != nil {
+					log.Error().Err(err).Str("resource_key", "available_timer").Msg("Failed to deduct available timer")
 					if strings.Contains(err.Error(), "insufficient") {
 						respondError(w, http.StatusBadRequest, err.Error())
 					} else {
-						respondError(w, http.StatusInternalServerError, "Failed to deduct powder charges")
+						respondError(w, http.StatusInternalServerError, "Failed to deduct available timer")
 					}
 					return
 				}
@@ -960,9 +1224,9 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 
 			spellResult, err := h.componentInterpreter.Interpret(interpretNames)
 			if err != nil {
-				if !skipPowderCharge {
-					if refundErr := h.characterResourceRepo.UpdateCurrentValue(character.ID, "powder_charges", 1); refundErr != nil {
-						log.Error().Err(refundErr).Msg("Failed to refund powder charge after interpret failure")
+				if !speedDialFreeCast {
+					if refundErr := h.characterResourceRepo.UpdateCurrentValue(character.ID, "available_timer", 1); refundErr != nil {
+						log.Error().Err(refundErr).Msg("Failed to refund available timer after interpret failure")
 					}
 				}
 				respondError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to interpret components: %v", err))
@@ -970,14 +1234,14 @@ func (h *characterHandler) castSpell() http.HandlerFunc {
 			}
 
 			payload := map[string]interface{}{
-				"current_spell_points":   character.CurrentSpellPoints,
-				"madness_cast_count":     character.MadnessCastCount,
-				"current_resource_value": h.resourceService.GetResourceValue(character.ID, "powder_charges"),
+				"current_spell_points": character.CurrentSpellPoints,
+				"madness_cast_count":   character.MadnessCastCount,
 			}
-			if skipPowderCharge {
+			if speedDialFreeCast {
 				payload["speed_dial_free_cast"] = true
 			} else {
-				payload["resource_key"] = "powder_charges"
+				payload["current_resource_value"] = h.resourceService.GetResourceValue(character.ID, "available_timer")
+				payload["resource_key"] = "available_timer"
 			}
 			raw, err := json.Marshal(spellResult)
 			if err != nil {
@@ -1480,21 +1744,21 @@ func (h *characterHandler) updateEquipment() http.HandlerFunc {
 			respondError(w, http.StatusBadRequest, "Invalid character ID")
 			return
 		}
-// Verify user owns this character
-authUserIDStr, err := ctxGetUserID(r.Context())
-if err != nil {
-	respondError(w, http.StatusUnauthorized, "Unauthorized")
-	return
-}
-authUserID, _ := uuid.Parse(authUserIDStr)
+		// Verify user owns this character
+		authUserIDStr, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		authUserID, _ := uuid.Parse(authUserIDStr)
 
-belongs, err := h.characterRepo.CharacterBelongsToUser(charID, authUserID)
-if err != nil || !belongs {
-	respondError(w, http.StatusForbidden, "Forbidden")
-	return
-}
+		belongs, err := h.characterRepo.CharacterBelongsToUser(charID, authUserID)
+		if err != nil || !belongs {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
 
-character, err := h.characterRepo.FindByID(charID)
+		character, err := h.characterRepo.FindByID(charID)
 
 		var req UpdateEquipmentRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

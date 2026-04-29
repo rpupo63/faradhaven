@@ -28,7 +28,7 @@ type StoreOwner struct {
 	// ImageURL is set by the API from S3 (storeowners/{name}.png); not a DB column.
 	ImageURL string `json:"image_url,omitempty" gorm:"-"`
 
-	CatalogRules []StoreOwnerCatalogRule `json:"catalog_rules,omitempty" gorm:"foreignKey:StoreOwnerID;constraint:OnDelete:CASCADE"`
+	CatalogRules []StoreOwnerCatalogRule `json:"catalog_rules,omitempty" gorm:"foreignKey:StoreOwnerID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 // StoreOwnerCatalogRule links a vendor to stock: a specific item, a specific weapon,
@@ -46,7 +46,7 @@ type StoreOwnerCatalogRule struct {
 	CreatedAt       time.Time      `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedAt       time.Time      `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
-	StoreOwner *StoreOwner `json:"-" gorm:"foreignKey:StoreOwnerID;references:ID;constraint:OnDelete:CASCADE"`
-	Item       *Item       `json:"item,omitempty" gorm:"foreignKey:ItemID;references:ID;constraint:OnDelete:CASCADE"`
-	Weapon     *Weapon     `json:"weapon,omitempty" gorm:"foreignKey:WeaponID;references:ID;constraint:OnDelete:CASCADE"`
+	StoreOwner *StoreOwner `json:"-" gorm:"foreignKey:StoreOwnerID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Item       *Item       `json:"item,omitempty" gorm:"foreignKey:ItemID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Weapon     *Weapon     `json:"weapon,omitempty" gorm:"foreignKey:WeaponID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

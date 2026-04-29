@@ -25,6 +25,7 @@ const ALL_KEYS = [...KEY_ROWS.flat(), ...SHIFT_KEYS];
 interface ComponentKeyboardProps {
   availableComponents: ApiComponent[];
   selectedComponents: ApiComponent[];
+  selectedAnywhereComponentIds?: Set<string>;
   onComponentSelect: (component: ApiComponent) => void;
   className?: string;
   isTimerActive?: boolean; // New prop
@@ -33,6 +34,7 @@ interface ComponentKeyboardProps {
 export function ComponentKeyboard({
   availableComponents,
   selectedComponents,
+  selectedAnywhereComponentIds,
   onComponentSelect,
   className,
   isTimerActive = false, // Default to false
@@ -124,6 +126,7 @@ export function ComponentKeyboard({
     
     const component = mappedComponents.get(activeKey);
     const isSelected = component ? selectedComponents.some(c => c.id === component.id) : false;
+    const isSelectedAnywhere = component ? selectedAnywhereComponentIds?.has(component.id) : false;
     
     if (!component) {
       // Empty key
@@ -153,6 +156,7 @@ export function ComponentKeyboard({
           isTimerActive && "hover:scale-105 hover:z-10 hover:shadow-md", // Only apply hover if active
           isTimerActive && "active:scale-95", // Only apply active if active
           // Selected state
+          isSelectedAnywhere && !isSelected ? "ring-1 ring-primary/40 ring-offset-1" : "",
           isSelected ? "ring-2 ring-primary ring-offset-1 z-10 scale-105" : "",
           "focus:outline-none focus:ring-2 focus:ring-primary/50",
           !isTimerActive && "opacity-50 cursor-not-allowed" // Grey out and change cursor if disabled

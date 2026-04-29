@@ -1,6 +1,14 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getComponents, createSpell, updateSpell, synthesizeSpell, getCharacterSpells } from '@/lib/api';
+import {
+  getComponents,
+  createSpell,
+  updateSpell,
+  synthesizeSpell,
+  getCharacterSpells,
+  previewSpellAIOpinion,
+  type CreateSpellRequest,
+} from '@/lib/api';
 import { ElementTable, ComponentKeyboard, ComponentRpgGlyph, ComponentRpgChip } from '@/components/arcanum';
 import { Button } from '@/components/ui/button';
 import { LoadingButton } from '@/components/ui/loading-button';
@@ -19,7 +27,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { X, Save, Timer, RotateCcw, Keyboard, Layers, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { X, Save, Timer, RotateCcw, Keyboard, Layers, AlertCircle, ChevronUp, ChevronDown, Loader2, Wand2 } from 'lucide-react';
 import { RaIcon } from '@/components/ui/RaIcon';
 import type { ApiComponent, ApiCharacterComponent, ApiSpell, SpellSynthesis } from '@/types/game';
 import { toast } from 'sonner';
@@ -37,8 +46,24 @@ import {
   spellChainHasLogica,
   bucketSequenceByComponentId,
   bucketIndexedPhase,
+  deriveSpellPhaseWindows,
+  toggleComponentWithinPhase,
+  clampPhaseIndex,
+  validateFormaScopusPerPhase,
 } from '@/lib/spellLogicPhases';
 import { findMatchingPreparedSpell } from '@/lib/powderMageSpellMatch';
+import {
+  formatSynthesisConcentrationHint,
+  formatSynthesisDamageTypeHint,
+  formatSynthesisDiceHint,
+  formatSynthesisDurationHint,
+  formatSynthesisRangeHint,
+  formatSynthesisTypeHint,
+} from '@/lib/spellForgeSynthesisHints';
+import {
+  SpellForgeSynthesisHintBadges,
+  SpellForgeSynthesisLabel,
+} from '@/components/spell-forge/SpellForgeSynthesisLabel';
 
 interface CharacterSpellForgeProps {
   availableComponents?: ApiComponent[];
@@ -93,6 +118,7 @@ export function CharacterSpellForge({
   /** Ordered spell chain (narrative order; duplicate components allowed). */
   const [componentSequence, setComponentSequence] = useState<ApiComponent[]>([]);
   const selectedComponents = componentSequence;
+  const [activePhaseIndex, setActivePhaseIndex] = useState(0);
 
   // Spell metadata state
   const [spellName, setSpellName] = useState('');
@@ -110,7 +136,10 @@ export function CharacterSpellForge({
   const [damageType, setDamageType] = useState('');
   const [addModifier, setAddModifier] = useState(false);
 
-  // Override tracking: fields the user has manually edited
+  /**
+   * Manual field flags: when a key is present, spell synthesis will not auto-update that bucket
+   * (range, duration, damage dice, type, damage type, concentration, or spell type).
+   */
   const [overrides, setOverrides] = useState<Set<string>>(() => new Set());
 
   // Synthesis state
@@ -148,6 +177,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
 
   const clearForm = useCallback(() => {
     setComponentSequence([]);
+    setActivePhaseIndex(0);
     setSpellName('');
     setSpellDescription('');
     setSpellType('');
@@ -255,7 +285,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
     }
   }, [spellToEdit, isEditMode, allComponents, clearForm]);
 
-  // Debounced synthesis call when components change
+  // Debounced synthesis call when forge-relevant inputs change
   useEffect(() => {
     if (synthesisTimerRef.current) clearTimeout(synthesisTimerRef.current);
 
@@ -268,7 +298,14 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
     synthesisTimerRef.current = setTimeout(async () => {
       setIsSynthesizing(true);
       try {
-        const result = await synthesizeSpell(componentIds, token);
+        const result = await synthesizeSpell(
+          componentIds,
+          {
+            damageType: damageType || undefined,
+            range: rangeFeet === '' ? undefined : rangeFeet,
+          },
+          token,
+        );
         setSynthesis(result);
 
         // Auto-fill non-overridden fields
@@ -298,11 +335,11 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
         setIsSynthesizing(false);
       }
     }, 300);
-  }, [selectedComponents, token, overrides]); // Added overrides to dependency array
+  }, [selectedComponents, token, overrides, damageType, rangeFeet]);
 
-  // Mark field as manually overridden
+  /** Mark a synthesis bucket as user-edited so auto-suggestion does not overwrite the displayed value. */
   const markOverride = (field: string) => {
-    setOverrides(prev => new Set(prev).add(field));
+    setOverrides((prev) => new Set(prev).add(field));
   };
 
   const handleStartTimer = () => {
@@ -313,6 +350,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
       synthesisTimerRef.current = null;
     }
     setComponentSequence([]);
+    setActivePhaseIndex(0);
     setSynthesis(null);
     setIsSynthesizing(false);
     setOverrides(new Set());
@@ -378,6 +416,36 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
     add_modifier: addModifier,
   });
 
+  const [aiDescriptionPending, setAiDescriptionPending] = useState(false);
+
+  const handleGenerateDescription = async () => {
+    if (!userId || !token) {
+      toast.error('Login required');
+      return;
+    }
+    if (selectedComponents.length === 0) {
+      toast.error('Add at least one component first');
+      return;
+    }
+    setAiDescriptionPending(true);
+    try {
+      const opinion = await previewSpellAIOpinion(getSpellPayload() as CreateSpellRequest, token);
+      const rec = opinion.recommended_description?.trim();
+      if (rec) {
+        setSpellDescription(rec);
+        toast.success('Description filled from AI review');
+      } else {
+        toast.message('No description suggestion', {
+          description: opinion.description_opinion || opinion.overall_verdict || 'Try adjusting components or mechanics.',
+        });
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to generate description');
+    } finally {
+      setAiDescriptionPending(false);
+    }
+  };
+
   const mutationOptions = {
     onSuccess: (..._args: unknown[]) => {
       queryClient.invalidateQueries({ queryKey: ['spells'] });
@@ -434,11 +502,31 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
     return new Set(availableComponents.map((c) => c.id));
   }, [availableComponents]);
 
-  // Append to ordered sequence (remove / reorder via the crucible strip)
+  const phaseWindows = useMemo(
+    () => deriveSpellPhaseWindows(selectedComponents),
+    [selectedComponents],
+  );
+  const resolvedActivePhaseIndex = useMemo(
+    () => clampPhaseIndex(activePhaseIndex, phaseWindows),
+    [activePhaseIndex, phaseWindows],
+  );
+  const activePhaseWindow = phaseWindows[resolvedActivePhaseIndex];
+  const activePhaseComponents = useMemo(() => {
+    if (!activePhaseWindow) return [];
+    return activePhaseWindow.indices.map((idx) => selectedComponents[idx]).filter(Boolean);
+  }, [activePhaseWindow, selectedComponents]);
+
+  // Toggle within active phase: reclick removes from active phase, otherwise add to active phase end.
   const handleComponentSelect = useCallback((component: ApiComponent) => {
     if (availableComponentIds && !availableComponentIds.has(component.id)) return;
-    setComponentSequence((prev) => [...prev, component]);
-  }, [availableComponentIds]);
+    setComponentSequence((prev) => {
+      const result = toggleComponentWithinPhase(prev, component, activePhaseIndex);
+      return result.nextSequence;
+    });
+    if (component.category === 'Logica') {
+      setActivePhaseIndex((prev) => prev + 1);
+    }
+  }, [availableComponentIds, activePhaseIndex]);
 
   const removeSequenceAt = useCallback((index: number) => {
     setComponentSequence((prev) => prev.filter((_, i) => i !== index));
@@ -454,13 +542,27 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
     });
   }, []);
 
-  const selectedComponentIds = useMemo(() => new Set(selectedComponents.map(c => c.id)), [selectedComponents]);
+  const selectedComponentIds = useMemo(
+    () => new Set(activePhaseComponents.map((c) => c.id)),
+    [activePhaseComponents],
+  );
+  const selectedAnywhereComponentIds = useMemo(
+    () => new Set(selectedComponents.map((c) => c.id)),
+    [selectedComponents],
+  );
 
   const handleClearComponents = () => {
     setComponentSequence([]);
+    setActivePhaseIndex(0);
     setOverrides(new Set());
     setSynthesis(null);
   };
+
+  useEffect(() => {
+    if (activePhaseIndex !== resolvedActivePhaseIndex) {
+      setActivePhaseIndex(resolvedActivePhaseIndex);
+    }
+  }, [activePhaseIndex, resolvedActivePhaseIndex]);
 
   if (isLoading) {
     return (
@@ -490,7 +592,12 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
   const diceCountNum = damageDiceCount === '' ? undefined : damageDiceCount;
   const diceSizeNum = damageDieSize === '' ? undefined : damageDieSize;
   const isDamageDiceValid = isValidSpellDamageDicePair(diceCountNum, diceSizeNum);
+  const localPhaseErrors = useMemo(
+    () => validateFormaScopusPerPhase(selectedComponents),
+    [selectedComponents],
+  );
   const hasValidationErrors =
+    localPhaseErrors.length > 0 ||
     (synthesis && synthesis.validation_errors && synthesis.validation_errors.length > 0) ||
     !isDamageDiceValid ||
     !isDurationValid;
@@ -541,6 +648,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
               components={allComponents}
               availableComponentIds={availableComponentIds}
               selectedComponentIds={selectedComponentIds}
+              selectedAnywhereComponentIds={selectedAnywhereComponentIds}
               onComponentClick={handleComponentSelect}
               disableDetailPopup={true}
               characterComponents={components}
@@ -549,7 +657,8 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
             <>
               <ComponentKeyboard
                 availableComponents={availableComponents || allComponents}
-                selectedComponents={selectedComponents}
+                selectedComponents={activePhaseComponents}
+                selectedAnywhereComponentIds={selectedAnywhereComponentIds}
                 onComponentSelect={handleComponentSelect}
                 isTimerActive={isTimerRunning}
               />
@@ -557,8 +666,8 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
           )}
         </div>
 
-        {/* Right: Spell Creation Panel — lg: crucible scrolls inside column; left table scrolls with page */}
-        <div className="flex flex-col gap-4 min-w-0 lg:max-h-[calc(100dvh-8rem)] lg:min-h-0 lg:overflow-hidden">
+        {/* Right: Spell Creation Panel — sticky while page scrolls */}
+        <div className="flex flex-col gap-4 min-w-0 lg:sticky lg:top-4 lg:self-start lg:max-h-[80dvh] lg:min-h-0">
           {/* Timer Card */}
           {timerDuration !== undefined && (
             <Card className="arcane-border bg-card shrink-0 sticky top-4 z-10 lg:static">
@@ -618,6 +727,12 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
               {/* Validation Errors */}
               {hasValidationErrors && (
                 <div className="p-2 rounded-md bg-red-500/10 border border-red-500/30 space-y-1">
+                  {localPhaseErrors.map((err, i) => (
+                    <div key={`local-${i}`} className="flex items-center gap-2 text-xs text-red-500">
+                      <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                      <span>{err}</span>
+                    </div>
+                  ))}
                   {synthesis?.validation_errors?.map((err, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs text-red-500">
                       <AlertCircle className="h-3 w-3 flex-shrink-0" />
@@ -662,12 +777,23 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                       Sequence ({selectedComponents.length})
                     </Label>
                     {selectedComponents.length > 0 && (
-                      <Badge
-                        variant="secondary"
-                        className="text-tiny font-normal font-tome-marginalia shrink-0 border border-border/60"
-                      >
-                        {spellChainHasLogica(selectedComponents) ? 'Multi-phase' : 'Single phase · buckets'}
-                      </Badge>
+                      <TooltipProvider delayDuration={150}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge
+                              variant="secondary"
+                              className="text-tiny font-normal font-tome-marginalia shrink-0 border border-border/60 cursor-help"
+                            >
+                              {spellChainHasLogica(selectedComponents) ? 'Multi-phase' : 'Single phase · buckets'}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs text-xs font-tome-marginalia">
+                            {spellChainHasLogica(selectedComponents)
+                              ? 'Optional multi-phase mode: If / Then / Therefore links split the sequence into phases. Components bucket within each phase.'
+                              : 'Default single-phase mode: components are bucketed by symbol and order is ignored.'}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )}
                   </div>
                   {selectedComponents.length > 0 && (
@@ -676,25 +802,12 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                     </Button>
                   )}
                 </div>
-                <div className="text-micro text-muted-foreground font-tome-marginalia space-y-1.5">
-                  <p>
-                    <strong className="text-foreground/90">Default — single phase:</strong> components are shown in <strong>buckets</strong> (same symbol grouped with a count). Order does not matter unless you add Logica. Click a chip to remove one copy.
-                  </p>
-                  <p>
-                    <strong className="text-foreground/90">Optional — multi-phase:</strong> place <strong>If</strong>, <strong>Then</strong>, or <strong>Therefore</strong> between beats. Connector placement defines phases; within each phase, non-Logica components are bucketed the same way. Removing all logic links returns you to single-phase buckets.
-                  </p>
-                </div>
-
                 {selectedComponents.length === 0 ? (
                   <p className="text-xs text-muted-foreground italic text-center py-2">
                     Click components on the left to add them
                   </p>
                 ) : spellChainHasLogica(selectedComponents) ? (
                   <div className="flex flex-col gap-3">
-                    <p className="text-tiny text-muted-foreground font-tome-marginalia rounded-md bg-muted/40 border border-border/60 px-2 py-1.5">
-                      <span className="font-medium text-foreground/85">Multi-phase layout.</span>{' '}
-                      Phases are split by your logic links; only those connectors are ordered. Delete them to collapse back to single-phase buckets.
-                    </p>
                     {splitSpellSequenceByLogica(selectedComponents).map((seg, segKey) => {
                       if (seg.kind === 'logic') {
                         const { comp, index: idx } = seg.item;
@@ -754,15 +867,33 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                       return (
                         <div
                           key={`phase-${seg.phaseNumber}-${segKey}`}
-                          className="rounded-lg border border-primary/25 bg-primary/[0.06] p-2 space-y-2"
+                          className={`rounded-lg p-2 space-y-2 border ${
+                            resolvedActivePhaseIndex + 1 === seg.phaseNumber
+                              ? 'border-primary bg-primary/[0.12]'
+                              : 'border-primary/25 bg-primary/[0.06]'
+                          }`}
+                          onClick={() => setActivePhaseIndex(seg.phaseNumber - 1)}
                         >
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-micro font-tome-marginalia uppercase tracking-wide text-primary/90">
                               Phase {seg.phaseNumber}
                             </span>
-                            <span className="text-tiny text-muted-foreground font-tome-marginalia">
-                              Bucketed — order ignored here
-                            </span>
+                            <TooltipProvider delayDuration={150}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-tiny text-muted-foreground font-tome-marginalia cursor-help">
+                                    {resolvedActivePhaseIndex + 1 === seg.phaseNumber
+                                      ? 'Active phase'
+                                      : 'Bucketed — order ignored here'}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs text-xs font-tome-marginalia">
+                                  {resolvedActivePhaseIndex + 1 === seg.phaseNumber
+                                    ? `Active phase for clicks. Reclicking a component toggles it in Phase ${seg.phaseNumber}.`
+                                    : 'Within a phase, duplicate components are bucketed and order is ignored.'}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
                           <div className="flex flex-wrap gap-2 items-stretch">
                             {bucketIndexedPhase(seg.items).map((bucket) => {
@@ -803,9 +934,18 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                       <span className="text-micro font-tome-marginalia uppercase tracking-wide text-muted-foreground">
                         Single phase
                       </span>
-                      <span className="text-tiny text-muted-foreground font-tome-marginalia">
-                        Bucketed — order ignored
-                      </span>
+                      <TooltipProvider delayDuration={150}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-tiny text-muted-foreground font-tome-marginalia cursor-help">
+                              {resolvedActivePhaseIndex === 0 ? 'Active phase · bucketed — order ignored' : 'Bucketed — order ignored'}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs text-xs font-tome-marginalia">
+                            Default single-phase mode: clicks toggle components in this one phase, and component order is ignored.
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                     <div className="flex flex-wrap gap-2 items-stretch">
                       {bucketSequenceByComponentId(selectedComponents).map((bucket) => {
@@ -858,9 +998,13 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                   <div className="bg-muted/30 border border-border rounded-md px-3 py-2 text-sm font-mono font-bold text-primary">{level}</div>
                 </div>
                 <div>
-                  <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">
-                    Type {synthesis?.suggested_type && !overrides.has('type') && <Badge variant="secondary" size="tiny" className="ml-1">auto</Badge>}
-                  </Label>
+                  <SpellForgeSynthesisLabel
+                    showAutoBadge={Boolean(synthesis?.suggested_type && !overrides.has('type'))}
+                    recommendedSummary={formatSynthesisTypeHint(synthesis)}
+                    hasManualOverride={overrides.has('type')}
+                  >
+                    Type
+                  </SpellForgeSynthesisLabel>
                   <Select value={spellType} onValueChange={(v) => { setSpellType(v); markOverride('type'); }}>
                     <SelectTrigger className="bg-background"><SelectValue placeholder="Type" /></SelectTrigger>
                     <SelectContent>
@@ -876,9 +1020,13 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">
-                    Range (feet) {synthesis?.suggested_range != null && !overrides.has('range') && <Badge variant="secondary" size="tiny" className="ml-1">auto</Badge>}
-                  </Label>
+                  <SpellForgeSynthesisLabel
+                    showAutoBadge={synthesis?.suggested_range != null && !overrides.has('range')}
+                    recommendedSummary={formatSynthesisRangeHint(synthesis)}
+                    hasManualOverride={overrides.has('range')}
+                  >
+                    Range (feet)
+                  </SpellForgeSynthesisLabel>
                   <Input
                     type="number"
                     min={0}
@@ -902,9 +1050,13 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                   />
                 </div>
                 <div>
-                  <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">
-                    Duration {synthesis?.suggested_duration && !overrides.has('duration') && <Badge variant="secondary" size="tiny" className="ml-1">auto</Badge>}
-                  </Label>
+                  <SpellForgeSynthesisLabel
+                    showAutoBadge={Boolean(synthesis?.suggested_duration && !overrides.has('duration'))}
+                    recommendedSummary={formatSynthesisDurationHint(synthesis)}
+                    hasManualOverride={overrides.has('duration')}
+                  >
+                    Duration
+                  </SpellForgeSynthesisLabel>
                   <Input
                     value={duration}
                     onChange={(e) => {
@@ -937,9 +1089,17 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">
-                      Dice count {synthesis?.suggested_damage_dice_count != null && synthesis?.suggested_damage_die_size != null && !overrides.has('damageDice') && <Badge variant="secondary" size="tiny" className="ml-1">auto</Badge>}
-                    </Label>
+                    <SpellForgeSynthesisLabel
+                      showAutoBadge={
+                        synthesis?.suggested_damage_dice_count != null &&
+                        synthesis?.suggested_damage_die_size != null &&
+                        !overrides.has('damageDice')
+                      }
+                      recommendedSummary={formatSynthesisDiceHint(synthesis)}
+                      hasManualOverride={overrides.has('damageDice')}
+                    >
+                      Dice count
+                    </SpellForgeSynthesisLabel>
                     <Input
                       type="number"
                       min={1}
@@ -960,7 +1120,13 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                     />
                   </div>
                   <div>
-                    <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Die size</Label>
+                    <SpellForgeSynthesisLabel
+                      showAutoBadge={false}
+                      recommendedSummary={formatSynthesisDiceHint(synthesis)}
+                      hasManualOverride={overrides.has('damageDice')}
+                    >
+                      Die size
+                    </SpellForgeSynthesisLabel>
                     <Select
                       value={damageDieSize === '' ? '__none__' : String(damageDieSize)}
                       onValueChange={v => {
@@ -983,9 +1149,13 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                   </div>
                 </div>
                 <div>
-                  <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">
-                    Damage Type {synthesis?.suggested_damage_type && !overrides.has('damageType') && <Badge variant="secondary" size="tiny" className="ml-1">auto</Badge>}
-                  </Label>
+                  <SpellForgeSynthesisLabel
+                    showAutoBadge={Boolean(synthesis?.suggested_damage_type && !overrides.has('damageType'))}
+                    recommendedSummary={formatSynthesisDamageTypeHint(synthesis)}
+                    hasManualOverride={overrides.has('damageType')}
+                  >
+                    Damage Type
+                  </SpellForgeSynthesisLabel>
                   <Select
                     value={damageType === '' ? '__none__' : damageType}
                     onValueChange={(v) => {
@@ -1008,17 +1178,46 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox id="conc" checked={concentration} onCheckedChange={(c) => { setConcentration(c === true); markOverride('concentration'); }} />
-                    <Label htmlFor="conc" className="cursor-pointer">
+                    <label htmlFor="conc" className="cursor-pointer text-sm font-tome-marginalia inline-flex flex-wrap items-center gap-1.5">
                       Requires Concentration?
-                      {synthesis?.suggested_concentration && !overrides.has('concentration') && <Badge variant="secondary" size="tiny" className="ml-2">auto</Badge>}
-                    </Label>
+                      <SpellForgeSynthesisHintBadges
+                        showAutoBadge={Boolean(synthesis?.suggested_concentration && !overrides.has('concentration'))}
+                        recommendedSummary={formatSynthesisConcentrationHint(synthesis)}
+                        hasManualOverride={overrides.has('concentration')}
+                      />
+                    </label>
                   </div>
                 </div>
               </div>
 
               {/* Description */}
               <div>
-                <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Description</Label>
+                <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <Label className="text-sm font-tome-marginalia text-muted-foreground block sm:mb-0">
+                    Description
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 gap-1.5 font-tome-marginalia"
+                    disabled={
+                      aiDescriptionPending ||
+                      !userId ||
+                      !token ||
+                      selectedComponents.length === 0
+                    }
+                    onClick={handleGenerateDescription}
+                    title="Same AI review as GM spell tools — fills recommended description when available"
+                  >
+                    {aiDescriptionPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                    ) : (
+                      <Wand2 className="h-3.5 w-3.5" aria-hidden />
+                    )}
+                    Generate description
+                  </Button>
+                </div>
                 <textarea
                   value={spellDescription}
                   onChange={(e) => setSpellDescription(e.target.value)}
@@ -1190,7 +1389,13 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                     </div>
                   </div>
                   <div>
-                    <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Type</Label>
+                    <SpellForgeSynthesisLabel
+                      showAutoBadge={Boolean(synthesis?.suggested_type && !overrides.has('type'))}
+                      recommendedSummary={formatSynthesisTypeHint(synthesis)}
+                      hasManualOverride={overrides.has('type')}
+                    >
+                      Type
+                    </SpellForgeSynthesisLabel>
                     <Select
                       value={spellType}
                       onValueChange={(v) => {
@@ -1214,7 +1419,13 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Range (feet)</Label>
+                    <SpellForgeSynthesisLabel
+                      showAutoBadge={synthesis?.suggested_range != null && !overrides.has('range')}
+                      recommendedSummary={formatSynthesisRangeHint(synthesis)}
+                      hasManualOverride={overrides.has('range')}
+                    >
+                      Range (feet)
+                    </SpellForgeSynthesisLabel>
                     <Input
                       type="number"
                       min={0}
@@ -1238,7 +1449,13 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                     />
                   </div>
                   <div>
-                    <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Duration</Label>
+                    <SpellForgeSynthesisLabel
+                      showAutoBadge={Boolean(synthesis?.suggested_duration && !overrides.has('duration'))}
+                      recommendedSummary={formatSynthesisDurationHint(synthesis)}
+                      hasManualOverride={overrides.has('duration')}
+                    >
+                      Duration
+                    </SpellForgeSynthesisLabel>
                     <Input
                       value={duration}
                       onChange={(e) => {
@@ -1273,7 +1490,17 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Dice count</Label>
+                    <SpellForgeSynthesisLabel
+                      showAutoBadge={
+                        synthesis?.suggested_damage_dice_count != null &&
+                        synthesis?.suggested_damage_die_size != null &&
+                        !overrides.has('damageDice')
+                      }
+                      recommendedSummary={formatSynthesisDiceHint(synthesis)}
+                      hasManualOverride={overrides.has('damageDice')}
+                    >
+                      Dice count
+                    </SpellForgeSynthesisLabel>
                     <Input
                       type="number"
                       min={1}
@@ -1293,7 +1520,13 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                     />
                   </div>
                   <div>
-                    <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Die size</Label>
+                    <SpellForgeSynthesisLabel
+                      showAutoBadge={false}
+                      recommendedSummary={formatSynthesisDiceHint(synthesis)}
+                      hasManualOverride={overrides.has('damageDice')}
+                    >
+                      Die size
+                    </SpellForgeSynthesisLabel>
                     <Select
                       value={damageDieSize === '' ? '__none__' : String(damageDieSize)}
                       onValueChange={(v) => {
@@ -1318,7 +1551,13 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                   </div>
                 </div>
                 <div>
-                  <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Damage type</Label>
+                  <SpellForgeSynthesisLabel
+                    showAutoBadge={Boolean(synthesis?.suggested_damage_type && !overrides.has('damageType'))}
+                    recommendedSummary={formatSynthesisDamageTypeHint(synthesis)}
+                    hasManualOverride={overrides.has('damageType')}
+                  >
+                    Damage type
+                  </SpellForgeSynthesisLabel>
                   <Select
                     value={damageType === '' ? '__none__' : damageType}
                     onValueChange={(v) => {
@@ -1356,14 +1595,44 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                         markOverride('concentration');
                       }}
                     />
-                    <Label htmlFor="castConfirmConc" className="cursor-pointer">
+                    <label htmlFor="castConfirmConc" className="cursor-pointer text-sm font-tome-marginalia inline-flex flex-wrap items-center gap-1.5">
                       Requires concentration
-                    </Label>
+                      <SpellForgeSynthesisHintBadges
+                        showAutoBadge={Boolean(synthesis?.suggested_concentration && !overrides.has('concentration'))}
+                        recommendedSummary={formatSynthesisConcentrationHint(synthesis)}
+                        hasManualOverride={overrides.has('concentration')}
+                      />
+                    </label>
                   </div>
                 </div>
 
                 <div>
-                  <Label className="text-sm font-tome-marginalia text-muted-foreground mb-2 block">Description</Label>
+                  <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <Label className="text-sm font-tome-marginalia text-muted-foreground block sm:mb-0">
+                      Description
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 gap-1.5 font-tome-marginalia"
+                      disabled={
+                        aiDescriptionPending ||
+                        !userId ||
+                        !token ||
+                        selectedComponents.length === 0
+                      }
+                      onClick={handleGenerateDescription}
+                      title="Same AI review as GM spell tools — fills recommended description when available"
+                    >
+                      {aiDescriptionPending ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                      ) : (
+                        <Wand2 className="h-3.5 w-3.5" aria-hidden />
+                      )}
+                      Generate description
+                    </Button>
+                  </div>
                   <textarea
                     value={spellDescription}
                     onChange={(e) => setSpellDescription(e.target.value)}

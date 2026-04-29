@@ -45,11 +45,11 @@ Choose based on the description content (species/ancestry vs profession/archetyp
 
 | Extract         | Look for in description    | Example                        |
 | --------------- | -------------------------- | ------------------------------ |
-| Name            | Title                      | "The Rift Weaver"              |
+| Name            | Title                      | "The Mutagen"                  |
 | Hit Die         | e.g., "d8"                 | 8                              |
 | Primary Ability | Main stat                  | "intelligence"                 |
-| Archetype       | Role label                 | "Full Caster / Evoker"         |
-| Concept         | 1–2 sentence pitch         | "A scholar who opens rifts..." |
+| Archetype       | Role label                 | "Full Caster / Utility"        |
+| Concept         | 1–2 sentence pitch         | "A master of mutations..."     |
 | Proficiencies   | Weapons, armor, saves      | From tables                    |
 | Skill choices   | "Choose X from"            | Array of options               |
 | Level features  | Level-by-level progression | Map level → []string           |
@@ -195,4 +195,4 @@ func classNameLevelFeatures() map[int][]string {
 
 - [backend/docs/RACE_SEED_GUIDE.md](backend/docs/RACE_SEED_GUIDE.md) — Detailed race seed guide
 - [backend/seed/faradhaven_races/aasimar.go](backend/seed/faradhaven_races/aasimar.go) — Race example
-- [backend/seed/faradhaven_classes/rift_weaver.go](backend/seed/faradhaven_classes/rift_weaver.go) — Class example
+- [backend/seed/faradhaven_classes/mutagen.go](backend/seed/faradhaven_classes/mutagen.go) — Class example

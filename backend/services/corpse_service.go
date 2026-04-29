@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/database"
+	"github.com/rpupo63/faradhaven/backend/models"
 )
 
 // CorpseService handles corpse management for harvesting and psychometry
@@ -22,17 +22,17 @@ func NewCorpseService(corpseRepo *database.CorpseRepo) *CorpseService {
 
 // CreateCorpseRequest contains the data needed to create a corpse
 type CreateCorpseRequest struct {
-	MapID               *uuid.UUID `json:"map_id,omitempty"`
-	Name                string     `json:"name"`
+	MapID               *uuid.UUID          `json:"map_id,omitempty"`
+	Name                string              `json:"name"`
 	CreatureType        models.CreatureType `json:"creature_type"`
 	CreatureSize        models.CreatureSize `json:"creature_size,omitempty"`
-	ChallengeRating     float64    `json:"challenge_rating,omitempty"`
-	GridX               *int       `json:"grid_x,omitempty"`
-	GridY               *int       `json:"grid_y,omitempty"`
-	AvailableComponents []string   `json:"available_components,omitempty"`
-	ComponentYield      int        `json:"component_yield,omitempty"`
-	SourceBeastID       *uuid.UUID `json:"source_beast_id,omitempty"`
-	ExpiresInMinutes    *int       `json:"expires_in_minutes,omitempty"`
+	ChallengeRating     float64             `json:"challenge_rating,omitempty"`
+	GridX               *int                `json:"grid_x,omitempty"`
+	GridY               *int                `json:"grid_y,omitempty"`
+	AvailableComponents []string            `json:"available_components,omitempty"`
+	ComponentYield      int                 `json:"component_yield,omitempty"`
+	SourceBeastID       *uuid.UUID          `json:"source_beast_id,omitempty"`
+	ExpiresInMinutes    *int                `json:"expires_in_minutes,omitempty"`
 }
 
 // CreateCorpse creates a new corpse

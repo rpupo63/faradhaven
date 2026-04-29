@@ -32,7 +32,7 @@ type Race struct {
 	// ============================================================
 	// RELATIONSHIPS: Loaded via Preload, stored via foreign keys
 	// ============================================================
-	Traits     []Trait     `json:"traits" gorm:"foreignKey:RaceID;constraint:OnDelete:CASCADE"`
-	Lineages   []Lineage   `json:"lineages" gorm:"foreignKey:RaceID;constraint:OnDelete:CASCADE"` // e.g., Wood Elf, High Elf
-	Components []Component `json:"components,omitempty" gorm:"many2many:race_components;foreignKey:ID;joinForeignKey:RaceID;References:ID;joinReferences:ComponentID"`
+	Traits     []Trait     `json:"traits" gorm:"foreignKey:RaceID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Lineages   []Lineage   `json:"lineages" gorm:"foreignKey:RaceID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"` // e.g., Wood Elf, High Elf
+	Components []Component `json:"components,omitempty" gorm:"many2many:race_components;foreignKey:ID;joinForeignKey:RaceID;References:ID;joinReferences:ComponentID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

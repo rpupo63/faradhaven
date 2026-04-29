@@ -14,10 +14,6 @@ Removed from `CharacterSheetResponse` and frontend sheet types; HP comes from pe
 
 Removed from **`FaradhavenClassSeed`**. Seeding uses **`ResourceDefinitions`** + **`LevelProgression.Resources`**. API **`resource_name`** on character resources is the display label, not the deprecated trio.
 
-### Rift Weaver and Vapor Blade resource definitions
-
-Populated in seeds (`spell_points`, `shadow_points`, etc.) with progression.
-
 ### Seeding merge contract + optional overrides ([`seed.go`](backend/seed/faradhaven_classes/seed.go), [`types.go`](backend/seed/faradhaven_classes/types.go))
 
 - **Documented** on `SeedFaradhavenClasses` and in `ClassLevelSeed` comments: defaults first (HP gain, proficiency, max spell points, ASI), then `LevelProgression[level]` overlays fields and writes `class_level_resources`.
@@ -51,14 +47,6 @@ Populated in seeds (`spell_points`, `shadow_points`, etc.) with progression.
 - **`ComponentPool`** + **`HeritageSpeciesComponents()`** → `class_components`.
 - **`ClassLevel`** features → **`level_features`** only.
 - **`ClassLevelSeed`**: shared combat/spell fields + **`Resources`** map; optional **`ProficiencyBonus` / `AbilityScoreImprovement`** pointers for per-level overrides.
-
----
-
-## Caster resource balance (reference)
-
-**`maxSpellPointsByLevel`** in code: `48 + 2 * level` → levels **1–20** give **50–88** (audited against this doc’s table).
-
-Rift Weaver: **2 SP per component**; seeded `spell_points` per level matches that max.
 
 ---
 

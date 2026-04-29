@@ -19,5 +19,5 @@ type ClassLevelResource struct {
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationships
-	ClassLevel ClassLevel `json:"-" gorm:"foreignKey:ClassLevelID;references:ID"`
+	ClassLevel ClassLevel `json:"-" gorm:"foreignKey:ClassLevelID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

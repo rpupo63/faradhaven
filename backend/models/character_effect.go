@@ -36,8 +36,8 @@ type CharacterEffect struct {
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationships
-	Character       Character  `json:"-" gorm:"foreignKey:CharacterID;references:ID;constraint:OnDelete:CASCADE"`
-	Effect          Effect     `json:"effect" gorm:"foreignKey:EffectID;references:ID;constraint:OnDelete:CASCADE"`
-	SourceCharacter *Character `json:"-" gorm:"foreignKey:SourceCharacterID;references:ID;constraint:OnDelete:SET NULL"`
-	SourceSpell     *Spell     `json:"-" gorm:"foreignKey:SourceSpellID;references:ID;constraint:OnDelete:SET NULL"`
+	Character       Character  `json:"-" gorm:"foreignKey:CharacterID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Effect          Effect     `json:"effect" gorm:"foreignKey:EffectID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	SourceCharacter *Character `json:"-" gorm:"foreignKey:SourceCharacterID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	SourceSpell     *Spell     `json:"-" gorm:"foreignKey:SourceSpellID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 }

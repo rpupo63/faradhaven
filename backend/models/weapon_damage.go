@@ -20,5 +20,5 @@ type WeaponDamage struct {
 
 	CreatedAt time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 
-	Weapon Weapon `json:"-" gorm:"foreignKey:WeaponID;references:ID;constraint:OnDelete:CASCADE"`
+	Weapon Weapon `json:"-" gorm:"foreignKey:WeaponID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

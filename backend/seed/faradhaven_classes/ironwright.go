@@ -1,7 +1,7 @@
 package faradhaven_classes
 
 import (
-	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+	"github.com/rpupo63/faradhaven/backend/seed/seedmedia"
 )
 
 // Ironwright returns the Ironwright class seed
@@ -22,6 +22,8 @@ func Ironwright() FaradhavenClassSeed {
 		SavingThrows:        []string{"Intelligence", "Constitution"},
 		AutomaticEquipNames: []string{"Leather apron (light armor)", "Protective goggles", "Bag of gears and springs"},
 		AutomaticItemNames:  []string{"Tinker's Tools"},
+		SpellCastingComponent:   "material",
+		SpellCastingDescription: "You realize formulae by assembling or tuning a familiar tool—gears, scrap, and jury-rigged interfaces that channel components into structure. Observers see an engineer at a workbench in motion: calipers, spare parts, and the glint of metal between thought and effect.",
 		EquipmentChoices: []EquipmentChoiceSeed{
 			{
 				Instruction: "Choose your engineering tool",

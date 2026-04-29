@@ -7,18 +7,24 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/models"
 )
 
 // --- Test mocks ---
 
 // testLLMClient returns a fixed JSON string, no disk reads needed.
 type testLLMClient struct {
-	response string
-	err      error
+	response  string
+	responses []string
+	calls     int
+	err       error
 }
 
 func (t *testLLMClient) GenerateStructuredContent(ctx context.Context, prompt string, schema string) (string, error) {
+	t.calls++
+	if len(t.responses) >= t.calls {
+		return t.responses[t.calls-1], t.err
+	}
 	return t.response, t.err
 }
 
@@ -94,7 +100,7 @@ const validMonsterJSON = `{
 func TestGenerateMonsterFromPrompt_Success(t *testing.T) {
 	repo := &inMemoryMonsterRepo{}
 	llm := &testLLMClient{response: validMonsterJSON}
-	svc := NewMonsterGenerationService(repo, nil, llm) // nil s3 → image gen skipped gracefully
+	svc := NewMonsterGenerationService(repo, nil, nil, llm) // nil s3 → image gen skipped gracefully
 	svc.schemaPath = "../docs/schemas/monster_schema.json"
 
 	userID := uuid.New()
@@ -152,7 +158,7 @@ func TestGenerateMonsterFromPrompt_Success(t *testing.T) {
 func TestGenerateMonsterFromPrompt_LLMError(t *testing.T) {
 	repo := &inMemoryMonsterRepo{}
 	llm := &testLLMClient{err: fmt.Errorf("model overloaded")}
-	svc := NewMonsterGenerationService(repo, nil, llm)
+	svc := NewMonsterGenerationService(repo, nil, nil, llm)
 
 	_, err := svc.GenerateMonsterFromPrompt(context.Background(), GenerateMonsterFromPromptRequest{
 		UserID:          uuid.New(),
@@ -168,7 +174,7 @@ func TestGenerateMonsterFromPrompt_LLMError(t *testing.T) {
 func TestGenerateMonsterFromPrompt_InvalidJSON(t *testing.T) {
 	repo := &inMemoryMonsterRepo{}
 	llm := &testLLMClient{response: `{"name": "broken`} // malformed JSON
-	svc := NewMonsterGenerationService(repo, nil, llm)
+	svc := NewMonsterGenerationService(repo, nil, nil, llm)
 
 	_, err := svc.GenerateMonsterFromPrompt(context.Background(), GenerateMonsterFromPromptRequest{
 		UserID:          uuid.New(),
@@ -183,7 +189,7 @@ func TestGenerateMonsterFromPrompt_InvalidJSON(t *testing.T) {
 
 func TestGenerateMonsterFromPrompt_NilLLMClient(t *testing.T) {
 	repo := &inMemoryMonsterRepo{}
-	svc := NewMonsterGenerationService(repo, nil, nil) // nil LLM client
+	svc := NewMonsterGenerationService(repo, nil, nil, nil) // nil LLM client
 
 	_, err := svc.GenerateMonsterFromPrompt(context.Background(), GenerateMonsterFromPromptRequest{
 		UserID:          uuid.New(),
@@ -199,7 +205,7 @@ func TestGenerateMonsterFromPrompt_NilLLMClient(t *testing.T) {
 func TestGenerateMonsterFromPrompt_FaradhavenClass(t *testing.T) {
 	repo := &inMemoryMonsterRepo{}
 	llm := &testLLMClient{response: validMonsterJSON}
-	svc := NewMonsterGenerationService(repo, nil, llm)
+	svc := NewMonsterGenerationService(repo, nil, nil, llm)
 	svc.schemaPath = "../docs/schemas/monster_schema.json"
 
 	userID := uuid.New()
@@ -226,7 +232,7 @@ func TestGenerateMonsterFromPrompt_FaradhavenClass(t *testing.T) {
 func TestGenerateMonsterFromPrompt_UnknownFaradhavenClass(t *testing.T) {
 	repo := &inMemoryMonsterRepo{}
 	llm := &testLLMClient{response: validMonsterJSON}
-	svc := NewMonsterGenerationService(repo, nil, llm)
+	svc := NewMonsterGenerationService(repo, nil, nil, llm)
 
 	_, err := svc.GenerateMonsterFromPrompt(context.Background(), GenerateMonsterFromPromptRequest{
 		UserID:              uuid.New(),
@@ -239,5 +245,51 @@ func TestGenerateMonsterFromPrompt_UnknownFaradhavenClass(t *testing.T) {
 	}
 	if len(repo.monsters) != 0 {
 		t.Errorf("repo should have no monsters, got %d", len(repo.monsters))
+	}
+}
+
+func TestPreviewMonsterFromPrompt_DoesNotPersist(t *testing.T) {
+	repo := &inMemoryMonsterRepo{}
+	llm := &testLLMClient{response: validMonsterJSON}
+	svc := NewMonsterGenerationService(repo, nil, nil, llm)
+	svc.schemaPath = "../docs/schemas/monster_schema.json"
+
+	monster, err := svc.PreviewMonsterFromPrompt(context.Background(), GenerateMonsterFromPromptRequest{
+		UserID:          uuid.New(),
+		Description:     "preview this",
+		ChallengeRating: "2",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if monster == nil {
+		t.Fatal("expected preview monster")
+	}
+	if len(repo.monsters) != 0 {
+		t.Fatalf("preview should not persist monsters, got %d", len(repo.monsters))
+	}
+}
+
+func TestGenerateMonsterFromPrompt_RetrysAfterInvalidJSON(t *testing.T) {
+	repo := &inMemoryMonsterRepo{}
+	llm := &testLLMClient{
+		responses: []string{
+			`{"name":"bad"`,
+			validMonsterJSON,
+		},
+	}
+	svc := NewMonsterGenerationService(repo, nil, nil, llm)
+	svc.schemaPath = "../docs/schemas/monster_schema.json"
+
+	_, err := svc.GenerateMonsterFromPrompt(context.Background(), GenerateMonsterFromPromptRequest{
+		UserID:          uuid.New(),
+		Description:     "retry",
+		ChallengeRating: "1",
+	})
+	if err != nil {
+		t.Fatalf("expected retry success, got error: %v", err)
+	}
+	if llm.calls < 2 {
+		t.Fatalf("expected at least 2 llm calls, got %d", llm.calls)
 	}
 }

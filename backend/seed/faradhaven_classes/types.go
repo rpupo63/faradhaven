@@ -1,7 +1,7 @@
 package faradhaven_classes
 
 import (
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/models"
 )
 
 // EquipmentOptionSeed defines a single option within a choice (e.g. "Scale Mail and Shield")
@@ -64,15 +64,15 @@ type ClassLevelSeed struct {
 	CantripsKnown           *int // cantrips known at this level (nil = no change)
 	SpellsKnown             *int // spells known/prepared at this level (nil = no change)
 	MaxSpellPoints          *int // override for spell point pool (nil = use default formula; &0 = non-caster)
-	ExtraAttackCount  int  // 0, 1, 2, or 3 for multiattack progression
-	SneakAttackDice   int  // e.g. 2 for 2d6 sneak attack (rogue-like)
-	RageDamageBonus   int  // bonus melee damage when raging (barbarian-like)
-	MartialArtsDie    int  // unarmed/martial arts die size: 4, 6, 8, 10 (monk-like)
-	UnarmoredMovement int  // extra feet of movement when unarmored
-	SuperiorityDice   int  // number of superiority dice (battlemaster-like)
-	SuperiorityDie    int  // superiority die size: 6, 8, 10, 12
-	BardicInspiration int  // die size for inspiration: 6, 8, 10, 12
-	MaxSpellLevel     int  // Piston Brawler/Casters: spell level cap
+	ExtraAttackCount        int  // 0, 1, 2, or 3 for multiattack progression
+	SneakAttackDice         int  // e.g. 2 for 2d6 sneak attack (rogue-like)
+	RageDamageBonus         int  // bonus melee damage when raging (barbarian-like)
+	MartialArtsDie          int  // unarmed/martial arts die size: 4, 6, 8, 10 (monk-like)
+	UnarmoredMovement       int  // extra feet of movement when unarmored
+	SuperiorityDice         int  // number of superiority dice (battlemaster-like)
+	SuperiorityDie          int  // superiority die size: 6, 8, 10, 12
+	BardicInspiration       int  // die size for inspiration: 6, 8, 10, 12
+	MaxSpellLevel           int  // Piston Brawler/Casters: spell level cap
 
 	// Faradhaven class-specific resources (generic key-value map)
 	// Keys must match ResourceDefinitionSeed.Key in the class's ResourceDefinitions.
@@ -139,6 +139,10 @@ type FaradhavenClassSeed struct {
 
 	// Resource definitions for this class (generic system)
 	ResourceDefinitions []ResourceDefinitionSeed
+
+	// SpellCastingComponent: verbal | somatic | material — how this class enacts formulae in play.
+	SpellCastingComponent   string
+	SpellCastingDescription string // What observers see; class-specific flavor (not generic V/S/M rules)
 }
 
 // ComponentSeed defines component data for seeding (used in faradhaven_components.go)

@@ -1,6 +1,8 @@
 package api
 
 import (
+	"os"
+
 	"github.com/go-chi/chi/v5"
 )
 
@@ -26,6 +28,7 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		// Item compendium (reference data, no auth required)
 		r.Get("/api/items", handlers.itemHandler.getAllItems())
 		r.Get("/api/items/{itemID}", handlers.itemHandler.getItemByID())
+		r.Get("/api/loot/options", handlers.lootHandler.GetLootOptions)
 		r.Get("/api/store-owners", handlers.storeOwnerHandler.getStoreOwners())
 		r.Get("/api/store-owners/{storeOwnerID}/portrait", handlers.storeOwnerHandler.getStoreOwnerPortrait())
 		// Component compendium (reference data for periodic table, no auth required)
@@ -45,7 +48,7 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		// Maps (Public read access)
 		r.Get("/api/map/{mapID}", handlers.gameMapHandler.getMap())
 		r.Get("/api/map/room/{roomCode}", handlers.gameMapHandler.getMapByRoom())
-		
+
 		// WebSocket endpoint
 		r.Get("/api/map/{mapID}/ws", ServeWs(hub, authMiddleware))
 	})
@@ -85,9 +88,12 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Post("/api/character/{characterID}/equipment", handlers.characterHandler.updateEquipment())
 		r.Delete("/api/character/{characterID}", handlers.characterHandler.deleteCharacter())
 		r.Post("/api/character/{characterID}/purchase", handlers.characterHandler.purchaseItem())
+		r.Post("/api/character/{characterID}/sell", handlers.characterHandler.sellItem())
+		r.Post("/api/character/{characterID}/toss", handlers.characterHandler.tossItem())
 		r.Post("/api/character/{characterID}/extract", handlers.characterHandler.extractComponents())
 		r.Post("/api/character/{characterID}/forage-components", handlers.characterHandler.forageComponents())
 		r.Post("/api/character/{characterID}/loot", handlers.lootHandler.GenerateLoot)
+		r.Post("/api/character/{characterID}/loot/confirm", handlers.lootHandler.ConfirmLootPickup)
 		r.Post("/api/character/{characterID}/image", handlers.characterHandler.uploadProfilePicture())
 		r.Post("/api/characters/{characterID}/madness/roll", handlers.madnessHandler.rollMadness())
 
@@ -160,6 +166,7 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Get("/api/character/{characterID}/spells", handlers.spellHandler.getSpellsByCharacter())
 		r.Get("/api/character/{characterID}/spellbook", handlers.spellHandler.getCharacterSpellbook())
 		r.Post("/api/spell", handlers.spellHandler.createSpell())
+		r.Post("/api/spell/preview-ai-opinion", handlers.spellHandler.previewSpellAIOpinion())
 		r.Post("/api/spell/synthesize", handlers.spellHandler.synthesizeSpell())
 		r.Get("/api/spell/{spellID}/opinion", handlers.spellHandler.getSpellOpinion())
 		r.Post("/api/spell/{spellID}/ai/retry", handlers.spellHandler.retryAIField())
@@ -168,6 +175,7 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 
 		// GM-only endpoints
 		r.Get("/api/gm/spells/unchecked", handlers.spellHandler.getUncheckedSpells())
+		r.Get("/api/gm/spells/checked", handlers.spellHandler.getCheckedSpells())
 
 		// Beast endpoints (protected)
 		r.Get("/api/user/{userID}/beasts", handlers.beastHandler.getBeastsByUser())
@@ -219,14 +227,27 @@ func setupFrontendRoutes(r chi.Router, handlers *routeHandlers, authMiddleware a
 		r.Get("/api/beasts/{beastID}/harvestable-abilities", handlers.harvestHandler.getHarvestableAbilities())
 		r.Post("/api/characters/{characterID}/harvest", handlers.harvestHandler.confirmHarvest())
 
+		enableMonsterAIV2 := os.Getenv("ENABLE_MONSTER_AI_V2") == "true"
+
 		// Monster endpoints (protected)
 		r.Route("/api/monsters", func(r chi.Router) {
 			r.Post("/", handlers.monsterHandler.createMonster())
+			if enableMonsterAIV2 {
+				r.Post("/preview", handlers.monsterHandler.previewMonster())
+			}
 			r.Get("/{monsterID}", handlers.monsterHandler.getMonster())
 			r.Put("/{monsterID}", handlers.monsterHandler.updateMonster())
 			r.Delete("/{monsterID}", handlers.monsterHandler.deleteMonster())
+			if enableMonsterAIV2 {
+				r.Post("/{monsterID}/regenerate-section", handlers.monsterHandler.regenerateSection())
+				r.Post("/{monsterID}/variant", handlers.monsterHandler.createVariant())
+				r.Post("/{monsterID}/duplicate", handlers.monsterHandler.duplicateMonster())
+			}
 		})
 		r.Get("/api/user/{userID}/monsters", handlers.monsterHandler.getMonstersByUser())
+		if enableMonsterAIV2 {
+			r.Get("/api/user/{userID}/monsters/generation-summary", handlers.monsterHandler.getGenerationSummary())
+		}
 
 		// Party endpoints (protected)
 		r.Route("/api/parties", func(r chi.Router) {

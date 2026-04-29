@@ -327,6 +327,8 @@ export function computeCharacterSheetFromApi(
       proficiencies: apiClass.proficiencies,
       tools: apiClass.tools,
       skill_focus: apiClass.skill_focus,
+      spell_casting_component: apiClass.spell_casting_component,
+      spell_casting_description: apiClass.spell_casting_description,
     },
     class_level: {
       id: apiClassLevel.id,
@@ -450,6 +452,8 @@ export function normalizeApiSheet(api: ApiCharacterSheet): NormalizedCharacterSh
       proficiencies: cls.proficiencies,
       tools: cls.tools,
       skill_focus: cls.skill_focus,
+      spell_casting_component: cls.spell_casting_component,
+      spell_casting_description: cls.spell_casting_description,
     },
     modifiers: {
       strength: strMod,
@@ -533,6 +537,8 @@ export function normalizeComputedSheet(
       proficiencies: cls.proficiencies,
       tools: cls.tools,
       skill_focus: cls.skill_focus,
+      spell_casting_component: cls.spell_casting_component,
+      spell_casting_description: cls.spell_casting_description,
     },
     class_level: { 
       proficiency_bonus: prof,

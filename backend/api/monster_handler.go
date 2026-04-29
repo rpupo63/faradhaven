@@ -7,30 +7,33 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/models"
-	"github.com/rpupo63/unified-personal-site-backend/services"
+	"github.com/rpupo63/faradhaven/backend/database"
+	"github.com/rpupo63/faradhaven/backend/models"
+	"github.com/rpupo63/faradhaven/backend/services"
 	"github.com/rs/zerolog/log"
 )
 
 type monsterHandler struct {
 	monsterRepo              database.MonsterRepository
+	monsterEventRepo         database.MonsterGenerationEventRepository
 	monsterGenerationService *services.MonsterGenerationService
 }
 
-func newMonsterHandler(monsterRepo database.MonsterRepository, monsterGenerationService *services.MonsterGenerationService) *monsterHandler {
+func newMonsterHandler(monsterRepo database.MonsterRepository, monsterEventRepo database.MonsterGenerationEventRepository, monsterGenerationService *services.MonsterGenerationService) *monsterHandler {
 	return &monsterHandler{
 		monsterRepo:              monsterRepo,
+		monsterEventRepo:         monsterEventRepo,
 		monsterGenerationService: monsterGenerationService,
 	}
 }
 
 // CreateMonsterRequest represents the request body for creating a monster.
 type CreateMonsterRequest struct {
-	Description         string    `json:"description"`
-	ChallengeRating     string    `json:"challenge_rating"`
-	UserID              uuid.UUID `json:"user_id"`
-	FaradhavenClassName string    `json:"faradhaven_class_name,omitempty"` // optional: enemy themed from seed/faradhaven_classes
+	Description         string                     `json:"description"`
+	ChallengeRating     string                     `json:"challenge_rating"`
+	UserID              uuid.UUID                  `json:"user_id"`
+	FaradhavenClassName string                     `json:"faradhaven_class_name,omitempty"` // optional: enemy themed from seed/faradhaven_classes
+	GenerationContext   services.GenerationContext `json:"generation_context,omitempty"`
 }
 
 // CreateMonster creates a new monster using the generation service.
@@ -63,6 +66,7 @@ func (h *monsterHandler) createMonster() http.HandlerFunc {
 			Description:         req.Description,
 			ChallengeRating:     req.ChallengeRating,
 			FaradhavenClassName: req.FaradhavenClassName,
+			GenerationContext:   req.GenerationContext,
 		})
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to generate monster")
@@ -71,6 +75,181 @@ func (h *monsterHandler) createMonster() http.HandlerFunc {
 		}
 
 		respondJSON(w, http.StatusCreated, monster)
+	}
+}
+
+// PreviewMonsterRequest represents a non-persistent generation request.
+type PreviewMonsterRequest CreateMonsterRequest
+
+func (h *monsterHandler) previewMonster() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req PreviewMonsterRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+		if req.Description == "" || req.ChallengeRating == "" {
+			respondError(w, http.StatusBadRequest, "Description and Challenge Rating are required")
+			return
+		}
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		if authUserID != req.UserID.String() {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+		monster, err := h.monsterGenerationService.PreviewMonsterFromPrompt(r.Context(), services.GenerateMonsterFromPromptRequest{
+			UserID:              req.UserID,
+			Description:         req.Description,
+			ChallengeRating:     req.ChallengeRating,
+			FaradhavenClassName: req.FaradhavenClassName,
+			GenerationContext:   req.GenerationContext,
+		})
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to preview monster")
+			respondError(w, http.StatusInternalServerError, "Failed to preview monster")
+			return
+		}
+		respondJSON(w, http.StatusOK, monster)
+	}
+}
+
+type RegenerateSectionRequest struct {
+	Section string `json:"section"`
+}
+
+func (h *monsterHandler) regenerateSection() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "monsterID")
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid monster ID")
+			return
+		}
+		monster, err := h.monsterRepo.FindByID(id)
+		if err != nil || monster == nil {
+			respondError(w, http.StatusNotFound, "Monster not found")
+			return
+		}
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil || authUserID != monster.UserID.String() {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+		var req RegenerateSectionRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+		updated, err := h.monsterGenerationService.RegenerateSection(r.Context(), monster, monster.UserID, req.Section)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to regenerate section")
+			return
+		}
+		if err := h.monsterRepo.Update(updated); err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to save monster")
+			return
+		}
+		respondJSON(w, http.StatusOK, updated)
+	}
+}
+
+type VariantRequest struct {
+	Variant string `json:"variant"`
+}
+
+func (h *monsterHandler) createVariant() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "monsterID")
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid monster ID")
+			return
+		}
+		base, err := h.monsterRepo.FindByID(id)
+		if err != nil || base == nil {
+			respondError(w, http.StatusNotFound, "Monster not found")
+			return
+		}
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil || authUserID != base.UserID.String() {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+		var req VariantRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+		variant, err := h.monsterGenerationService.BuildVariant(r.Context(), base, base.UserID, req.Variant)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to generate variant")
+			return
+		}
+		if err := h.monsterRepo.Add(variant); err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to save variant")
+			return
+		}
+		respondJSON(w, http.StatusCreated, variant)
+	}
+}
+
+func (h *monsterHandler) duplicateMonster() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "monsterID")
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid monster ID")
+			return
+		}
+		base, err := h.monsterRepo.FindByID(id)
+		if err != nil || base == nil {
+			respondError(w, http.StatusNotFound, "Monster not found")
+			return
+		}
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil || authUserID != base.UserID.String() {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+		copyMonster := *base
+		copyMonster.ID = uuid.Nil
+		copyMonster.Name = base.Name + " (Copy)"
+		copyMonster.GenerationMode = "duplicate"
+		if err := h.monsterRepo.Add(&copyMonster); err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to duplicate monster")
+			return
+		}
+		respondJSON(w, http.StatusCreated, copyMonster)
+	}
+}
+
+func (h *monsterHandler) getGenerationSummary() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userIDStr := chi.URLParam(r, "userID")
+		userID, err := uuid.Parse(userIDStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid user ID")
+			return
+		}
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil || authUserID != userIDStr {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+		if h.monsterEventRepo == nil {
+			respondJSON(w, http.StatusOK, map[string]int64{})
+			return
+		}
+		summary, err := h.monsterEventRepo.SummaryByUser(userID)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to fetch summary")
+			return
+		}
+		respondJSON(w, http.StatusOK, summary)
 	}
 }
 

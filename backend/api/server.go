@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/rpupo63/unified-personal-site-backend/database"
+	"github.com/rpupo63/faradhaven/backend/database"
 	"github.com/rs/zerolog/log"
 )
 
@@ -219,16 +219,16 @@ func healthcheckHandler(startupTime time.Time) http.HandlerFunc {
 		uptime := time.Since(startupTime)
 
 		response := map[string]interface{}{
-			"status":       "healthy",
-			"current_time": time.Now().Format(time.RFC3339),
-			"startup_time": startupTime.Format(time.RFC3339),
-			"uptime":       formatUptime(uptime),
+			"status":         "healthy",
+			"current_time":   time.Now().Format(time.RFC3339),
+			"startup_time":   startupTime.Format(time.RFC3339),
+			"uptime":         formatUptime(uptime),
 			"uptime_seconds": int(uptime.Seconds()),
 			"runtime": map[string]interface{}{
-				"go_version":   runtime.Version(),
-				"os":           runtime.GOOS,
-				"arch":         runtime.GOARCH,
-				"num_cpu":      runtime.NumCPU(),
+				"go_version":    runtime.Version(),
+				"os":            runtime.GOOS,
+				"arch":          runtime.GOARCH,
+				"num_cpu":       runtime.NumCPU(),
 				"num_goroutine": runtime.NumGoroutine(),
 			},
 			"memory": map[string]interface{}{

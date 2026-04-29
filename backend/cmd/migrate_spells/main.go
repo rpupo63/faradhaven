@@ -17,6 +17,7 @@
 // migrate_weapon_damages, migrate_creatures, migrate_map_tokens, migrate_class_resources (independent).
 //
 // If legacy text columns somehow remain after migrate_spells, use:
+//
 //	go run ./cmd/drop_spell_legacy_text_columns -apply
 package main
 
@@ -28,8 +29,8 @@ import (
 	"sort"
 
 	"github.com/joho/godotenv"
-	"github.com/rpupo63/unified-personal-site-backend/internal/bootstrap"
-	"github.com/rpupo63/unified-personal-site-backend/internal/migrationspell"
+	"github.com/rpupo63/faradhaven/backend/internal/bootstrap"
+	"github.com/rpupo63/faradhaven/backend/internal/migrationspell"
 )
 
 func main() {

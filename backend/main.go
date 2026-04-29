@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	api "github.com/rpupo63/unified-personal-site-backend/api"
-	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/internal/bootstrap"
-	"github.com/rpupo63/unified-personal-site-backend/seed"
+	api "github.com/rpupo63/faradhaven/backend/api"
+	"github.com/rpupo63/faradhaven/backend/database"
+	"github.com/rpupo63/faradhaven/backend/internal/bootstrap"
+	"github.com/rpupo63/faradhaven/backend/seed"
 )
 
 // @title           Faradhaven API

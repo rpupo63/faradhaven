@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/models"
 )
 
 // SpellAIOpinionResponseSchema is the JSON schema passed to the LLM for structured spell review output.
@@ -69,6 +69,7 @@ const spellAIOpinionPromptTemplate = `
 	### COMPONENT PILLARS (what each category means):
 	- Forma: Shape — geometric delivery (Projectile, Beam, Nova, Wall, Zone, Cone, Aura, Touch, etc.).
 	- Scopus: Targeting — anchor point (Target, Self, Ground, Chain, etc.).
+	- Validation note: Every non-empty phase requires exactly one Forma and one Scopus (single-phase spells are just one phase).
 	- Essentia: Domain / matter — substance or abstract being manipulated (Ignis, Umbra, Vita, Arcanum, pathos tones, etc.).
 	- Actio: Kinetic verb — what the magic does to Essentia or the target (Push, Pull, Bind, Create, etc.).
 	- Magnitudo: Scale modifiers — power dials (Strong, Increase, Extreme, etc.).

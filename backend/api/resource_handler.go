@@ -6,17 +6,28 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/database"
+	"github.com/rpupo63/faradhaven/backend/models"
+	"github.com/rpupo63/faradhaven/backend/services"
 	"github.com/rs/zerolog/log"
 )
 
 type resourceHandler struct {
-	resourceRepo *database.CharacterResourceRepo
+	resourceRepo    *database.CharacterResourceRepo
+	characterRepo   database.CharacterRepository
+	resourceService *services.ResourceService
 }
 
-func newResourceHandler(resourceRepo *database.CharacterResourceRepo) *resourceHandler {
-	return &resourceHandler{resourceRepo: resourceRepo}
+func newResourceHandler(
+	resourceRepo *database.CharacterResourceRepo,
+	characterRepo database.CharacterRepository,
+	resourceService *services.ResourceService,
+) *resourceHandler {
+	return &resourceHandler{
+		resourceRepo:    resourceRepo,
+		characterRepo:   characterRepo,
+		resourceService: resourceService,
+	}
 }
 
 // GetResources returns all resources for a character
@@ -129,6 +140,12 @@ func (h *resourceHandler) SpendResource() http.HandlerFunc {
 			return
 		}
 
+		if character, err := h.characterRepo.FindByID(characterID); err == nil && h.resourceService != nil {
+			if ensureErr := h.resourceService.EnsureTrackableClassResources(character); ensureErr != nil {
+				log.Warn().Err(ensureErr).Str("characterID", characterID.String()).Msg("EnsureTrackableClassResources before spend")
+			}
+		}
+
 		resource, err := h.resourceRepo.FindByCharacterAndKey(characterID, key)
 		if err != nil {
 			respondError(w, http.StatusNotFound, "Resource not found")
@@ -172,6 +189,12 @@ func (h *resourceHandler) GainResource() http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			respondError(w, http.StatusBadRequest, "Invalid request body")
 			return
+		}
+
+		if character, err := h.characterRepo.FindByID(characterID); err == nil && h.resourceService != nil {
+			if ensureErr := h.resourceService.EnsureTrackableClassResources(character); ensureErr != nil {
+				log.Warn().Err(ensureErr).Str("characterID", characterID.String()).Msg("EnsureTrackableClassResources before gain")
+			}
 		}
 
 		resource, err := h.resourceRepo.FindByCharacterAndKey(characterID, key)

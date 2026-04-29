@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/models"
-	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_classes"
+	"github.com/rpupo63/faradhaven/backend/models"
+	"github.com/rpupo63/faradhaven/backend/seed/faradhaven_classes"
 	"github.com/rs/zerolog/log"
 )
 
@@ -55,6 +55,12 @@ func (h *characterHandler) getCharacterSheetData(id uuid.UUID) (*CharacterSheetR
 	character, err := h.characterRepo.FindByIDForSheet(id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get character: %w", err)
+	}
+
+	if h.resourceService != nil {
+		if ensureErr := h.resourceService.EnsureTrackableClassResources(character); ensureErr != nil {
+			log.Warn().Err(ensureErr).Str("characterID", id.String()).Msg("EnsureTrackableClassResources")
+		}
 	}
 
 	// If character is part of a party, load party members and identified beasts in ONE call

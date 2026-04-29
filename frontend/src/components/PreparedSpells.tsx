@@ -19,7 +19,7 @@ import { SpellListPagination } from './SpellListPagination'; // NEW: Import Spel
 import { buildCastToast, RESOURCE_KEY_LABELS } from '@/lib/toastUtils';
 import { spellMatchesAnySavedSpeedDial } from '@/lib/powderMageSpellMatch';
 import { hasSpeedDialResourceRemaining } from '@/lib/powderMageSpeedDial';
-import { formatSpellRangeFeet, formatSpellDamageDice } from '@/lib/spellMechanics';
+import { formatSpellRangeFeet, formatSpellDamageDice, spellRequiresConcentration } from '@/lib/spellMechanics';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,12 +73,6 @@ function getSpellCostInfo(
   const poolResource = getPoolResource(sheet);
 
   switch (className) {
-    case 'The Rift Weaver': {
-      const cost = tier * 2;
-      const current = poolResource?.current_value ?? 0;
-      return { cost, label: 'SP', hasEnough: current >= cost };
-    }
-
     case 'The Piston Brawler': {
       const cost = tier;
       const current = poolResource?.current_value ?? 0;
@@ -89,12 +83,6 @@ function getSpellCostInfo(
       const cost = tier;
       const current = poolResource?.current_value ?? 0;
       return { cost, label: 'Ichor', hasEnough: current >= cost };
-    }
-
-    case 'The Vapor Blade': {
-      const cost = tier;
-      const current = poolResource?.current_value ?? 0;
-      return { cost, label: 'SP', hasEnough: current >= cost };
     }
 
     case 'The Ironwright':
@@ -135,8 +123,8 @@ function getSpellCostInfo(
         return { cost: 0, label: 'Speed Dial', hasEnough: true, useSpeedDialCast: true };
       }
       const cost = 1;
-      const current = getClassResourceValue(sheet.class_resources, 'powder_charges') ?? 0;
-      return { cost, label: 'Powder', hasEnough: current >= cost };
+      const current = getClassResourceValue(sheet.class_resources, 'available_timer') ?? 0;
+      return { cost, label: 'Timer', hasEnough: current >= cost };
     }
 
     default: {
@@ -347,7 +335,10 @@ export function PreparedSpells({ characterId, token, characterName }: PreparedSp
               maxStability={getClassResourceMaxOrValue(sheet.class_resources, 'max_stability')}
               maxBlueprintSlots={getClassResourceMaxOrValue(sheet.class_resources, 'speed_dial_slots')}
               isPowderMage={sheet.class?.name === 'The Powder Mage'}
-              timerDuration={sheet.class_resources?.find((r) => r.key === 'timer_duration')?.value}
+              timerDuration={(() => {
+                const r = sheet.class_resources?.find((x) => x.key === 'available_timer');
+                return r ? (r.current_value ?? r.value) : undefined;
+              })()}
               speedDialSlots={sheet.class_resources?.find((r) => r.key === 'speed_dial_slots')?.value ?? 0}
             />
           )}
@@ -485,7 +476,7 @@ export function PreparedSpellCard({
       );
     }
 
-    if (spell.concentration) {
+    if (spellRequiresConcentration(spell.concentration)) {
       parts.push(
         <Badge key="conc" variant="secondary" size="h5-sm" className="mr-2" title="Requires Concentration">
           <RaIcon name="brain-freeze" className="text-xs mr-1" /> Conc.

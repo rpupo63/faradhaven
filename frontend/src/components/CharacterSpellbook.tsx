@@ -17,6 +17,7 @@ import { SpellListPagination } from '@/components/SpellListPagination';
 import { PreparedSpellCard } from '@/components/PreparedSpells';
 import { buildCastToast } from '@/lib/toastUtils';
 import { CharacterSpellForge } from '@/components/CharacterSpellForge';
+import { CharacterSpellForgeV2 } from '@/components/CharacterSpellForgeV2';
 import { RaIcon } from '@/components/ui/RaIcon';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +31,7 @@ import {
   SCOPE_LABELS,
   useSpellbookListState,
 } from '@/components/spellbook';
+import { spellRequiresConcentration } from '@/lib/spellMechanics';
 
 interface CharacterSpellbookProps {
   /** Class + race spell pool (from sheet or merged). Omit only if unknown; forge treats undefined as unrestricted. */
@@ -43,8 +45,8 @@ interface CharacterSpellbookProps {
   isPowderMage?: boolean;
   speedDialSlots?: number;
   /** Controlled Spells / Spell Forge sub-tab (Spellbook page only). */
-  spellbookSubTab?: 'spells' | 'forge';
-  onSpellbookSubTabChange?: (tab: 'spells' | 'forge') => void;
+  spellbookSubTab?: 'spells' | 'forge' | 'forge2';
+  onSpellbookSubTabChange?: (tab: 'spells' | 'forge' | 'forge2') => void;
 }
 
 export function CharacterSpellbook({
@@ -60,7 +62,7 @@ export function CharacterSpellbook({
   spellbookSubTab: spellbookSubTabProp,
   onSpellbookSubTabChange,
 }: CharacterSpellbookProps) {
-  const [internalSubTab, setInternalSubTab] = useState<'spells' | 'forge'>('spells');
+  const [internalSubTab, setInternalSubTab] = useState<'spells' | 'forge' | 'forge2'>('spells');
   const activeTab =
     spellbookSubTabProp !== undefined && onSpellbookSubTabChange
       ? spellbookSubTabProp
@@ -275,6 +277,10 @@ export function CharacterSpellbook({
   );
 
   if (editingSpell) {
+    const spellForForge = {
+      ...editingSpell,
+      concentration: spellRequiresConcentration(editingSpell.concentration),
+    };
     return (
       <CharacterSpellForge
         availableComponents={availableComponents}
@@ -283,7 +289,7 @@ export function CharacterSpellbook({
         token={token}
         timerDuration={timerDuration}
         components={components}
-        spellToEdit={editingSpell}
+        spellToEdit={spellForForge}
         onClose={() => setEditingSpell(null)}
         isPowderMage={isPowderMage}
         speedDialSlots={speedDialSlots}
@@ -294,10 +300,10 @@ export function CharacterSpellbook({
   return (
     <Tabs
       value={activeTab}
-      onValueChange={(v) => setActiveTab(v as 'spells' | 'forge')}
+      onValueChange={(v) => setActiveTab(v as 'spells' | 'forge' | 'forge2')}
       className="w-full min-w-0"
     >
-      <TabsList className="grid w-full min-w-0 grid-cols-2 h-auto gap-0">
+      <TabsList className="grid w-full min-w-0 grid-cols-3 h-auto gap-0">
         <TabsTrigger value="spells" className="gap-1 sm:gap-2 px-1.5 sm:px-3 py-2.5 min-w-0 text-xs sm:text-sm">
           <RaIcon name="book" className="text-sm shrink-0" />
           <span className="truncate leading-tight text-center">Spells</span>
@@ -311,6 +317,17 @@ export function CharacterSpellbook({
           <span className="truncate leading-tight text-center">
             <span className="sm:hidden">Forge</span>
             <span className="hidden sm:inline">Spell Forge</span>
+          </span>
+        </TabsTrigger>
+        <TabsTrigger
+          value="forge2"
+          className="gap-1 sm:gap-2 px-1.5 sm:px-3 py-2.5 min-w-0 text-xs sm:text-sm"
+          disabled={!userId}
+        >
+          <RaIcon name="crystal-wand" className="text-sm shrink-0" />
+          <span className="truncate leading-tight text-center">
+            <span className="sm:hidden">Forge 2</span>
+            <span className="hidden sm:inline">Spell Forge 2</span>
           </span>
         </TabsTrigger>
       </TabsList>
@@ -327,6 +344,28 @@ export function CharacterSpellbook({
           components={components}
           isPowderMage={isPowderMage}
           speedDialSlots={speedDialSlots}
+        />
+      </TabsContent>
+      <TabsContent value="forge2" className="mt-4">
+        <CharacterSpellForgeV2
+          availableComponents={availableComponents}
+          userId={userId}
+          characterId={characterId}
+          token={token}
+          timerDuration={timerDuration}
+          components={components}
+          currentStability={sheet?.class_resources?.find((r) => r.key === 'max_stability')?.current_value}
+          maxStability={
+            sheet?.class_resources?.find((r) => r.key === 'max_stability')?.max_value ??
+            sheet?.class_resources?.find((r) => r.key === 'max_stability')?.value
+          }
+          maxBlueprintSlots={
+            sheet?.class_resources?.find((r) => r.key === 'speed_dial_slots')?.max_value ??
+            sheet?.class_resources?.find((r) => r.key === 'speed_dial_slots')?.value
+          }
+          isPowderMage={isPowderMage}
+          speedDialSlots={speedDialSlots}
+          gameClassName={sheet?.class?.name}
         />
       </TabsContent>
     </Tabs>

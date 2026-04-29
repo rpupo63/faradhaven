@@ -22,5 +22,5 @@ type TraitOption struct {
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationships (stored in DB via foreign keys)
-	Trait Trait `json:"-" gorm:"foreignKey:TraitID;references:ID;constraint:OnDelete:CASCADE"`
+	Trait Trait `json:"-" gorm:"foreignKey:TraitID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

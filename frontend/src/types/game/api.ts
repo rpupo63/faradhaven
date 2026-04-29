@@ -292,6 +292,9 @@ export interface ApiClass {
   equipment_choices?: ApiEquipmentChoice[];
   archetype_level?: number; // Level at which players choose their archetype
   archetypes?: ApiArchetype[]; // Available archetypes for this class
+  /** verbal | somatic | material — Faradhaven casting flavor */
+  spell_casting_component?: string;
+  spell_casting_description?: string;
   components?: ApiComponent[];
   levels?: ApiClassLevel[]; // Level 1 included in list view for feature previews
   created_at?: string;
@@ -320,6 +323,7 @@ export interface ApiLevelFeature {
   uses_per_rest?: string;     // "1", "Proficiency Bonus", or ""
   reset_condition?: string;   // "Long Rest", "Short Rest", or ""
   resource_costs?: Array<{ key: string; amount: number }>;
+  resource_gains?: Array<{ key: string; amount: number }>;
   created_at?: string;
   updated_at?: string;
 }
@@ -728,6 +732,10 @@ export interface ApiCharacterLink {
 // === Loot Types ===
 export type LootSource = 'common_enemy' | 'boss_enemy' | 'room';
 export type LootTier = 'low' | 'medium' | 'high';
+export type LootRoomTheme = 'dungeon' | 'office' | 'rich' | 'poor' | 'gangster' | 'arcane' | 'wilderness';
+export type LootLocation = 'indoor' | 'underground' | 'urban' | 'slums' | 'estate' | 'street' | 'wilds';
+export type LootRewardAmount = 'scarce' | 'standard' | 'bountiful' | 'jackpot';
+export type LootLevelBand = 'novice' | 'adventurer' | 'veteran' | 'legend';
 
 export interface LootDrop {
   kind: 'item' | 'weapon';
@@ -744,5 +752,38 @@ export interface LootResult {
   items_rolled: number;
   weapons_rolled: number;
   drops: LootDrop[];
+  room_theme?: string;
+  reward_amount?: string;
+  level_band?: string;
+  profile_notes?: string[];
+  expected_budget?: number;
+  session_budget?: number;
+  ending_budget?: number;
+  debt_used?: boolean;
+  debt_amount?: number;
+  loot_level?: number;
+}
+
+export interface LootPartyMember {
+  id: string;
+  name: string;
+}
+
+export interface LootPreviewResponse {
+  session_id: string;
+  loot: LootResult;
+  party_members: LootPartyMember[];
+}
+
+export interface LootAssignmentPayload {
+  drop_index: number;
+  character_id: string;
+}
+
+export interface LootOptionsResponse {
+  themes: LootRoomTheme[];
+  locations: LootLocation[];
+  sources: LootSource[];
+  loot_levels: number[];
 }
 

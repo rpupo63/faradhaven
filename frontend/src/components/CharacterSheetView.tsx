@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { type NormalizedCharacterSheet, type ApiCharacterWeapon } from '@/types/game';
 import { ChevronUp, ChevronDown, Sun, Moon } from 'lucide-react';
 import { RaIcon } from '@/components/ui/RaIcon';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { LootModal } from '@/components/LootModal';
-import { rollD20, rollD, dispatchClearDice } from '@/lib/dice';
+import { rollD20, rollDice, dispatchClearDice } from '@/lib/dice';
 import { getActiveEffects } from '@/lib/api/mechanics';
 import { getWeaponById } from '@/lib/api/character';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -19,12 +19,12 @@ import { CombatStats } from './character-sheet/CombatStats';
 import { HPPanel } from './character-sheet/HPPanel';
 import { HitDicePanel } from './character-sheet/HitDicePanel';
 import { ClassResourceDisplay } from './character-sheet/ClassResourceDisplay';
+import { ClassSpellcastingStyle } from './character-sheet/ClassSpellcastingStyle';
 import { ComponentInventorySection } from './character-sheet/ComponentInventorySection';
 import { ActiveEffectsSection } from './character-sheet/ActiveEffectsSection';
 import { EquipmentSection } from './character-sheet/EquipmentSection';
 import { FeaturesSection } from './character-sheet/FeaturesSection';
 import { ActiveAbilitiesSection } from './character-sheet/ActiveAbilitiesSection';
-import { MoneyPanel } from './character-sheet/MoneyPanel';
 import { WeaponAttackDialog } from './character-sheet/WeaponAttackDialog';
 import { DieOptions } from './character-sheet/DieOptions';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -34,10 +34,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { UserCircle } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { MobileSheetSummaryStrip } from './character-sheet/MobileSheetSummaryStrip';
 import { MobileSheetBottomBar } from './character-sheet/MobileSheetBottomBar';
+import { DeathSavesTracker } from './character-sheet/DeathSavesTracker';
+import { CharacterSpecificInfoCard } from './character-sheet/CharacterSpecificInfoCard';
+import { useDeathSaves } from '@/hooks/useDeathSaves';
 
 interface CharacterSheetViewProps {
   sheet: NormalizedCharacterSheet;
@@ -106,7 +107,17 @@ export function CharacterSheetView({
 
   // State for LootModal
   const [isLootModalOpen, setIsLootModalOpen] = useState(false);
-  const [deathPopupOpen, setDeathPopupOpen] = useState(false); // Moved here
+  const [deathPopupOpen, setDeathPopupOpen] = useState(false);
+  const [deathSaveRolling, setDeathSaveRolling] = useState(false);
+
+  const {
+    successes: deathSuccesses,
+    failures: deathFailures,
+    stable: deathStable,
+    dead: deathDead,
+    canRoll: canRollDeathSave,
+    rollDeathSave,
+  } = useDeathSaves(character.id, sheet.current_hp);
 
   // Fetch active effects
   const { data: activeEffects } = useQuery({
@@ -115,18 +126,15 @@ export function CharacterSheetView({
     enabled: !!character.id && !!token,
   });
 
-  // Track previous HP to detect when it drops to 0 or below
-  const prevHPRef = useRef(sheet.current_hp);
-
+  const prevDeadRef = useRef(false);
   useEffect(() => {
-    // Play death sound and show popup if HP drops to 0 or below
-    if (sheet.current_hp <= 0 && prevHPRef.current > 0) {
+    if (deathDead && !prevDeadRef.current) {
       const audio = new Audio('/death-sound.mp3');
       audio.play().catch(err => console.error('Error playing death sound:', err));
-      setTimeout(() => setDeathPopupOpen(true), 0);
+      setDeathPopupOpen(true);
     }
-    prevHPRef.current = sheet.current_hp;
-  }, [sheet.current_hp]);
+    prevDeadRef.current = deathDead;
+  }, [deathDead]);
 
   // Expanded panel state
   const [expandedPanel, setExpandedPanel] = useState<'hp' | 'hitdice' | null>(null);
@@ -140,8 +148,20 @@ export function CharacterSheetView({
     await rollD20(modifier, label);
   };
 
-  const handleGenericRoll = async (sides: number) => {
-    await rollD(sides, `d${sides} Roll`);
+  const handleGenericRoll = async (count: number, sides: number) => {
+    const label = count === 1 ? `d${sides} Roll` : `${count}d${sides} Roll`;
+    await rollDice(count, sides, label);
+  };
+
+  const handleDeathSaveRoll = async (): Promise<boolean> => {
+    if (!canRollDeathSave) return false;
+    setDeathSaveRolling(true);
+    try {
+      const result = await rollDeathSave();
+      return result !== null;
+    } finally {
+      setDeathSaveRolling(false);
+    }
   };
 
   const handleWeaponClick = async (charWeapon: ApiCharacterWeapon) => {
@@ -183,7 +203,12 @@ export function CharacterSheetView({
   };
 
   return (
-    <div className={cn('space-y-4 relative pb-0', className)}>
+    <div
+      className={cn(
+        'space-y-4 relative pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0',
+        className
+      )}
+    >
       {/* Header */}
       {!hideHeader && (
         <div className="border-b border-border pb-2">
@@ -201,7 +226,7 @@ export function CharacterSheetView({
         </div>
       )}
 
-      {/* Mobile: sticky quick stats + accordions + fixed bottom bar (see MobileSheetBottomBar) */}
+      {/* Mobile: sticky quick stats + accordions + fixed bottom bar (dice + rests) */}
       <div className="md:hidden space-y-3">
         <MobileSheetSummaryStrip
           sheet={sheet}
@@ -255,6 +280,17 @@ export function CharacterSheetView({
               Combat & vitals
             </AccordionTrigger>
             <AccordionContent className="space-y-3 text-sm leading-snug pb-3">
+              {sheet.current_hp <= 0 && (
+                <DeathSavesTracker
+                  successes={deathSuccesses}
+                  failures={deathFailures}
+                  stable={deathStable}
+                  dead={deathDead}
+                  canRoll={canRollDeathSave}
+                  rolling={deathSaveRolling}
+                  onRoll={handleDeathSaveRoll}
+                />
+              )}
               <CombatStats
                 sheet={sheet}
                 expandedPanel={expandedPanel}
@@ -263,23 +299,7 @@ export function CharacterSheetView({
                 onUseHitDice={onUseHitDice}
                 onRoll={handleRoll}
               />
-              {sheet.character.raceName.includes('Changeling') && (
-                <Card className="arcane-border bg-card">
-                  <CardContent className="py-2 px-3 flex items-center gap-2">
-                    <UserCircle className="h-4 w-4 text-primary shrink-0" />
-                    <span className="text-xs font-tome-marginalia text-muted-foreground uppercase shrink-0">Form:</span>
-                    <Input
-                      placeholder="Current Persona..."
-                      className="h-7 text-xs bg-transparent border-none focus-visible:ring-0 px-0 font-tome-subheading"
-                      defaultValue={localStorage.getItem(`persona_${character.id}`) || ''}
-                      onChange={(e) => localStorage.setItem(`persona_${character.id}`, e.target.value)}
-                    />
-                  </CardContent>
-                </Card>
-              )}
-              {sheet.money !== undefined && (
-                <MoneyPanel sheet={sheet} onMoneyChange={onMoneyChange} />
-              )}
+              <CharacterSpecificInfoCard sheet={sheet} onMoneyChange={onMoneyChange} />
             </AccordionContent>
           </AccordionItem>
 
@@ -306,6 +326,7 @@ export function CharacterSheetView({
               Resources & components
             </AccordionTrigger>
             <AccordionContent className="space-y-3 pb-3">
+              <ClassSpellcastingStyle sheet={sheet} />
               {sheet.class_resources && sheet.class_resources.length > 0 && token && (
                 <ClassResourceDisplay
                   resources={sheet.class_resources}
@@ -351,6 +372,23 @@ export function CharacterSheetView({
           </AccordionItem>
         </Accordion>
       </div>
+
+      {/* Portal to body so position:fixed is not clipped/stacked under Layout footer (main has overflow + isolation). */}
+      {createPortal(
+        <MobileSheetBottomBar
+          onShortRest={
+            onShortRest
+              ? async () => {
+                  await onShortRest();
+                  setExpandedPanel('hitdice');
+                }
+              : undefined
+          }
+          onLongRest={onLongRest}
+          onOpenDice={() => setDieOptionsOpen(true)}
+        />,
+        document.body
+      )}
 
       {/* Main 4-column layout (desktop): Abilities | Skills | Middle | Features */}
       <div className="hidden md:grid grid-cols-1 gap-4 min-w-0 md:grid-cols-[90px_180px_1fr] lg:grid-cols-[100px_200px_1fr_280px]">
@@ -413,6 +451,17 @@ export function CharacterSheetView({
 
         {/* MIDDLE COLUMN: HP, Stats, Equipment, Weapons, Languages */}
         <div className="space-y-4 order-1 md:order-none min-w-0">
+          {sheet.current_hp <= 0 && (
+            <DeathSavesTracker
+              successes={deathSuccesses}
+              failures={deathFailures}
+              stable={deathStable}
+              dead={deathDead}
+              canRoll={canRollDeathSave}
+              rolling={deathSaveRolling}
+              onRoll={handleDeathSaveRoll}
+            />
+          )}
           <CombatStats
             sheet={sheet}
             expandedPanel={expandedPanel}
@@ -422,25 +471,9 @@ export function CharacterSheetView({
             onRoll={handleRoll}
           />
 
-          {/* Changeling Persona */}
-          {sheet.character.raceName.includes('Changeling') && (
-            <Card className="arcane-border bg-card">
-              <CardContent className="py-2 px-3 flex items-center gap-2">
-                <UserCircle className="h-4 w-4 text-primary shrink-0" />
-                <span className="text-xs font-tome-marginalia text-muted-foreground uppercase shrink-0">Form:</span>
-                <Input 
-                  placeholder="Current Persona..." 
-                  className="h-7 text-xs bg-transparent border-none focus-visible:ring-0 px-0 font-tome-subheading"
-                  defaultValue={localStorage.getItem(`persona_${character.id}`) || ''}
-                  onChange={(e) => localStorage.setItem(`persona_${character.id}`, e.target.value)}
-                />
-              </CardContent>
-            </Card>
-          )}
+          <CharacterSpecificInfoCard sheet={sheet} onMoneyChange={onMoneyChange} />
 
-          {/* Money Tracking */}          {sheet.money !== undefined && (
-            <MoneyPanel sheet={sheet} onMoneyChange={onMoneyChange} />
-          )}
+          <ClassSpellcastingStyle sheet={sheet} />
 
           {/* Class Resources */}
           {sheet.class_resources && sheet.class_resources.length > 0 && token && (
@@ -536,6 +569,21 @@ export function CharacterSheetView({
         open={dieOptionsOpen}
         onOpenChange={setDieOptionsOpen}
         onRoll={handleGenericRoll}
+        deathSaveOption={
+          sheet.current_hp <= 0
+            ? {
+                show: true,
+                disabled: !canRollDeathSave,
+                disabledReason: deathDead
+                  ? 'This character has died.'
+                  : deathStable
+                    ? 'Already stabilized at 0 HP.'
+                    : undefined,
+                busy: deathSaveRolling,
+                onRollDeathSave: handleDeathSaveRoll,
+              }
+            : undefined
+        }
       />
 
       {/* HP Management Dialog */}
@@ -612,6 +660,7 @@ export function CharacterSheetView({
           isOpen={isLootModalOpen}
           onClose={() => setIsLootModalOpen(false)}
           characterId={character.id}
+          characterLevel={character.level}
           token={token}
         />
       )}

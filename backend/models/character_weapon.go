@@ -20,9 +20,9 @@ type CharacterWeapon struct {
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationships
-	Character *Character       `json:"-" gorm:"foreignKey:CharacterID;references:ID;constraint:OnDelete:CASCADE"`
-	Weapon    Weapon           `json:"weapon" gorm:"foreignKey:WeaponID;references:ID"`
-	Modifiers []WeaponModifier `json:"modifiers,omitempty" gorm:"foreignKey:CharacterWeaponID;constraint:OnDelete:CASCADE"`
+	Character *Character       `json:"-" gorm:"foreignKey:CharacterID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Weapon    Weapon           `json:"weapon" gorm:"foreignKey:WeaponID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Modifiers []WeaponModifier `json:"modifiers,omitempty" gorm:"foreignKey:CharacterWeaponID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 // TableName specifies the table name for GORM

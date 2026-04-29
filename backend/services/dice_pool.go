@@ -3,7 +3,7 @@ package services
 import (
 	"fmt"
 
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/models"
 )
 
 // DicePool represents a set of dice to roll.
@@ -52,20 +52,40 @@ func CalculateSpellEffect(level int, damageType models.DamageType, formaName str
 	// AoE is less powerful.
 	faces := 8
 
-	// Scopus modifier: Self (Touch) is more powerful (+2 faces)
-	if scopusName == "Self" {
+	// Scopus modifier: targeting constraints can trade flexibility for potency.
+	switch scopusName {
+	case "Self":
 		faces += 2
+	case "Enemy", "LOS-Only", "Object":
+		faces += 1
+	case "Marked":
+		faces += 2
+	case "Chain", "Area-First", "Through-Walls":
+		faces -= 2
 	}
 
 	// Forma modifier:
 	switch formaName {
 	case "Projectile", "Beam":
 		// Standard (d8)
+	case "Touch", "Lance":
+		// Highly constrained precision/melee delivery (d10)
+		faces += 2
+	case "Arc":
+		// Curved precision with minor flexibility cost offset (d9)
+		faces += 1
 	case "Nova", "Cone":
 		// Restricted AoE (d6)
 		faces -= 2
+	case "Ring", "Pillar":
+		// Mid-sized positional AoE (d6)
+		faces -= 2
 	case "Wall", "Zone", "Aura":
 		// Large/Persistent AoE (d4, -1 die)
+		faces -= 4
+		count -= 1
+	case "Orbit":
+		// Mobile persistent field has similar pressure to other sustained AoE.
 		faces -= 4
 		count -= 1
 	}
@@ -129,7 +149,7 @@ func CalculateSpellEffect(level int, damageType models.DamageType, formaName str
 // isAoEForma returns true if the Forma component creates an area of effect.
 func isAoEForma(formaName string) bool {
 	switch formaName {
-	case "Nova", "Cone", "Zone", "Wall", "Aura":
+	case "Nova", "Cone", "Zone", "Wall", "Aura", "Ring", "Pillar", "Orbit":
 		return true
 	default:
 		return false

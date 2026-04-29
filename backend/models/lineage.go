@@ -22,8 +22,8 @@ type Lineage struct {
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationships (stored in DB via foreign keys)
-	Race *Race `json:"-" gorm:"foreignKey:RaceID;references:ID;constraint:OnDelete:CASCADE"`
+	Race *Race `json:"-" gorm:"foreignKey:RaceID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
 	// Nested relationships (loaded via Preload)
-	LineageTraits []Trait `json:"lineage_traits" gorm:"foreignKey:LineageID;constraint:OnDelete:CASCADE"`
+	LineageTraits []Trait `json:"lineage_traits" gorm:"foreignKey:LineageID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

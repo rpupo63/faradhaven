@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/models"
 )
 
 // SpellOpinion represents the LLM's opinion on a crafted spell.
@@ -16,15 +16,15 @@ type SpellOpinion struct {
 	OverallVerdict     string `json:"overall_verdict"`
 
 	// Recommended Edits
-	RecommendedName        *string `json:"recommended_name,omitempty"`
-	RecommendedDescription *string `json:"recommended_description,omitempty"`
-	RecommendedType        *string `json:"recommended_type,omitempty"`
-	RecommendedRange       *string `json:"recommended_range,omitempty"`
-	RecommendedDuration          *string `json:"recommended_duration,omitempty"`
-	RecommendedDamageDiceCount   *int    `json:"recommended_damage_dice_count,omitempty"`
-	RecommendedDamageDieSize     *int    `json:"recommended_damage_die_size,omitempty"`
-	RecommendedDamageType        *string `json:"recommended_damage_type,omitempty"`
-	RecommendedSaveAttr          *string `json:"recommended_save_attr,omitempty"`
+	RecommendedName            *string `json:"recommended_name,omitempty"`
+	RecommendedDescription     *string `json:"recommended_description,omitempty"`
+	RecommendedType            *string `json:"recommended_type,omitempty"`
+	RecommendedRange           *string `json:"recommended_range,omitempty"`
+	RecommendedDuration        *string `json:"recommended_duration,omitempty"`
+	RecommendedDamageDiceCount *int    `json:"recommended_damage_dice_count,omitempty"`
+	RecommendedDamageDieSize   *int    `json:"recommended_damage_die_size,omitempty"`
+	RecommendedDamageType      *string `json:"recommended_damage_type,omitempty"`
+	RecommendedSaveAttr        *string `json:"recommended_save_attr,omitempty"`
 }
 
 // SpellAIService provides AI-powered opinions on spells.

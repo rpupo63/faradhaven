@@ -74,11 +74,12 @@ function ResourceItem({ resource, characterId, token }: { resource: ApiClassReso
         const current = resource.current_value ?? resource.value;
         const max = resource.max_value ?? resource.value;
         const pct = max > 0 ? (current / max) * 100 : 0;
+        const unit = resource.key === 'available_timer' ? 's' : '';
         return (
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-xl font-display text-primary">
-                {current} / {max}
+                {current}{unit} / {max}{unit}
               </span>
             </div>
             <Progress value={pct} className="h-2" />
@@ -166,10 +167,9 @@ function ResourceItem({ resource, characterId, token }: { resource: ApiClassReso
 
       case 'modifier': {
         const displayValue = resource.value > 0 ? `+${resource.value}` : `${resource.value}`;
-        const unit = resource.key === 'timer_duration' ? 's' : '';
         return (
           <span className="text-xl font-display text-primary">
-            {displayValue}{unit}
+            {displayValue}
           </span>
         );
       }

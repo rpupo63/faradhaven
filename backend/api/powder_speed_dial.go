@@ -3,7 +3,7 @@ package api
 import (
 	"sort"
 
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/models"
 )
 
 func spellHasLogicaComponent(spell *models.Spell) bool {

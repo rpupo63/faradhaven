@@ -3,7 +3,7 @@ package faradhaven_storeowners
 import (
 	"testing"
 
-	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_items"
+	"github.com/rpupo63/faradhaven/backend/seed/faradhaven_items"
 )
 
 // TestVendorItemWeaponNamesExist ensures every explicit catalog rule references a seeded item or weapon name.

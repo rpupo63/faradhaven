@@ -17,5 +17,5 @@ type Archetype struct {
 	UpdatedAt   time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationships
-	Class Class `json:"-" gorm:"foreignKey:ClassID;references:ID;constraint:OnDelete:CASCADE"`
+	Class Class `json:"-" gorm:"foreignKey:ClassID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

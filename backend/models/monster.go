@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"gorm.io/datatypes"
 )
 
 // Monster represents a creature or NPC in the game world.
@@ -40,7 +41,7 @@ type Monster struct {
 	Languages           string          `json:"languages"`
 	Notes               string          `json:"notes"`     // User's original text description/LLM notes
 	ImageURL            *string         `json:"image_url"` // S3 URL for the monster image
-	Attacks             []MonsterAttack `json:"attacks" gorm:"foreignKey:MonsterID"`
+	Attacks             []MonsterAttack `json:"attacks" gorm:"foreignKey:MonsterID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 	Actions             []MonsterAction `json:"actions" gorm:"many2many:monster_actions;"` // Custom actions not tied to attacks
 	SpecialTraits       pq.StringArray  `json:"special_traits" gorm:"type:text[]"`         // Passive abilities, e.g., "Magic Resistance"
 	LegendaryActions    pq.StringArray  `json:"legendary_actions" gorm:"type:text[]"`
@@ -48,6 +49,10 @@ type Monster struct {
 	LairActions         pq.StringArray  `json:"lair_actions" gorm:"type:text[]"`
 	Environments        pq.StringArray  `json:"environments" gorm:"type:text[]"` // e.g., "Forest", "Desert", for filtering/search
 	Source              string          `json:"source"`                          // e.g., "User Generated", "Monster Manual"
+	GenerationMode      string          `json:"generation_mode"`                 // custom, class-themed, variant, duplicate
+	GenerationTemplate  *string         `json:"generation_template,omitempty"`
+	GenerationClassName *string         `json:"generation_class_name,omitempty"`
+	GenerationContext   datatypes.JSON  `json:"generation_context,omitempty" gorm:"type:jsonb"`
 
 	// LLM Generated fields
 	VisualDescription string `json:"visual_description"` // Optimized for image generation AI
@@ -63,6 +68,8 @@ type MonsterAttack struct {
 	IsLegendary bool       `json:"is_legendary"`
 	WeaponID    *uuid.UUID `json:"weapon_id"` // Optional: link to a specific weapon if applicable
 	Weapon      *Weapon    `json:"weapon,omitempty"`
+
+	Monster Monster `json:"-" gorm:"foreignKey:MonsterID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 // MonsterAction represents a non-attack action a monster can take.

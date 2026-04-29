@@ -43,7 +43,9 @@ function getResourceType(
   const keys = new Set(resourceDefs.map((def) => def.key));
 
   if (keys.has('concurrency_limit') && keys.has('yield_die')) return 'components';
-  if (keys.has('timer_duration') && keys.has('speed_dial_slots')) return 'timer';
+  if ((keys.has('timer_duration') || keys.has('available_timer')) && keys.has('speed_dial_slots')) {
+    return 'timer';
+  }
   if (keys.has('madness_base_dc') || keys.has('feral_bonus')) return 'madness';
   if (keys.has('echo_slots') || keys.has('madness_die')) return 'echo_slots'; // Renamed to echo_slots to encompass Lorewright's multiple slots
   if (keys.has('max_stability')) return 'stability';
@@ -365,7 +367,9 @@ export function ClassBook({ classData, className }: ClassBookProps) {
                     )}
                     {resourceType === 'timer' && (
                       <>
-                        <td>{cl.resources?.timer_duration}s</td>
+                        <td>
+                          {cl.resources?.timer_duration ?? cl.resources?.available_timer}s
+                        </td>
                         <td>{cl.resources?.speed_dial_slots}</td>
                         <td>{cl.max_spell_level ? cl.max_spell_level : '∞'}</td>
                       </>

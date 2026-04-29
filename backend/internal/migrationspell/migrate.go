@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/models"
 	"gorm.io/gorm"
 )
 
@@ -368,11 +368,11 @@ ORDER BY name
 }
 
 type rowDamageUpdates struct {
-	DamageDiceCount, DamageDieSize                             *int
-	SuggestedDamageDiceCount, SuggestedDamageDieSize           *int
-	AIRecommendedDamageDiceCount, AIRecommendedDamageDieSize   *int
-	SaveAttr, AIRecommendedSaveAttr                            *string
-	AIRecommendedDamageType                                    *string
+	DamageDiceCount, DamageDieSize                           *int
+	SuggestedDamageDiceCount, SuggestedDamageDieSize         *int
+	AIRecommendedDamageDiceCount, AIRecommendedDamageDieSize *int
+	SaveAttr, AIRecommendedSaveAttr                          *string
+	AIRecommendedDamageType                                  *string
 }
 
 func (u rowDamageUpdates) empty() bool {

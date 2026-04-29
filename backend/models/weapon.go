@@ -59,6 +59,6 @@ type Weapon struct {
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationships
-	User    *User          `json:"-" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	Damages []WeaponDamage `json:"damages" gorm:"foreignKey:WeaponID;constraint:OnDelete:CASCADE"`
+	User    *User          `json:"-" gorm:"foreignKey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Damages []WeaponDamage `json:"damages" gorm:"foreignKey:WeaponID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/rpupo63/unified-personal-site-backend/errs"
+	"github.com/rpupo63/faradhaven/backend/errs"
 	"github.com/rs/zerolog"
 )
 

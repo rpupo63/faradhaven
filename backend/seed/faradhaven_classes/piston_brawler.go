@@ -1,7 +1,7 @@
 package faradhaven_classes
 
 import (
-	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+	"github.com/rpupo63/faradhaven/backend/seed/seedmedia"
 )
 
 // PistonBrawler returns the Piston Brawler class seed
@@ -22,6 +22,8 @@ func PistonBrawler() FaradhavenClassSeed {
 		SavingThrows:        []string{"Constitution", "Intelligence"},
 		AutomaticEquipNames: []string{"Piston Core assembly kit"},
 		AutomaticItemNames:  []string{"Scale mail", "Explorer's pack", "Tinker's tools"},
+		SpellCastingComponent:   "verbal",
+		SpellCastingDescription: "You bark pressure-rhymes, vent-steam cadences, and maintenance litanies over your piston rig—your voice orders the machine as much as your hands. The table hears valves hiss and steam vent when you cast; it sounds like a forge speaking.",
 		EquipmentChoices: []EquipmentChoiceSeed{
 			{
 				Instruction: "Choose your primary Piston-weapon",

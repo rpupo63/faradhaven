@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/models"
 	"gorm.io/gorm"
 )
 
@@ -90,9 +90,9 @@ func ScanLegacyDamageParseIssues(db *gorm.DB) ([]LegacyDamageParseIssue, error) 
 		return nil, err
 	} else if ok {
 		type dtRow struct {
-			ID          uuid.UUID
-			Name        string
-			DamageType  sql.NullString
+			ID         uuid.UUID
+			Name       string
+			DamageType sql.NullString
 		}
 		var dts []dtRow
 		if err := db.Raw(`SELECT id, name, damage_type FROM spells WHERE damage_type IS NOT NULL AND trim(damage_type::text) <> ''`).Scan(&dts).Error; err != nil {

@@ -14,8 +14,8 @@ type GameMap struct {
 	GridRows      int          `gorm:"default:20" json:"grid_rows"`
 	GridCols      int          `gorm:"default:20" json:"grid_cols"`
 	TileSize      int          `gorm:"default:50" json:"tile_size"`
-	Tokens        []MapToken   `gorm:"foreignKey:MapID;constraint:OnDelete:CASCADE" json:"tokens"`
-	Elements      []MapElement `gorm:"foreignKey:MapID;constraint:OnDelete:CASCADE" json:"elements"`
+	Tokens        []MapToken   `gorm:"foreignKey:MapID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"tokens"`
+	Elements      []MapElement `gorm:"foreignKey:MapID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"elements"`
 
-	Owner User `gorm:"foreignKey:OwnerID;constraint:OnDelete:CASCADE" json:"-"`
+	Owner User `gorm:"foreignKey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"-"`
 }

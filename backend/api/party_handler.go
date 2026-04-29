@@ -6,8 +6,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/database"
+	"github.com/rpupo63/faradhaven/backend/models"
 	"github.com/rs/zerolog/log"
 )
 
@@ -527,9 +527,9 @@ func (h *partyHandler) setCharacterParty() http.HandlerFunc {
 		}
 
 		respondJSON(w, http.StatusOK, map[string]interface{}{
-			"message":    "Character party updated successfully",
+			"message":      "Character party updated successfully",
 			"character_id": character.ID,
-			"party_id":   character.PartyID,
+			"party_id":     character.PartyID,
 		})
 	}
 }

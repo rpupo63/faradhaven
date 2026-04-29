@@ -26,6 +26,6 @@ type LevelFeature struct {
 	CreatedAt time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
-	ClassLevel ClassLevel `json:"-" gorm:"foreignKey:ClassLevelID;references:ID"`
-	Archetype  *Archetype `json:"archetype,omitempty" gorm:"foreignKey:ArchetypeID;references:ID"`
+	ClassLevel ClassLevel `json:"-" gorm:"foreignKey:ClassLevelID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Archetype  *Archetype `json:"archetype,omitempty" gorm:"foreignKey:ArchetypeID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 }

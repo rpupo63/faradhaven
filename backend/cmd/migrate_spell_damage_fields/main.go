@@ -16,8 +16,8 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/rpupo63/unified-personal-site-backend/internal/bootstrap"
-	"github.com/rpupo63/unified-personal-site-backend/internal/migrationspell"
+	"github.com/rpupo63/faradhaven/backend/internal/bootstrap"
+	"github.com/rpupo63/faradhaven/backend/internal/migrationspell"
 )
 
 func main() {

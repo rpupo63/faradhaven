@@ -1,6 +1,7 @@
 import type { FC } from 'react';
 import type { ClassResourceExtraSectionProps } from './classResourceSectionTypes';
 import {
+  ElixiristSection,
   IronwrightSection,
   LorewrightSection,
   MutagenActions,
@@ -15,6 +16,7 @@ type RegistryEntry = { className: string; Component: FC<ClassResourceExtraSectio
 
 /** Ordered list: first match by exact class display name. */
 const CLASS_RESOURCE_EXTRA_SECTIONS: RegistryEntry[] = [
+  { className: 'The Elixirist', Component: ElixiristSection },
   { className: 'The Piston Brawler', Component: PistonBrawlerActions },
   { className: 'The Mutagen', Component: MutagenActions },
   { className: 'The Powder Mage', Component: PowderMageActions },

@@ -14,7 +14,7 @@ type ElevationProperties struct {
 	CreatedAt    time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedAt    time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
-	MapElement MapElement `json:"-" gorm:"foreignKey:MapElementID;constraint:OnDelete:CASCADE"`
+	MapElement MapElement `json:"-" gorm:"foreignKey:MapElementID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 // TableName specifies the table name for GORM

@@ -14,6 +14,6 @@ type SpellComponent struct {
 	ComponentID uuid.UUID `json:"component_id" gorm:"type:uuid;not null;index"`
 	CreatedAt   time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 
-	Spell     Spell     `json:"-" gorm:"foreignKey:SpellID;references:ID;constraint:OnDelete:CASCADE"`
-	Component Component `json:"-" gorm:"foreignKey:ComponentID;references:ID;constraint:OnDelete:CASCADE"`
+	Spell     Spell     `json:"-" gorm:"foreignKey:SpellID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Component Component `json:"-" gorm:"foreignKey:ComponentID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

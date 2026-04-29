@@ -10,10 +10,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/errs"
-	"github.com/rpupo63/unified-personal-site-backend/models"
-	"github.com/rpupo63/unified-personal-site-backend/services"
+	"github.com/rpupo63/faradhaven/backend/database"
+	"github.com/rpupo63/faradhaven/backend/errs"
+	"github.com/rpupo63/faradhaven/backend/models"
+	"github.com/rpupo63/faradhaven/backend/services"
 	"github.com/rs/zerolog/log"
 )
 
@@ -157,6 +157,106 @@ func validateSpellMechanicsOrRespond(w http.ResponseWriter, spell *models.Spell)
 	return true
 }
 
+// assembleSpellOpts controls spell assembly for create vs AI preview.
+type assembleSpellOpts struct {
+	// When true, a blank name becomes "Untitled spell" (forge preview). When false, caller must reject empty name first.
+	allowEmptySpellName bool
+}
+
+// assembleSpellFromCreateRequest builds an in-memory spell using the same rules as createSpell (before DB persist).
+// Returns ok=false if the response was already written (validation / fetch error).
+func (h *spellHandler) assembleSpellFromCreateRequest(w http.ResponseWriter, req *CreateSpellRequest, opts assembleSpellOpts) (*models.Spell, []models.Component, bool) {
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		if !opts.allowEmptySpellName {
+			return nil, nil, false
+		}
+		name = "Untitled spell"
+	}
+
+	spell := &models.Spell{
+		UserID:          req.UserID,
+		CharacterID:     req.CharacterID,
+		Name:            name,
+		Description:     req.Description,
+		Type:            req.Type,
+		Range:           req.Range,
+		Duration:        req.Duration,
+		Concentration:   req.Concentration,
+		SaveAttr:        req.SaveAttr,
+		DamageDiceCount: req.DamageDiceCount,
+		DamageDieSize:   req.DamageDieSize,
+		DamageType:      spellDamageTypeFromRequestJSON(req.DamageType),
+		AddModifier:     req.AddModifier,
+	}
+
+	var components []models.Component
+	if len(req.ComponentIDs) > 0 {
+		fetched, err := h.synthesisService.FetchComponents(req.ComponentIDs)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to fetch components for synthesis")
+			respondError(w, http.StatusInternalServerError, "Failed to fetch components")
+			return nil, nil, false
+		}
+		components = fetched
+
+		synthesis := h.synthesisService.Synthesize(components)
+
+		if len(synthesis.ValidationErrors) > 0 {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"error":             "Component validation failed",
+				"validation_errors": synthesis.ValidationErrors,
+			})
+			return nil, nil, false
+		}
+
+		spell.Level = synthesis.Level
+		spell.SuggestedDamageDiceCount = synthesis.SuggestedDamageDiceCount
+		spell.SuggestedDamageDieSize = synthesis.SuggestedDamageDieSize
+
+		if spell.Type == "" {
+			spell.Type = synthesis.SuggestedType
+		}
+		if spell.Range == nil && synthesis.SuggestedRange != nil {
+			r := *synthesis.SuggestedRange
+			spell.Range = &r
+		}
+		if spell.DamageType == nil && synthesis.SuggestedDamageType != nil {
+			if parsed, ok := models.ParseDamageType(*synthesis.SuggestedDamageType); ok {
+				spell.DamageType = &parsed
+			}
+		}
+		if spell.DamageDiceCount == nil && synthesis.SuggestedDamageDiceCount != nil {
+			c := *synthesis.SuggestedDamageDiceCount
+			spell.DamageDiceCount = &c
+		}
+		if spell.DamageDieSize == nil && synthesis.SuggestedDamageDieSize != nil {
+			f := *synthesis.SuggestedDamageDieSize
+			spell.DamageDieSize = &f
+		}
+		if spell.Duration == nil && synthesis.SuggestedDuration != nil {
+			spell.Duration = synthesis.SuggestedDuration
+		}
+		if !spell.Concentration && synthesis.SuggestedConcentration {
+			spell.Concentration = true
+		}
+	}
+
+	if spell.Level == 0 {
+		spell.Level = 1
+	}
+	if spell.Type == "" {
+		spell.Type = models.SpellTypeUtility
+	}
+
+	normalizeSpellDurationField(spell)
+	if !validateSpellMechanicsOrRespond(w, spell) {
+		return nil, nil, false
+	}
+
+	return spell, components, true
+}
+
 const gmEmail = "rpupo63@gmail.com"
 
 type spellHandler struct {
@@ -193,6 +293,8 @@ type SpellResponse struct {
 // SynthesizeRequest is the request body for the synthesize endpoint
 type SynthesizeRequest struct {
 	ComponentIDs []uuid.UUID `json:"component_ids"`
+	DamageType   *string     `json:"damage_type,omitempty"`
+	Range        *int        `json:"range,omitempty"`
 }
 
 const (
@@ -202,13 +304,9 @@ const (
 	spellbookScopeAll           = "all"
 )
 
-// isGM checks if the authenticated user is the game master
+// isGM reports whether the authenticated user is the designated game master (gmEmail only).
+// Other admin roles do not grant spell GM privileges.
 func (h *spellHandler) isGM(r *http.Request) (bool, error) {
-	isAdmin, err := ctxGetIsAdmin(r.Context())
-	if err == nil && isAdmin {
-		return true, nil
-	}
-	// Fallback to email check if context fails or is false
 	authUserID, _ := ctxGetUserID(r.Context())
 	if authUserID == "" {
 		return false, nil
@@ -228,7 +326,12 @@ func (h *spellHandler) isGM(r *http.Request) (bool, error) {
 func (h *spellHandler) getUncheckedSpells() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		gm, err := h.isGM(r)
-		if err != nil || !gm {
+		if err != nil {
+			log.Error().Err(err).Msg("getUncheckedSpells: failed to verify GM")
+			respondError(w, http.StatusInternalServerError, "Failed to verify permissions")
+			return
+		}
+		if !gm {
 			respondError(w, http.StatusForbidden, "Forbidden")
 			return
 		}
@@ -237,6 +340,31 @@ func (h *spellHandler) getUncheckedSpells() http.HandlerFunc {
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to get unchecked spells")
 			respondError(w, http.StatusInternalServerError, "Failed to get unchecked spells")
+			return
+		}
+
+		respondJSON(w, http.StatusOK, spells)
+	}
+}
+
+// getCheckedSpells returns all spells already reviewed by the GM (GM only)
+func (h *spellHandler) getCheckedSpells() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		gm, err := h.isGM(r)
+		if err != nil {
+			log.Error().Err(err).Msg("getCheckedSpells: failed to verify GM")
+			respondError(w, http.StatusInternalServerError, "Failed to verify permissions")
+			return
+		}
+		if !gm {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		spells, err := h.spellRepo.FindChecked()
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to get checked spells")
+			respondError(w, http.StatusInternalServerError, "Failed to get checked spells")
 			return
 		}
 
@@ -590,7 +718,12 @@ func (h *spellHandler) retryAIField() http.HandlerFunc {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-		gm, _ := h.isGM(r)
+		gm, gmErr := h.isGM(r)
+		if gmErr != nil {
+			log.Error().Err(gmErr).Msg("retryAIField: failed to verify GM")
+			respondError(w, http.StatusInternalServerError, "Failed to verify permissions")
+			return
+		}
 		if !gm && authUserID != spell.UserID.String() {
 			respondError(w, http.StatusForbidden, "Forbidden")
 			return
@@ -715,6 +848,22 @@ func (h *spellHandler) getSpellOpinion() http.HandlerFunc {
 			return
 		}
 
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		gm, gmErr := h.isGM(r)
+		if gmErr != nil {
+			log.Error().Err(gmErr).Msg("getSpellOpinion: failed to verify GM")
+			respondError(w, http.StatusInternalServerError, "Failed to verify permissions")
+			return
+		}
+		if !gm && authUserID != spell.UserID.String() {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
 		opinion, raw, err := h.spellAIService.GetSpellOpinion(r.Context(), spell, spell.Components)
 		if err != nil {
 			log.Error().Err(err).Str("spellID", idStr).Msg("Failed to get AI opinion")
@@ -764,7 +913,14 @@ func (h *spellHandler) synthesizeSpell() http.HandlerFunc {
 			return
 		}
 
-		synthesis := h.synthesisService.Synthesize(components)
+		var damageTypeOverride *models.DamageType
+		if req.DamageType != nil && *req.DamageType != "" {
+			if parsed, ok := models.ParseDamageType(*req.DamageType); ok {
+				damageTypeOverride = &parsed
+			}
+		}
+
+		synthesis := h.synthesisService.SynthesizeWithOverrides(components, damageTypeOverride, req.Range)
 		respondJSON(w, http.StatusOK, synthesis)
 	}
 }
@@ -778,7 +934,7 @@ func (h *spellHandler) createSpell() http.HandlerFunc {
 			return
 		}
 
-		if req.Name == "" {
+		if strings.TrimSpace(req.Name) == "" {
 			respondError(w, http.StatusBadRequest, "Name is required")
 			return
 		}
@@ -793,83 +949,8 @@ func (h *spellHandler) createSpell() http.HandlerFunc {
 			return
 		}
 
-		spell := &models.Spell{
-			UserID:          req.UserID,
-			CharacterID:     req.CharacterID,
-			Name:            req.Name,
-			Description:     req.Description,
-			Type:            req.Type,
-			Range:           req.Range,
-			Duration:        req.Duration,
-			Concentration:   req.Concentration,
-			SaveAttr:        req.SaveAttr,
-			DamageDiceCount: req.DamageDiceCount,
-			DamageDieSize:   req.DamageDieSize,
-			DamageType:      spellDamageTypeFromRequestJSON(req.DamageType),
-			AddModifier:     req.AddModifier,
-		}
-
-		// Run synthesis if components are provided
-		if len(req.ComponentIDs) > 0 {
-			components, err := h.synthesisService.FetchComponents(req.ComponentIDs)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to fetch components for synthesis")
-				respondError(w, http.StatusInternalServerError, "Failed to fetch components")
-				return
-			}
-
-			synthesis := h.synthesisService.Synthesize(components)
-
-			if len(synthesis.ValidationErrors) > 0 {
-				respondJSON(w, http.StatusBadRequest, map[string]interface{}{
-					"error":             "Component validation failed",
-					"validation_errors": synthesis.ValidationErrors,
-				})
-				return
-			}
-
-			spell.Level = synthesis.Level
-			spell.SuggestedDamageDiceCount = synthesis.SuggestedDamageDiceCount
-			spell.SuggestedDamageDieSize = synthesis.SuggestedDamageDieSize
-
-			// Hybrid fill: use request value if provided, else fall back to suggestion
-			if spell.Type == "" {
-				spell.Type = synthesis.SuggestedType
-			}
-			if spell.Range == nil && synthesis.SuggestedRange != nil {
-				r := *synthesis.SuggestedRange
-				spell.Range = &r
-			}
-			if spell.DamageType == nil && synthesis.SuggestedDamageType != nil {
-				if parsed, ok := models.ParseDamageType(*synthesis.SuggestedDamageType); ok {
-					spell.DamageType = &parsed
-				}
-			}
-			if spell.DamageDiceCount == nil && synthesis.SuggestedDamageDiceCount != nil {
-				c := *synthesis.SuggestedDamageDiceCount
-				spell.DamageDiceCount = &c
-			}
-			if spell.DamageDieSize == nil && synthesis.SuggestedDamageDieSize != nil {
-				f := *synthesis.SuggestedDamageDieSize
-				spell.DamageDieSize = &f
-			}
-			if spell.Duration == nil && synthesis.SuggestedDuration != nil {
-				spell.Duration = synthesis.SuggestedDuration
-			}
-			if !spell.Concentration && synthesis.SuggestedConcentration {
-				spell.Concentration = true
-			}
-		}
-
-		if spell.Level == 0 {
-			spell.Level = 1
-		}
-		if spell.Type == "" {
-			spell.Type = models.SpellTypeUtility
-		}
-
-		normalizeSpellDurationField(spell)
-		if !validateSpellMechanicsOrRespond(w, spell) {
+		spell, _, ok := h.assembleSpellFromCreateRequest(w, &req, assembleSpellOpts{allowEmptySpellName: false})
+		if !ok {
 			return
 		}
 
@@ -884,6 +965,46 @@ func (h *spellHandler) createSpell() http.HandlerFunc {
 
 		spell, _ = h.spellRepo.FindByID(spell.ID)
 		respondJSON(w, http.StatusCreated, spell)
+	}
+}
+
+// previewSpellAIOpinion runs the same GetSpellOpinion pipeline as GM spell review without persisting.
+func (h *spellHandler) previewSpellAIOpinion() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req CreateSpellRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		authUserID, err := ctxGetUserID(r.Context())
+		if err != nil {
+			respondError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		if authUserID != req.UserID.String() {
+			respondError(w, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		if len(req.ComponentIDs) == 0 {
+			respondError(w, http.StatusBadRequest, "At least one component is required")
+			return
+		}
+
+		spell, components, ok := h.assembleSpellFromCreateRequest(w, &req, assembleSpellOpts{allowEmptySpellName: true})
+		if !ok {
+			return
+		}
+
+		opinion, _, err := h.spellAIService.GetSpellOpinion(r.Context(), spell, components)
+		if err != nil {
+			log.Error().Err(err).Msg("previewSpellAIOpinion: GetSpellOpinion failed")
+			respondError(w, http.StatusInternalServerError, "Failed to generate AI spell review")
+			return
+		}
+
+		respondJSON(w, http.StatusOK, opinion)
 	}
 }
 
@@ -945,7 +1066,12 @@ func (h *spellHandler) updateSpell() http.HandlerFunc {
 			return
 		}
 
-		gm, _ := h.isGM(r)
+		gm, gmErr := h.isGM(r)
+		if gmErr != nil {
+			log.Error().Err(gmErr).Msg("updateSpell: failed to verify GM")
+			respondError(w, http.StatusInternalServerError, "Failed to verify permissions")
+			return
+		}
 		if !gm && authUserID != spell.UserID.String() {
 			respondError(w, http.StatusForbidden, "Forbidden")
 			return
@@ -1082,7 +1208,13 @@ func (h *spellHandler) deleteSpell() http.HandlerFunc {
 			respondError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-		if authUserID != spell.UserID.String() {
+		gm, gmErr := h.isGM(r)
+		if gmErr != nil {
+			log.Error().Err(gmErr).Msg("deleteSpell: failed to verify GM")
+			respondError(w, http.StatusInternalServerError, "Failed to verify permissions")
+			return
+		}
+		if authUserID != spell.UserID.String() && !gm {
 			respondError(w, http.StatusForbidden, "Forbidden")
 			return
 		}

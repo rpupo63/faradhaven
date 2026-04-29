@@ -1,7 +1,7 @@
 package faradhaven_classes
 
 import (
-	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+	"github.com/rpupo63/faradhaven/backend/seed/seedmedia"
 )
 
 // Syllogist returns The Syllogist class seed — a null-caster conductor of action economy and Logica chains for allies (Faradhaven: no spell points; potency from Protocol Charges).
@@ -24,6 +24,8 @@ func Syllogist() FaradhavenClassSeed {
 		Tools:              []string{"Calligrapher's Supplies"},
 		SavingThrows:       []string{"Intelligence", "Wisdom"},
 		AutomaticItemNames: []string{"Scholar's robes (light armor)", "Scholar's pack", "Calligrapher's Supplies"},
+		SpellCastingComponent:   "verbal",
+		SpellCastingDescription: "Your notation goes live as spoken proof—step-by-step assertions, case labels, and marching lemmas snapped aloud while allies execute the sequence. Even without Faradhaven spell points, your battlefield math is heard before it alters the round.",
 		EquipmentChoices: []EquipmentChoiceSeed{
 			{
 				Instruction: "Choose your simple weapon",

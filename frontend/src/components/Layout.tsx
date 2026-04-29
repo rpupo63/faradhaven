@@ -33,14 +33,11 @@ const baseNavItems: NavItem[] = [
   { path: '/arcana', label: 'Arcana', renderIcon: () => <RaIcon name="aura" className="text-xl shrink-0" /> },
   { path: '/shop', label: 'Shop', renderIcon: () => <Store className="w-5 h-5 shrink-0" /> },
   { path: '/game-rules', label: 'Game Rules', renderIcon: () => <RaIcon name="book" className="text-xl shrink-0" /> },
+  { path: '/lore', label: 'Lore', renderIcon: () => <ScrollText className="w-5 h-5 shrink-0" /> },
   { path: '/dm-tools', label: 'DM Tools', renderIcon: () => <RaIcon name="anvil" className="text-xl shrink-0" /> },
 ];
 
 const gmNavItem: NavItem = { path: '/gm/spells', label: 'GM Review', renderIcon: () => <RaIcon name="shield" className="text-xl shrink-0" /> };
-
-const loreNavItems: NavItem[] = [
-  { path: '/lore', label: 'Lore', renderIcon: () => <ScrollText className="w-5 h-5 shrink-0" /> },
-];
 
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
@@ -51,10 +48,7 @@ export function Layout({ children }: LayoutProps) {
   const mainRef = useRef<HTMLElement>(null);
 
   const mainNavItems = user?.email === GM_EMAIL ? [...baseNavItems, gmNavItem] : baseNavItems;
-  const navSections: NavSection[] = [
-    { items: mainNavItems },
-    { title: 'Lore', items: loreNavItems },
-  ];
+  const navSections: NavSection[] = [{ items: mainNavItems }];
 
   const handleLogout = () => {
     logout();
@@ -64,8 +58,8 @@ export function Layout({ children }: LayoutProps) {
   return (
     <MainContentBoundsProvider mainRef={mainRef}>
     <div className="h-dvh min-h-0 w-full flex flex-col overflow-hidden">
-      {/* Tome header – bar like a handbook title strip */}
-      <header className="shrink-0 border-b-2 border-faded-gold/50 bg-card/80 backdrop-blur-sm z-50 hand-drawn-border border-t-0 border-l-0 border-r-0 rounded-none">
+      {/* Tome header – leather-bound cover title strip */}
+      <header className="shrink-0 z-50 tome-leather-chrome tome-leather-header rounded-none">
         <div className="w-full py-4 px-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
@@ -75,13 +69,13 @@ export function Layout({ children }: LayoutProps) {
                 <div className="md:hidden">
                   <Sheet>
                     <SheetTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
+                      <Button variant="ghost" size="icon" className="text-amber-200/85 hover:text-amber-50 hover:bg-black/20">
                         <Menu className="w-6 h-6" />
                       </Button>
                     </SheetTrigger>
-                    <SheetContent side="left" className="w-[85vw] max-w-[320px] bg-card/95 backdrop-blur-sm border-r-2 border-faded-gold/50 p-0">
-                      <SheetHeader className="p-6 border-b border-faded-gold/20">
-                        <SheetTitle className="font-tome-heading text-xl text-primary text-left flex items-center gap-3">
+                    <SheetContent side="left" className="w-[85vw] max-w-[320px] tome-leather-chrome border-r-2 border-faded-gold/45 p-0 shadow-2xl">
+                      <SheetHeader className="p-6 border-b border-faded-gold/25">
+                        <SheetTitle className="font-tome-heading text-xl tome-leather-foil-title text-left flex items-center gap-3">
                           <RaIcon name="fire" className="text-xl" />
                           Faradhaven
                         </SheetTitle>
@@ -92,7 +86,7 @@ export function Layout({ children }: LayoutProps) {
                             {section.title && (
                               <p
                                 className={cn(
-                                  'px-4 text-xs font-tome-marginalia uppercase tracking-widest text-muted-foreground',
+                                  'px-4 text-xs font-tome-marginalia uppercase tracking-widest text-amber-200/50',
                                   sIdx > 0 && 'pt-4'
                                 )}
                               >
@@ -108,14 +102,12 @@ export function Layout({ children }: LayoutProps) {
                                   key={item.path}
                                   to={item.path}
                                   className={cn(
-                                    'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
-                                    isActive
-                                      ? 'bg-primary/10 text-primary border border-primary/20'
-                                      : 'text-muted-foreground hover:text-foreground hover:bg-primary/5'
+                                    'tome-leather-nav-link flex items-center gap-3 px-4 py-3 rounded-lg transition-colors border border-transparent font-tome-subheading text-sm uppercase tracking-wide',
+                                    isActive && 'tome-leather-nav-link-active'
                                   )}
                                 >
                                   {item.renderIcon()}
-                                  <span className="font-tome-subheading text-sm uppercase tracking-wide">{item.label}</span>
+                                  <span>{item.label}</span>
                                 </Link>
                               );
                             })}
@@ -131,7 +123,7 @@ export function Layout({ children }: LayoutProps) {
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="text-muted-foreground hover:text-primary"
+                    className="text-amber-200/85 hover:text-amber-50 hover:bg-black/20"
                     onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                   >
                     <Menu className="w-6 h-6" />
@@ -141,8 +133,8 @@ export function Layout({ children }: LayoutProps) {
 
               <Link to="/" className="flex items-center gap-3 group shrink-0">
                 <div>
-                  <h1 className="font-tome-heading text-xl text-primary tracking-wide leading-tight">Faradhaven</h1>
-                  <p className="text-xs text-muted-foreground font-tome-marginalia">Steampunk RPG System</p>
+                  <h1 className="font-tome-heading text-xl tome-leather-foil-title tracking-wide leading-tight">Faradhaven</h1>
+                  <p className="text-xs text-amber-200/65 font-tome-marginalia">Steampunk RPG System</p>
                 </div>
               </Link>
             </div>
@@ -154,12 +146,12 @@ export function Layout({ children }: LayoutProps) {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
-                      className="flex items-center gap-2 px-2 py-1 h-auto"
+                      className="flex items-center gap-2 px-2 py-1 h-auto text-amber-100/90 hover:text-amber-50 hover:bg-black/20"
                     >
-                      <div className="p-1.5 rounded-full bg-primary/20 border border-faded-gold/40">
-                        <User className="w-4 h-4 text-primary" />
+                      <div className="p-1.5 rounded-full bg-black/25 border border-faded-gold/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                        <User className="w-4 h-4 text-faded-gold" />
                       </div>
-                      <span className="hidden sm:inline text-sm font-tome-marginalia text-foreground/80 max-w-[120px] truncate">
+                      <span className="hidden sm:inline text-sm font-tome-marginalia text-amber-100/88 max-w-[120px] truncate">
                         {user?.name || 'User'}
                       </span>
                     </Button>
@@ -186,7 +178,7 @@ export function Layout({ children }: LayoutProps) {
                   onClick={() => navigate('/login')} 
                   variant="outline" 
                   size="sm" 
-                  className="border-faded-gold/40 hover:bg-primary/10 font-tome-marginalia uppercase tracking-wider text-xs"
+                  className="border-faded-gold/55 bg-black/15 text-faded-gold hover:bg-black/28 hover:text-amber-50 font-tome-marginalia uppercase tracking-wider text-xs shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
                 >
                   Sign In
                 </Button>
@@ -200,7 +192,7 @@ export function Layout({ children }: LayoutProps) {
         {/* Desktop Sidebar Navigation */}
         <aside 
           className={cn(
-            "hidden md:flex md:flex-col shrink-0 min-h-0 border-r-2 border-faded-gold/50 bg-card/40 backdrop-blur-sm hand-drawn-border border-t-0 border-l-0 border-b-0 rounded-none transition-all duration-300 ease-in-out",
+            "hidden md:flex md:flex-col shrink-0 min-h-0 tome-leather-chrome tome-leather-sidebar rounded-none transition-all duration-300 ease-in-out",
             sidebarCollapsed ? "w-16" : "w-60"
           )}
         >
@@ -211,7 +203,7 @@ export function Layout({ children }: LayoutProps) {
                   {section.title && !sidebarCollapsed && (
                     <p
                       className={cn(
-                        'px-3 text-[10px] font-tome-marginalia uppercase tracking-widest text-muted-foreground/80',
+                        'px-3 text-[10px] font-tome-marginalia uppercase tracking-widest text-amber-200/45',
                         sIdx > 0 && 'pt-2'
                       )}
                     >
@@ -219,7 +211,7 @@ export function Layout({ children }: LayoutProps) {
                     </p>
                   )}
                   {section.title && sidebarCollapsed && sIdx > 0 && (
-                    <div className="mx-1 my-1 h-px shrink-0 bg-faded-gold/25" aria-hidden />
+                    <div className="mx-1 my-1 h-px shrink-0 bg-faded-gold/20" aria-hidden />
                   )}
                   {section.items.map((item) => {
                     const isActive =
@@ -230,17 +222,15 @@ export function Layout({ children }: LayoutProps) {
                         key={item.path}
                         to={item.path}
                         className={cn(
-                          'flex items-center gap-3 px-3 py-3 rounded-lg transition-all text-sm font-tome-subheading uppercase tracking-wide border border-transparent',
-                          isActive
-                            ? 'text-primary bg-primary/15 border-primary/20 shadow-seal'
-                            : 'text-muted-foreground hover:text-primary hover:bg-primary/10',
+                          'tome-leather-nav-link flex items-center gap-3 py-3 rounded-lg transition-all text-sm font-tome-subheading uppercase tracking-wide border border-transparent',
+                          isActive && 'tome-leather-nav-link-active',
                           sidebarCollapsed ? 'justify-center px-0' : 'px-4'
                         )}
                         title={sidebarCollapsed ? item.label : undefined}
                       >
                         {item.renderIcon()}
                         {!sidebarCollapsed && (
-                          <span className="truncate opacity-100 transition-opacity duration-300">{item.label}</span>
+                          <span className="truncate transition-opacity duration-300">{item.label}</span>
                         )}
                       </Link>
                     );
@@ -254,7 +244,7 @@ export function Layout({ children }: LayoutProps) {
         {/* Main content – only this column scrolls; header/sidebar/footer stay fixed */}
         <main
           ref={mainRef}
-          className="min-h-0 min-w-0 flex-1 w-full touch-pan-y overflow-y-auto overscroll-y-contain px-6 pt-4 pb-10 sm:px-10 sm:pt-6 sm:pb-16 md:px-12 md:pt-8 md:pb-12 lg:px-16 lg:pt-10 lg:pb-16"
+          className="tome-inner-folio min-h-0 min-w-0 flex-1 w-full touch-pan-y overflow-y-auto overscroll-y-contain px-6 pt-4 pb-10 sm:px-10 sm:pt-6 sm:pb-16 md:px-12 md:pt-8 md:pb-12 lg:px-16 lg:pt-10 lg:pb-16"
         >
           <div className="relative w-full max-w-6xl mx-auto min-w-0">
             {children}
@@ -262,10 +252,10 @@ export function Layout({ children }: LayoutProps) {
         </main>
       </div>
 
-      {/* Footer – ledger-style line */}
-      <footer className="shrink-0 border-t-2 border-faded-gold/40 py-4">
+      {/* Footer – leather tooling strip */}
+      <footer className="shrink-0 tome-leather-chrome tome-leather-footer py-4">
         <div className="container mx-auto px-4 text-center">
-          <p className="text-sm text-muted-foreground font-tome-marginalia">
+          <p className="text-sm text-amber-200/75 font-tome-marginalia tracking-wide">
             A Pupo Production
           </p>
         </div>

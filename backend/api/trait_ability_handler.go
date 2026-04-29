@@ -8,23 +8,27 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/database"
+	"github.com/rpupo63/faradhaven/backend/models"
+	"github.com/rpupo63/faradhaven/backend/services"
 	"github.com/rs/zerolog/log"
 )
 
 type abilityHandler struct {
 	characterRepo         database.CharacterRepository
 	characterResourceRepo database.CharacterResourceRepository
+	resourceService       *services.ResourceService
 }
 
 func newAbilityHandler(
 	characterRepo database.CharacterRepository,
 	characterResourceRepo database.CharacterResourceRepository,
+	resourceService *services.ResourceService,
 ) *abilityHandler {
 	return &abilityHandler{
 		characterRepo:         characterRepo,
 		characterResourceRepo: characterResourceRepo,
+		resourceService:       resourceService,
 	}
 }
 
@@ -137,6 +141,12 @@ func (h *abilityHandler) useFeatureAbility() http.HandlerFunc {
 			return
 		}
 
+		if h.resourceService != nil {
+			if ensureErr := h.resourceService.EnsureTrackableClassResources(character); ensureErr != nil {
+				log.Warn().Err(ensureErr).Str("characterID", characterID.String()).Msg("EnsureTrackableClassResources before feature use")
+			}
+		}
+
 		// Load feature with its class level
 		var feature models.LevelFeature
 		if err := h.characterRepo.GetDB().Preload("ClassLevel").First(&feature, "id = ?", featureID).Error; err != nil {
@@ -163,6 +173,8 @@ func (h *abilityHandler) useFeatureAbility() http.HandlerFunc {
 		if len(feature.ResourceCosts) > 0 {
 			if jsonErr := json.Unmarshal(feature.ResourceCosts, &costs); jsonErr != nil {
 				log.Error().Err(jsonErr).Msg("Failed to parse feature resource costs")
+				respondError(w, http.StatusBadRequest, "Invalid resource_costs data for this feature")
+				return
 			}
 		}
 
@@ -183,6 +195,8 @@ func (h *abilityHandler) useFeatureAbility() http.HandlerFunc {
 		if len(feature.ResourceGains) > 0 {
 			if jsonErr := json.Unmarshal(feature.ResourceGains, &gains); jsonErr != nil {
 				log.Error().Err(jsonErr).Msg("Failed to parse feature resource gains")
+				respondError(w, http.StatusBadRequest, "Invalid resource_gains data for this feature")
+				return
 			}
 		}
 
@@ -191,6 +205,29 @@ func (h *abilityHandler) useFeatureAbility() http.HandlerFunc {
 				log.Error().Err(gainErr).Str("key", gain.Key).Msg("Failed to apply resource gain for feature")
 				respondError(w, http.StatusInternalServerError, "Failed to apply resource gain")
 				return
+			}
+		}
+
+		// Keep legacy Character.current_blood_ichor aligned with the pool row (some clients/API fields still read it).
+		touchedIchor := false
+		for _, c := range costs {
+			if c.Key == "max_blood_ichor" {
+				touchedIchor = true
+				break
+			}
+		}
+		if !touchedIchor {
+			for _, g := range gains {
+				if g.Key == "max_blood_ichor" {
+					touchedIchor = true
+					break
+				}
+			}
+		}
+		if touchedIchor {
+			if ichorRes, err := h.characterResourceRepo.FindByCharacterAndKey(characterID, "max_blood_ichor"); err == nil && ichorRes != nil {
+				_ = h.characterRepo.GetDB().Model(&models.Character{}).Where("id = ?", characterID).
+					Update("current_blood_ichor", ichorRes.CurrentValue).Error
 			}
 		}
 

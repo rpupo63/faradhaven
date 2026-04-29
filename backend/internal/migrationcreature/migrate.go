@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/models"
 	"gorm.io/gorm"
 )
 
@@ -34,10 +34,10 @@ type monsterRow struct {
 }
 
 type corpseRow struct {
-	ID             uuid.UUID
-	Name           string
-	CreatureType   string
-	CreatureSize   string
+	ID           uuid.UUID
+	Name         string
+	CreatureType string
+	CreatureSize string
 }
 
 // ComputeMonsterChanges plans monster row updates.

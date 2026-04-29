@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/models"
 	"gorm.io/gorm"
 )
 
@@ -16,6 +16,7 @@ type SpellRepository interface {
 	FindByUserIDPaginated(userID uuid.UUID, page, limit, levelFilter int) ([]*models.Spell, int64, error)
 	FindByCharacterID(characterID uuid.UUID, page, limit, levelFilter int) ([]*models.Spell, int64, error)
 	FindUnchecked() ([]*models.Spell, error)
+	FindChecked() ([]*models.Spell, error)
 	FindByFingerprint(fingerprint string) ([]*models.Spell, error)
 	Add(spell *models.Spell, componentIDs []uuid.UUID) error
 	Update(spell *models.Spell) error
@@ -160,6 +161,17 @@ func (r *SpellRepo) FindByCharacterID(characterID uuid.UUID, page, limit, levelF
 func (r *SpellRepo) FindUnchecked() ([]*models.Spell, error) {
 	var spells []*models.Spell
 	err := r.db.Preload("ComponentLinks", preloadSpellComponentLinks).Preload("ComponentLinks.Component").Preload("Character").Where("checked = false").Order("created_at ASC").Find(&spells).Error
+	if err != nil {
+		return nil, err
+	}
+	hydrateSpellsComponents(spells)
+	return spells, err
+}
+
+// FindChecked returns all spells that have been reviewed and approved by the GM
+func (r *SpellRepo) FindChecked() ([]*models.Spell, error) {
+	var spells []*models.Spell
+	err := r.db.Preload("ComponentLinks", preloadSpellComponentLinks).Preload("ComponentLinks.Component").Preload("Character").Where("checked = true").Order("updated_at DESC").Find(&spells).Error
 	if err != nil {
 		return nil, err
 	}

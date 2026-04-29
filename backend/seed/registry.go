@@ -1,12 +1,12 @@
 package seed
 
 import (
-	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_classes"
-	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_components"
-	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_effects"
-	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_items"
-	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_races"
-	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_storeowners"
+	"github.com/rpupo63/faradhaven/backend/seed/faradhaven_classes"
+	"github.com/rpupo63/faradhaven/backend/seed/faradhaven_components"
+	"github.com/rpupo63/faradhaven/backend/seed/faradhaven_effects"
+	"github.com/rpupo63/faradhaven/backend/seed/faradhaven_items"
+	"github.com/rpupo63/faradhaven/backend/seed/faradhaven_races"
+	"github.com/rpupo63/faradhaven/backend/seed/faradhaven_storeowners"
 )
 
 // AllSeeds returns all registered seeds in dependency order.

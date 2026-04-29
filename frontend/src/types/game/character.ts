@@ -33,6 +33,8 @@ export interface Class {
   name: string;
   hit_die: number;
   primary_ability: string;
+  spell_casting_component?: string;
+  spell_casting_description?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -107,6 +109,8 @@ export interface NormalizedCharacterSheet {
     proficiencies?: string;
     tools?: string[];
     skill_focus?: string[];
+    spell_casting_component?: string;
+    spell_casting_description?: string;
   };
   class_level: {
     proficiency_bonus: number;

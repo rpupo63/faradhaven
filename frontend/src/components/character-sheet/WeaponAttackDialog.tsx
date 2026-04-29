@@ -6,6 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ApiCharacterWeapon, NormalizedCharacterSheet, ApiWeapon, ApiWeaponDamage } from '@/types/game';
 import { rollD20, rollDiceNotation, dispatchClearDice, parseDiceNotation } from '@/lib/dice';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/context/AuthContext';
+import { gainResource } from '@/lib/api/resources';
+import { useToast } from '@/hooks/use-toast';
 
 const MODIFIER_DISPLAY_NAMES: Record<string, string> = {
   piston_core: 'Piston Core',
@@ -27,6 +31,9 @@ type WeaponAttackPhase = 'attack' | 'damage' | 'complete';
 
 export function WeaponAttackDialog({ open, onOpenChange, selectedWeapon, sheet, freeHands }: WeaponAttackDialogProps) {
   const { modifiers } = sheet;
+  const queryClient = useQueryClient();
+  const { token } = useAuth();
+  const { toast } = useToast();
 
   const [phase, setPhase] = useState<WeaponAttackPhase>('attack');
   const [attackRoll, setAttackRoll] = useState<{
@@ -278,6 +285,29 @@ export function WeaponAttackDialog({ open, onOpenChange, selectedWeapon, sheet, 
 
     setDamageRolls(rolls);
     setPhase('complete');
+
+    // The Thirst: on a Bite hit you regain Ichor equal to proficiency bonus (tracked when damage is rolled).
+    const weaponName = (effectiveWeapon.name || selectedWeapon.weapon.name || '').trim();
+    const isBite =
+      weaponName === 'Bite' ||
+      selectedWeapon.character_weapon_id === 'virtual-bite';
+    if (sheet.class.name === 'The Sanguinist' && isBite && token) {
+      const prof = modifiers.proficiency;
+      if (prof > 0) {
+        try {
+          await gainResource(sheet.character.id, 'max_blood_ichor', prof, token);
+          await queryClient.invalidateQueries({ queryKey: ['character-sheet', sheet.character.id] });
+          await queryClient.refetchQueries({ queryKey: ['character-sheet', sheet.character.id] });
+        } catch (e) {
+          console.error('Failed to apply Bite ichor regen:', e);
+          toast({
+            title: 'Could not update Blood Ichor',
+            description: e instanceof Error ? e.message : 'Resource row may be missing — reload the character sheet.',
+            variant: 'destructive',
+          });
+        }
+      }
+    }
   };
 
   return (

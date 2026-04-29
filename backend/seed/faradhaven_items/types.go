@@ -1,5 +1,15 @@
 package faradhaven_items
 
+type LootTags struct {
+	Themes        []string
+	Locations     []string
+	Sources       []string
+	Tiers         []string
+	RewardAmounts []string
+	LevelBands    []string
+	Weight        float64
+}
+
 // WeaponSeed defines the data structure for seeding weapons
 type WeaponSeed struct {
 	Name                string
@@ -16,6 +26,7 @@ type WeaponSeed struct {
 	VersatileDamageDice *string
 	SecondaryEffect     string
 	Damages             []WeaponDamageSeed
+	LootTags            LootTags
 }
 
 // WeaponDamageSeed defines the damage data for a weapon seed

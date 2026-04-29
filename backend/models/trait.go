@@ -29,9 +29,9 @@ type Trait struct {
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationships (stored in DB via foreign keys)
-	Race    *Race    `json:"-" gorm:"foreignKey:RaceID;references:ID;constraint:OnDelete:CASCADE"`
-	Lineage *Lineage `json:"-" gorm:"foreignKey:LineageID;references:ID;constraint:OnDelete:CASCADE"`
+	Race    *Race    `json:"-" gorm:"foreignKey:RaceID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Lineage *Lineage `json:"-" gorm:"foreignKey:LineageID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
 	// Nested Options (for Aasimar Revelations or Spell Selection)
-	Options []TraitOption `json:"options" gorm:"foreignKey:TraitID;constraint:OnDelete:CASCADE"`
+	Options []TraitOption `json:"options" gorm:"foreignKey:TraitID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

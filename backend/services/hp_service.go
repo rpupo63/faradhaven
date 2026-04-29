@@ -5,7 +5,7 @@ import (
 	"math/rand"
 
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/models"
 )
 
 // UpdateHP updates the character's current HP by the given delta (positive = heal, negative = damage)
@@ -156,7 +156,7 @@ func (s *LevelUpService) UseHitDice(userID uuid.UUID, characterID uuid.UUID, rol
 	// Apply healing
 	character.HitDiceUsed += len(rolls)
 	character.CurrentHP += totalHealing
-	
+
 	// Clamp to MaxHP (healing doesn't affect TempHP usually, unless special features)
 	if character.CurrentHP > character.MaxHP {
 		character.CurrentHP = character.MaxHP
@@ -282,12 +282,12 @@ func (s *LevelUpService) ensureHPInitialized(character *models.Character) {
 	conMod := models.AbilityModifier(character.Constitution)
 	avgHitDie := (character.Class.HitDie + 1) / 2
 	baseHP := character.Class.HitDie
-	
+
 	totalHP := baseHP + (avgHitDie * (character.Level - 1)) + (conMod * character.Level)
 	if character.Level < 1 {
 		totalHP = baseHP + conMod
 	}
-	
+
 	if totalHP < 1 {
 		totalHP = 1
 	}

@@ -1,9 +1,13 @@
 package services
 
 import (
+	"errors"
+	"strings"
+
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/database"
+	"github.com/rpupo63/faradhaven/backend/models"
+	"gorm.io/gorm"
 )
 
 // ResourceService handles class-specific resource calculations and restoration
@@ -41,15 +45,6 @@ func proficiencyBonusForLevel(level int) int {
 	}
 }
 
-// VaporBladeShadowPointsMax is Dexterity modifier + proficiency bonus (minimum 1), per class rules.
-func VaporBladeShadowPointsMax(dexterity int, level int) int {
-	n := abilityModifier(dexterity) + proficiencyBonusForLevel(level)
-	if n < 1 {
-		return 1
-	}
-	return n
-}
-
 // InitializeCharacterResources creates CharacterResource rows for all trackable resources
 // defined by the character's class. Called during character creation.
 func (s *ResourceService) InitializeCharacterResources(character *models.Character) error {
@@ -68,11 +63,6 @@ func (s *ResourceService) InitializeCharacterResources(character *models.Charact
 		return nil
 	}
 
-	class, err := s.classRepo.FindByID(classID)
-	if err != nil {
-		return err
-	}
-
 	// Get level resource values for initial max
 	levelResources, err := s.classRepo.FindLevelResourcesByClassAndLevel(classID, level)
 	if err != nil {
@@ -89,9 +79,6 @@ func (s *ResourceService) InitializeCharacterResources(character *models.Charact
 		}
 
 		maxVal := levelResourceMap[def.ResourceKey]
-		if class.Name == "The Vapor Blade" && def.ResourceKey == "shadow_points" {
-			maxVal = VaporBladeShadowPointsMax(character.Dexterity, level)
-		}
 		maxValPtr := &maxVal
 
 		res := &models.CharacterResource{
@@ -110,6 +97,70 @@ func (s *ResourceService) InitializeCharacterResources(character *models.Charact
 	return nil
 }
 
+// EnsureTrackableClassResources creates missing CharacterResource rows for trackable pools/counters.
+// Characters created before a class gained resource definitions, or whose init partially failed,
+// may have trait rows but no pool rows — without this, spend/gain APIs no-op or error.
+// Idempotent: existing rows are not modified.
+func (s *ResourceService) EnsureTrackableClassResources(character *models.Character) error {
+	if character == nil || s.resourceRepo == nil {
+		return nil
+	}
+	characterID := character.ID
+	classID := character.ClassID
+	level := character.Level
+
+	defs, err := s.classRepo.FindResourceDefinitionsByClassID(classID)
+	if err != nil {
+		return err
+	}
+	if len(defs) == 0 {
+		return nil
+	}
+
+	levelResources, err := s.classRepo.FindLevelResourcesByClassAndLevel(classID, level)
+	if err != nil {
+		return err
+	}
+	levelResourceMap := make(map[string]int)
+	for _, lr := range levelResources {
+		levelResourceMap[lr.ResourceKey] = lr.Value
+	}
+
+	for _, def := range defs {
+		if !def.IsTrackable {
+			continue
+		}
+		_, err := s.resourceRepo.FindByCharacterAndKey(characterID, def.ResourceKey)
+		if err == nil {
+			continue
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		maxVal := levelResourceMap[def.ResourceKey]
+		maxValPtr := &maxVal
+
+		res := &models.CharacterResource{
+			CharacterID:        characterID,
+			ResourceKey:        def.ResourceKey,
+			ResourceName:       def.DisplayName,
+			CurrentValue:       maxVal,
+			MaxValue:           maxValPtr,
+			RestoreOnShortRest: def.RestoreOnShortRest,
+			RestoreOnLongRest:  def.RestoreOnLongRest,
+		}
+		if err := s.resourceRepo.Add(res); err != nil {
+			// Concurrent ensure or rare duplicate — treat as satisfied
+			if errors.Is(err, gorm.ErrDuplicatedKey) || strings.Contains(strings.ToLower(err.Error()), "duplicate") {
+				continue
+			}
+			return err
+		}
+	}
+	return nil
+}
+
 // UpdateCharacterResourcesForLevel updates CharacterResource MaxValue from the new level's
 // ClassLevelResource values. Called during level-up.
 func (s *ResourceService) UpdateCharacterResourcesForLevel(character *models.Character) error {
@@ -119,11 +170,6 @@ func (s *ResourceService) UpdateCharacterResourcesForLevel(character *models.Cha
 	characterID := character.ID
 	classID := character.ClassID
 	level := character.Level
-
-	class, err := s.classRepo.FindByID(classID)
-	if err != nil {
-		return err
-	}
 
 	levelResources, err := s.classRepo.FindLevelResourcesByClassAndLevel(classID, level)
 	if err != nil {
@@ -141,10 +187,6 @@ func (s *ResourceService) UpdateCharacterResourcesForLevel(character *models.Cha
 
 	for _, res := range existingResources {
 		newMax, ok := levelResourceMap[res.ResourceKey]
-		if !ok && class.Name == "The Vapor Blade" && res.ResourceKey == "shadow_points" {
-			newMax = VaporBladeShadowPointsMax(character.Dexterity, level)
-			ok = true
-		}
 		if !ok {
 			continue
 		}

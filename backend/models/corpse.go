@@ -42,8 +42,8 @@ type Corpse struct {
 	CreatedAt time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationships
-	Map         *GameMap `json:"-" gorm:"foreignKey:MapID;references:ID;constraint:OnDelete:SET NULL"`
-	SourceBeast *Beast   `json:"-" gorm:"foreignKey:SourceBeastID;references:ID;constraint:OnDelete:SET NULL"`
+	Map         *GameMap `json:"-" gorm:"foreignKey:MapID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	SourceBeast *Beast   `json:"-" gorm:"foreignKey:SourceBeastID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 }
 
 // TableName specifies the table name for GORM

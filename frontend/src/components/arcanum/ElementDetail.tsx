@@ -13,9 +13,9 @@ import { cn } from '@/lib/utils';
 // Category descriptions for the detail view
 const categoryDescriptions: Record<ComponentCategory, string> = {
   Forma:
-    'The physical manifestation and geometric delivery of the magic. Exactly one Forma is required for a valid spell.',
+    'The physical manifestation and geometric delivery of the magic. Every non-empty phase requires exactly one Forma.',
   Scopus:
-    'The anchor point or entity the magic is allowed to interact with. Defines where the spell originates or who it affects.',
+    'The anchor point or entity the magic is allowed to interact with. Every non-empty phase requires exactly one Scopus.',
   Essentia:
     'The fundamental matter, energy, or abstract concept being manipulated. At least one Essentia is required for a valid spell.',
   Actio:

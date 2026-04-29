@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
-import { getMonsterById, updateMonster, deleteMonster } from '@/lib/api';
+import { getMonsterById, updateMonster, deleteMonster, regenerateMonsterSection, createMonsterVariant, duplicateMonster } from '@/lib/api';
 import { LoadingQuill } from '@/components/LoadingQuill';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 type MonsterTab = 'sheet' | 'notes'; // Added notes tab for editing original prompt
 
 export default function MonsterSheetPage() {
+  const enableMonsterAIV2 = import.meta.env.VITE_ENABLE_MONSTER_AI_V2 === 'true';
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -52,6 +53,26 @@ export default function MonsterSheetPage() {
       console.error('Failed to delete monster:', err);
       alert('Failed to delete monster. Please try again.');
     },
+  });
+
+  const regenerateSectionMutation = useMutation({
+    mutationFn: (section: "attacks" | "traits" | "lore" | "actions") => regenerateMonsterSection(id!, section, token ?? undefined),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['monster-sheet', id], updated);
+    },
+    onError: () => alert('Failed to regenerate section.'),
+  });
+
+  const createVariantMutation = useMutation({
+    mutationFn: (variant: string) => createMonsterVariant(id!, variant, token ?? undefined),
+    onSuccess: (newMonster) => navigate(`/monster/${newMonster.id}`),
+    onError: () => alert('Failed to create variant.'),
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: () => duplicateMonster(id!, token ?? undefined),
+    onSuccess: (newMonster) => navigate(`/monster/${newMonster.id}`),
+    onError: () => alert('Failed to duplicate monster.'),
   });
 
   const handleEditNotes = () => {
@@ -131,6 +152,49 @@ export default function MonsterSheetPage() {
                 <Edit className="h-4 w-4" />
                 <span className="hidden lg:inline">Edit Notes</span>
               </Button>
+              {enableMonsterAIV2 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => regenerateSectionMutation.mutate('attacks')}
+                    className="gap-1 h-8 px-2"
+                    disabled={regenerateSectionMutation.isPending}
+                  >
+                    {regenerateSectionMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                    <span className="hidden lg:inline">Regen Attacks</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => regenerateSectionMutation.mutate('traits')}
+                    className="gap-1 h-8 px-2"
+                    disabled={regenerateSectionMutation.isPending}
+                  >
+                    <span className="hidden lg:inline">Regen Traits</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => createVariantMutation.mutate('elite')}
+                    className="gap-1 h-8 px-2"
+                    disabled={createVariantMutation.isPending}
+                  >
+                    {createVariantMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                    <span className="hidden lg:inline">Create Elite Variant</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => duplicateMutation.mutate()}
+                    className="gap-1 h-8 px-2"
+                    disabled={duplicateMutation.isPending}
+                  >
+                    {duplicateMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                    <span className="hidden lg:inline">Duplicate</span>
+                  </Button>
+                </>
+              )}
               <Button
                 variant="destructive"
                 size="sm"

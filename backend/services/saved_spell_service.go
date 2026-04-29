@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/database"
+	"github.com/rpupo63/faradhaven/backend/models"
 	"gorm.io/gorm"
 )
 
@@ -23,15 +23,15 @@ type SavedSpellService struct {
 func NewSavedSpellService(
 	db *gorm.DB,
 	savedSpellRepo *database.SavedSpellRepo,
-		CharacterRepo *database.CharacterRepo,
-		classRepo     *database.ClassRepo,
-	) *SavedSpellService {
-		return &SavedSpellService{
-			db:             db,
-			savedSpellRepo: savedSpellRepo,
-			CharacterRepo:  CharacterRepo,
-			classRepo:      classRepo,
-		}
+	CharacterRepo *database.CharacterRepo,
+	classRepo *database.ClassRepo,
+) *SavedSpellService {
+	return &SavedSpellService{
+		db:             db,
+		savedSpellRepo: savedSpellRepo,
+		CharacterRepo:  CharacterRepo,
+		classRepo:      classRepo,
+	}
 }
 
 // SaveSpellRequest contains the data needed to save a spell to a slot

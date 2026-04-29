@@ -39,3 +39,8 @@ export function isValidSpellDamageDicePair(
 }
 
 export const SPELL_SAVE_ATTRIBUTES = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'] as const;
+
+/** Matches backend `Spell.concentration` default (true). Use when JSON omits the field. */
+export function spellRequiresConcentration(concentration: boolean | undefined | null): boolean {
+  return concentration ?? true;
+}

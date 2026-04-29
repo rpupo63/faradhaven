@@ -1,7 +1,7 @@
 package faradhaven_races
 
 import (
-	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+	"github.com/rpupo63/faradhaven/backend/seed/seedmedia"
 )
 
 // Goliath returns the Goliath race seed

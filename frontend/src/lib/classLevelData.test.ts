@@ -93,7 +93,7 @@ describe('normalizeApiSheet vs normalizeComputedSheet parity', () => {
   it('produces matching skill modifiers for same stats and class level', () => {
     const apiClass: ApiClass = {
       id: 'class-1',
-      name: 'The Rift Weaver',
+      name: 'The Mutagen',
       hit_die: 8,
       primary_ability: 'intelligence',
       proficiencies: '',
@@ -152,7 +152,7 @@ describe('normalizeApiSheet vs normalizeComputedSheet parity', () => {
         id: 'ch-1',
         name: 'Test',
         race: 'Human',
-        class: 'The Rift Weaver',
+        class: 'The Mutagen',
         level: 3,
         spellbook: [],
         strength: 10,

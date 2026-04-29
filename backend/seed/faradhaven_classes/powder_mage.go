@@ -1,7 +1,7 @@
 package faradhaven_classes
 
 import (
-	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+	"github.com/rpupo63/faradhaven/backend/seed/seedmedia"
 )
 
 var three = 3
@@ -23,6 +23,8 @@ func PowderMage() FaradhavenClassSeed {
 		SavingThrows:        []string{"Dexterity", "Charisma"},
 		AutomaticEquipNames: []string{"Component Pouch"},
 		AutomaticItemNames:  []string{"Light Armor", "Explorer's Pack"},
+		SpellCastingComponent:   "material",
+		SpellCastingDescription: "You race against ignition timers while packing volatile charges—measuring compounds into chambers and striking sparks against clockwork. Others hear ticks and smell ozone; your casting looks like arming a bomb with surgeon-steady hands.",
 		EquipmentChoices: []EquipmentChoiceSeed{
 			{
 				Instruction: "Choose your firearm",
@@ -73,46 +75,44 @@ func PowderMage() FaradhavenClassSeed {
 			"If", "Then", "Therefore",
 		},
 		ResourceDefinitions: []ResourceDefinitionSeed{
-			{Key: "timer_duration", DisplayName: "Casting Timer", Category: "modifier", Description: "Seconds available for real-time component input", DisplayOrder: 1},
+			{Key: "available_timer", DisplayName: "Available Timer", Category: "pool", Description: "Seconds of casting window currently available. Each non-Speed Dial cast from your prepared list costs 1 second. Regenerates 1 second/turn naturally, +1 second on Kinetic Recoil displacement. Speed Dial casts cost 0.", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 1},
 			{Key: "speed_dial_slots", DisplayName: "Speed Dial Slots", Category: "slot_count", Description: "Pre-saved component strings for instant casting. Click a slot to mark it used; restores on rest.", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 2},
 			{Key: "cascade_bonus", DisplayName: "Cascade Bonus", Category: "pool", Description: "Stacking +1d6 damage bonus from multi-component spells (max 2 stacks). Resets on next cast.", IsTrackable: true, RestoreOnShortRest: true, RestoreOnLongRest: true, DisplayOrder: 3},
-			{Key: "powder_charges", DisplayName: "Powder Charges", Category: "pool", Description: "Plentiful ignition fuel for timed casts and prepared spells. Restores on long rest.", IsTrackable: true, RestoreOnShortRest: false, RestoreOnLongRest: true, DisplayOrder: 4},
 		},
 	}
 }
 
 func powderMageLevelProgression() map[int]ClassLevelSeed {
 	// Powder Mage gains movement speed bonuses and timer/speed dial upgrades
-	// powder_charges: 10 + 2*level (L1=12 … L20=50), plentiful for timed and list casting
 	return map[int]ClassLevelSeed{
-		1:  {Resources: map[string]int{"timer_duration": 2, "speed_dial_slots": 0, "cascade_bonus": 0, "powder_charges": 12}},
-		2:  {UnarmoredMovement: 10, Resources: map[string]int{"timer_duration": 2, "speed_dial_slots": 0, "cascade_bonus": 0, "powder_charges": 14}},
-		3:  {UnarmoredMovement: 10, Resources: map[string]int{"timer_duration": 2, "speed_dial_slots": 1, "cascade_bonus": 0, "powder_charges": 16}},
-		4:  {UnarmoredMovement: 10, Resources: map[string]int{"timer_duration": 2, "speed_dial_slots": 1, "cascade_bonus": 0, "powder_charges": 18}},
-		5:  {UnarmoredMovement: 10, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 1, "cascade_bonus": 0, "powder_charges": 20}},
-		6:  {UnarmoredMovement: 15, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 1, "cascade_bonus": 0, "powder_charges": 22}},
-		7:  {UnarmoredMovement: 15, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 1, "cascade_bonus": 0, "powder_charges": 24}},
-		8:  {UnarmoredMovement: 15, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 1, "cascade_bonus": 0, "powder_charges": 26}},
-		9:  {UnarmoredMovement: 15, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 2, "cascade_bonus": 0, "powder_charges": 28}},
-		10: {UnarmoredMovement: 15, Resources: map[string]int{"timer_duration": 3, "speed_dial_slots": 2, "cascade_bonus": 2, "powder_charges": 30}},
-		11: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 2, "cascade_bonus": 2, "powder_charges": 32}},
-		12: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 2, "cascade_bonus": 2, "powder_charges": 34}},
-		13: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 2, "cascade_bonus": 2, "powder_charges": 36}},
-		14: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 2, "cascade_bonus": 2, "powder_charges": 38}},
-		15: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 3, "cascade_bonus": 2, "powder_charges": 40}},
-		16: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 4, "speed_dial_slots": 3, "cascade_bonus": 2, "powder_charges": 42}},
-		17: {UnarmoredMovement: 20, Resources: map[string]int{"timer_duration": 5, "speed_dial_slots": 3, "cascade_bonus": 2, "powder_charges": 44}},
-		18: {UnarmoredMovement: 30, Resources: map[string]int{"timer_duration": 5, "speed_dial_slots": 3, "cascade_bonus": 2, "powder_charges": 46}},
-		19: {UnarmoredMovement: 30, Resources: map[string]int{"timer_duration": 5, "speed_dial_slots": 3, "cascade_bonus": 2, "powder_charges": 48}},
-		20: {UnarmoredMovement: 30, Resources: map[string]int{"timer_duration": 5, "speed_dial_slots": 3, "cascade_bonus": 2, "powder_charges": 50}},
+		1:  {Resources: map[string]int{"available_timer": 2, "speed_dial_slots": 0, "cascade_bonus": 0}},
+		2:  {UnarmoredMovement: 10, Resources: map[string]int{"available_timer": 2, "speed_dial_slots": 0, "cascade_bonus": 0}},
+		3:  {UnarmoredMovement: 10, Resources: map[string]int{"available_timer": 2, "speed_dial_slots": 1, "cascade_bonus": 0}},
+		4:  {UnarmoredMovement: 10, Resources: map[string]int{"available_timer": 2, "speed_dial_slots": 1, "cascade_bonus": 0}},
+		5:  {UnarmoredMovement: 10, Resources: map[string]int{"available_timer": 3, "speed_dial_slots": 1, "cascade_bonus": 0}},
+		6:  {UnarmoredMovement: 15, Resources: map[string]int{"available_timer": 3, "speed_dial_slots": 1, "cascade_bonus": 0}},
+		7:  {UnarmoredMovement: 15, Resources: map[string]int{"available_timer": 3, "speed_dial_slots": 1, "cascade_bonus": 0}},
+		8:  {UnarmoredMovement: 15, Resources: map[string]int{"available_timer": 3, "speed_dial_slots": 1, "cascade_bonus": 0}},
+		9:  {UnarmoredMovement: 15, Resources: map[string]int{"available_timer": 3, "speed_dial_slots": 2, "cascade_bonus": 0}},
+		10: {UnarmoredMovement: 15, Resources: map[string]int{"available_timer": 3, "speed_dial_slots": 2, "cascade_bonus": 2}},
+		11: {UnarmoredMovement: 20, Resources: map[string]int{"available_timer": 4, "speed_dial_slots": 2, "cascade_bonus": 2}},
+		12: {UnarmoredMovement: 20, Resources: map[string]int{"available_timer": 4, "speed_dial_slots": 2, "cascade_bonus": 2}},
+		13: {UnarmoredMovement: 20, Resources: map[string]int{"available_timer": 4, "speed_dial_slots": 2, "cascade_bonus": 2}},
+		14: {UnarmoredMovement: 20, Resources: map[string]int{"available_timer": 4, "speed_dial_slots": 2, "cascade_bonus": 2}},
+		15: {UnarmoredMovement: 20, Resources: map[string]int{"available_timer": 4, "speed_dial_slots": 3, "cascade_bonus": 2}},
+		16: {UnarmoredMovement: 20, Resources: map[string]int{"available_timer": 4, "speed_dial_slots": 3, "cascade_bonus": 2}},
+		17: {UnarmoredMovement: 20, Resources: map[string]int{"available_timer": 5, "speed_dial_slots": 3, "cascade_bonus": 2}},
+		18: {UnarmoredMovement: 30, Resources: map[string]int{"available_timer": 5, "speed_dial_slots": 3, "cascade_bonus": 2}},
+		19: {UnarmoredMovement: 30, Resources: map[string]int{"available_timer": 5, "speed_dial_slots": 3, "cascade_bonus": 2}},
+		20: {UnarmoredMovement: 30, Resources: map[string]int{"available_timer": 5, "speed_dial_slots": 3, "cascade_bonus": 2}},
 	}
 }
 
 func powderMageLevelFeatures() map[int][]FeatureSeed {
 	return map[int][]FeatureSeed{
 		1: {
-			{Name: "Flash-Point Casting", Description: "You cast spells in real-time. When you take the Cast action, a timer starts (base 2 seconds). You must input spell components rapidly. Components combine into a single damage type determined by the DM based on the combination. Each damage-dealing component adds 1d8 damage. Base range: 30ft. Save DC: 8 + Prof + Dex."},
-			{Name: "Kinetic Recoil", Description: "When you finish casting a spell, you are automatically displaced 5 feet in a direction of your choice. This displacement happens before reactions can be taken against you and does not consume your movement."},
+			{Name: "Flash-Point Casting", Description: "You cast spells in real-time. When you take the Cast action, a timer starts (base 2 seconds). You must input spell components rapidly. Components combine into a single damage type determined by the DM based on the combination. Each damage-dealing component adds 1d8 damage. Base range: 30ft. Save DC: 8 + Prof + Dex. Each timer cast costs 1 second from your Available Timer pool. When Available Timer reaches 0, the ignition window is exhausted and you cannot use timer casting until it regenerates."},
+			{Name: "Kinetic Recoil", Description: "When you finish casting a spell, you are automatically displaced 5 feet in a direction of your choice. This displacement happens before reactions can be taken against you and does not consume your movement. The displacement also vents spent ignition pressure, regenerating +1 second of Available Timer in addition to the 1 second that regenerates naturally at the start of each of your turns."},
 			{Name: "Residual Heat", Description: "Outside of combat, full timer-casts require a 1-minute cooldown between casts. Casting again before the cooldown expires deals 1d6 fire damage per component used to you. Speed Dial cantrips are unaffected and remain free to cast at any time."},
 		},
 		2:  {{Name: "Powder Sprint & Disengage", Description: "Your walking speed increases by 10 feet. You can use Disengage or Dash as a bonus action."}},

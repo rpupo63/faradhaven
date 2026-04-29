@@ -13,10 +13,33 @@ import { castMutagen, rollTable, type RollTableResponse } from '@/lib/api/mechan
 import { rollMadness } from '@/lib/api/madness';
 import { updateSanguineNotoriety, forageComponents } from '@/lib/api/character';
 import { PowderMageSpeedDialMenu } from './PowderMageSpeedDialMenu';
+import { PreparedFormulasSummary } from './PreparedFormulasSummary';
+import { BlueprintSlotsSummary } from './BlueprintSlotsSummary';
 import { ConstructsSection } from './ConstructsSection';
 import { HarvestBankSection } from './HarvestBankSection';
 import { toast } from 'sonner';
 import type { ClassResourceExtraSectionProps } from './classResourceSectionTypes';
+
+// ─── Elixirist ────────────────────────────────────────────────────────────────
+
+export function ElixiristSection({
+  characterId,
+  token,
+  sheet,
+  onGoToSpellForge,
+}: ClassResourceExtraSectionProps) {
+  return (
+    <>
+      <Separator />
+      <PreparedFormulasSummary
+        characterId={characterId}
+        token={token}
+        sheet={sheet}
+        onGoToSpellForge={onGoToSpellForge}
+      />
+    </>
+  );
+}
 
 // ─── Piston Brawler ───────────────────────────────────────────────────────────
 
@@ -24,6 +47,7 @@ export function PistonBrawlerActions({
   characterId,
   token,
   sheet,
+  onGoToSpellForge,
 }: ClassResourceExtraSectionProps) {
   const queryClient = useQueryClient();
   const resources = sheet.class_resources ?? [];
@@ -46,6 +70,21 @@ export function PistonBrawlerActions({
 
   return (
     <>
+      <Separator />
+      <BlueprintSlotsSummary
+        characterId={characterId}
+        token={token}
+        sheet={sheet}
+        heading="Blueprints (picked mixes)"
+      />
+      <PowderMageSpeedDialMenu
+        variant="blueprint"
+        sheet={sheet}
+        characterId={characterId}
+        token={token}
+        onGoToSpellForge={onGoToSpellForge}
+        className="mt-2"
+      />
       <Separator />
       <Button
         className="w-full"
@@ -209,7 +248,9 @@ export function PowderMageActions({
   onGoToSpellForge,
 }: ClassResourceExtraSectionProps) {
   const resources = sheet.class_resources ?? [];
-  const timerDuration = resources.find((r) => r.key === 'timer_duration')?.value ?? 2;
+  const timerRes = resources.find((r) => r.key === 'available_timer');
+  const timerMax = timerRes?.max_value ?? timerRes?.value ?? 2;
+  const timerCurrent = timerRes?.current_value ?? timerMax;
 
   const [casting, setCasting] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(0);
@@ -238,7 +279,7 @@ export function PowderMageActions({
   const startCast = () => {
     setDone(false);
     setCasting(true);
-    setSecondsLeft(timerDuration);
+    setSecondsLeft(timerCurrent);
   };
   const reset = () => {
     setCasting(false);
@@ -247,23 +288,37 @@ export function PowderMageActions({
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
+  const isExhausted = !casting && !done && timerCurrent <= 0;
+
   return (
     <>
       <Separator />
+      <BlueprintSlotsSummary
+        characterId={characterId}
+        token={token}
+        sheet={sheet}
+        heading="Speed Dial (picked mixes)"
+      />
       <PowderMageSpeedDialMenu
         sheet={sheet}
         characterId={characterId}
         token={token}
         onGoToSpellForge={onGoToSpellForge}
+        className="mt-2"
       />
       <Separator />
       <div className="flex items-center justify-between">
         <div className="text-center">
-          <p className="text-2xl font-display text-orange-400">{casting ? secondsLeft : timerDuration}s</p>
-          <p className="text-micro text-muted-foreground uppercase">{casting ? 'remaining' : 'window'}</p>
+          <p className={`text-2xl font-display ${casting ? 'text-orange-400' : timerCurrent <= 0 ? 'text-red-500' : 'text-primary'}`}>
+            {casting ? secondsLeft : timerCurrent}s
+          </p>
+          <p className="text-micro text-muted-foreground uppercase">
+            {casting ? 'remaining' : `of ${timerMax}s`}
+          </p>
         </div>
         <div className="flex flex-col gap-1 items-end">
           {casting && <Badge variant="destructive">CASTING</Badge>}
+          {isExhausted && <Badge variant="outline" className="text-red-500 border-red-500/50">EXHAUSTED</Badge>}
           {done && !casting && (
             <Badge variant="outline" className="text-muted-foreground">
               DONE
@@ -274,7 +329,7 @@ export function PowderMageActions({
               Reset
             </Button>
           ) : (
-            <Button size="sm" onClick={startCast}>
+            <Button size="sm" onClick={startCast} disabled={timerCurrent <= 0}>
               Start Cast
             </Button>
           )}

@@ -1,4 +1,4 @@
-module github.com/rpupo63/unified-personal-site-backend
+module github.com/rpupo63/faradhaven/backend
 
 go 1.24.4
 

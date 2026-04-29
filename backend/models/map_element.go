@@ -20,11 +20,11 @@ type MapElement struct {
 	GridX int            `gorm:"not null" json:"grid_x"`
 	GridY int            `gorm:"not null" json:"grid_y"`
 
-	Map GameMap `gorm:"foreignKey:MapID;constraint:OnDelete:CASCADE" json:"-"`
+	Map GameMap `gorm:"foreignKey:MapID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"-"`
 
 	// Has-one relationships via MapElementID on each property table
-	TrapProperties             *TrapProperties             `json:"trap_properties,omitempty" gorm:"foreignKey:MapElementID"`
-	DifficultTerrainProperties *DifficultTerrainProperties `json:"difficult_terrain_properties,omitempty" gorm:"foreignKey:MapElementID"`
-	ElevationProperties        *ElevationProperties        `json:"elevation_properties,omitempty" gorm:"foreignKey:MapElementID"`
-	WallProperties             *WallProperties             `json:"wall_properties,omitempty" gorm:"foreignKey:MapElementID"`
+	TrapProperties             *TrapProperties             `json:"trap_properties,omitempty" gorm:"foreignKey:MapElementID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	DifficultTerrainProperties *DifficultTerrainProperties `json:"difficult_terrain_properties,omitempty" gorm:"foreignKey:MapElementID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	ElevationProperties        *ElevationProperties        `json:"elevation_properties,omitempty" gorm:"foreignKey:MapElementID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	WallProperties             *WallProperties             `json:"wall_properties,omitempty" gorm:"foreignKey:MapElementID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

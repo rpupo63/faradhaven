@@ -8,6 +8,17 @@ export interface CreateMonsterRequest {
   user_id: string; // UUID string
   /** When set, backend themes the stat block from seed/faradhaven_classes (must match class name). */
   faradhaven_class_name?: string;
+  generation_context?: MonsterGenerationContext;
+}
+
+export interface MonsterGenerationContext {
+  role?: string;
+  environment?: string;
+  temperament?: string;
+  encounter_goal?: string;
+  party_level?: number;
+  template_id?: string;
+  class_theme_intensity?: "light" | "strong";
 }
 
 // Request body for updating a monster (all fields optional for partial update)
@@ -53,6 +64,10 @@ export async function createMonster(data: CreateMonsterRequest, token?: string):
   return makeApiRequest<Monster>('POST', `/api/monsters`, data, token);
 }
 
+export async function previewMonster(data: CreateMonsterRequest, token?: string): Promise<Monster> {
+  return makeApiRequest<Monster>('POST', `/api/monsters/preview`, data, token);
+}
+
 // Get all monsters for a user
 export async function getMonstersByUser(userId: string, token?: string): Promise<Monster[]> {
   return makeApiRequest<Monster[]>('GET', `/api/user/${userId}/monsters`, null, token);
@@ -71,4 +86,24 @@ export async function updateMonster(monsterId: string, data: UpdateMonsterReques
 // Delete a monster
 export async function deleteMonster(monsterId: string, token?: string): Promise<{ message: string }> {
   return makeApiRequest<{ message: string }>('DELETE', `/api/monsters/${monsterId}`, null, token);
+}
+
+export async function regenerateMonsterSection(
+  monsterId: string,
+  section: "attacks" | "traits" | "lore" | "actions",
+  token?: string
+): Promise<Monster> {
+  return makeApiRequest<Monster>('POST', `/api/monsters/${monsterId}/regenerate-section`, { section }, token);
+}
+
+export async function createMonsterVariant(monsterId: string, variant: string, token?: string): Promise<Monster> {
+  return makeApiRequest<Monster>('POST', `/api/monsters/${monsterId}/variant`, { variant }, token);
+}
+
+export async function duplicateMonster(monsterId: string, token?: string): Promise<Monster> {
+  return makeApiRequest<Monster>('POST', `/api/monsters/${monsterId}/duplicate`, null, token);
+}
+
+export async function getMonsterGenerationSummary(userId: string, token?: string): Promise<Record<string, number>> {
+  return makeApiRequest<Record<string, number>>('GET', `/api/user/${userId}/monsters/generation-summary`, null, token);
 }

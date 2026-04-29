@@ -17,8 +17,8 @@ type ClassStartingEquipmentChoice struct {
 	UpdatedAt   time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationships
-	Class   Class                          `json:"-" gorm:"foreignKey:ClassID;references:ID;constraint:OnDelete:CASCADE"`
-	Options []ClassStartingEquipmentOption `json:"options" gorm:"foreignKey:ChoiceID;constraint:OnDelete:CASCADE"`
+	Class   Class                          `json:"-" gorm:"foreignKey:ClassID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Options []ClassStartingEquipmentOption `json:"options" gorm:"foreignKey:ChoiceID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 // ClassStartingEquipmentOption represents a valid selection within a choice.
@@ -32,5 +32,5 @@ type ClassStartingEquipmentOption struct {
 	CreatedAt   time.Time      `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 	UpdatedAt   time.Time      `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
-	Choice ClassStartingEquipmentChoice `json:"-" gorm:"foreignKey:ChoiceID;references:ID;constraint:OnDelete:CASCADE"`
+	Choice ClassStartingEquipmentChoice `json:"-" gorm:"foreignKey:ChoiceID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

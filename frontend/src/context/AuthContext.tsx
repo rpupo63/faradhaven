@@ -1,9 +1,18 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { login as apiLogin, register as apiRegister, logoutApi, getUserById, setActiveCharacter as apiSetActiveCharacter, updateUserDicePrefs, type ApiUser, type DicePrefs } from '@/lib/api';
+import { login as apiLogin, register as apiRegister, logoutApi, getUserById, setActiveCharacter as apiSetActiveCharacter, type ApiUser, type DicePrefs } from '@/lib/api';
 
 export const DICE_THEME_DEFAULT = 'default';
 export const DICE_THEME_COLOR_DEFAULT = '#7A201C';
 export const DICE_FONT_COLOR_DEFAULT = '#B8860B';
+
+/** Themes with files under `public/assets/dice-box/themes/` (see @3d-dice/dice-box). */
+export const SHIPPED_DICE_THEMES = ['default'] as const;
+const SHIPPED_DICE_THEME_SET = new Set<string>(SHIPPED_DICE_THEMES);
+
+function coerceShippedDiceTheme(theme: string | undefined): string {
+  const t = theme ?? DICE_THEME_DEFAULT;
+  return SHIPPED_DICE_THEME_SET.has(t) ? t : DICE_THEME_DEFAULT;
+}
 
 interface AuthContextType {
   token: string | null;
@@ -16,17 +25,17 @@ interface AuthContextType {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   setActiveCharacter: (characterId: string | null) => Promise<void>;
-  /** Resolved dice prefs: character override if set, otherwise user defaults */
+  /** Resolved: customizer preview → character colors → standard dice (user account does not affect rolls). */
   activeDicePrefs: Required<DicePrefs>;
   /**
-   * The character's dice prefs as saved in the DB (null fields = no override).
-   * Set by CharacterSheetPage on load, cleared on unmount.
+   * Character dice prefs from the API while the sheet is mounted (null = no per-character override).
+   * Set only by CharacterSheetPage.
    */
   characterDicePrefs: DicePrefs | null;
-  /** Set a per-character dice override (called by CharacterSheetPage on load, cleared on unmount) */
-  setDicePrefsOverride: (prefs: DicePrefs | null) => void;
-  /** Persist user-level dice preferences to the backend */
-  updateUserDicePreferences: (prefs: DicePrefs) => Promise<void>;
+  /** Set per-character dice from the sheet (not used by the dice customizer preview). */
+  setCharacterDicePrefs: (prefs: DicePrefs | null) => void;
+  /** Live preview while Dice Appearance dialog is open; cleared when it closes. */
+  setDicePreview: (prefs: DicePrefs | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,7 +54,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
   const [user, setUser] = useState<ApiUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [dicePrefsOverride, setDicePrefsOverrideState] = useState<DicePrefs | null>(null);
+  const [characterDicePrefsState, setCharacterDicePrefsState] = useState<DicePrefs | null>(null);
+  const [dicePreview, setDicePreviewState] = useState<DicePrefs | null>(null);
 
   // Validate token on mount by fetching user data
   useEffect(() => {
@@ -116,6 +126,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
     setUserId(null);
     setUser(null);
+    setCharacterDicePrefsState(null);
+    setDicePreviewState(null);
   }, []);
 
   const setActiveCharacter = useCallback(async (characterId: string | null) => {
@@ -129,32 +141,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(prev => prev ? { ...prev, active_character_id: characterId } : null);
   }, [userId, token]);
 
-  const setDicePrefsOverride = useCallback((prefs: DicePrefs | null) => {
-    setDicePrefsOverrideState(prefs);
+  const setCharacterDicePrefs = useCallback((prefs: DicePrefs | null) => {
+    setCharacterDicePrefsState(prefs);
   }, []);
 
-  const updateUserDicePreferences = useCallback(async (prefs: DicePrefs) => {
-    if (!userId || !token) throw new Error('Not authenticated');
-    const updated = await updateUserDicePrefs(userId, prefs, token);
-    setUser(updated);
-  }, [userId, token]);
+  const setDicePreview = useCallback((prefs: DicePrefs | null) => {
+    setDicePreviewState(prefs);
+  }, []);
 
   // Derive activeCharacterId from user state
   const activeCharacterId = user?.active_character_id ?? null;
 
-  // Resolved dice prefs: character override wins over user defaults, user defaults win over hardcoded
   const activeDicePrefs: Required<DicePrefs> = {
-    dice_theme:
-      dicePrefsOverride?.dice_theme ??
-      user?.dice_theme ??
-      DICE_THEME_DEFAULT,
+    dice_theme: coerceShippedDiceTheme(
+      dicePreview?.dice_theme ?? characterDicePrefsState?.dice_theme ?? DICE_THEME_DEFAULT
+    ),
     dice_theme_color:
-      dicePrefsOverride?.dice_theme_color ??
-      user?.dice_theme_color ??
+      dicePreview?.dice_theme_color ??
+      characterDicePrefsState?.dice_theme_color ??
       DICE_THEME_COLOR_DEFAULT,
     dice_font_color:
-      dicePrefsOverride?.dice_font_color ??
-      user?.dice_font_color ??
+      dicePreview?.dice_font_color ??
+      characterDicePrefsState?.dice_font_color ??
       DICE_FONT_COLOR_DEFAULT,
   };
 
@@ -172,9 +180,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         setActiveCharacter,
         activeDicePrefs,
-        characterDicePrefs: dicePrefsOverride,
-        setDicePrefsOverride,
-        updateUserDicePreferences,
+        characterDicePrefs: characterDicePrefsState,
+        setCharacterDicePrefs,
+        setDicePreview,
       }}
     >
       {children}

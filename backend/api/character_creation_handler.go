@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/database"
+	"github.com/rpupo63/faradhaven/backend/models"
 	"github.com/rs/zerolog/log"
 )
 
@@ -303,7 +303,7 @@ func (h *characterHandler) createCharacter() http.HandlerFunc {
 			// Non-fatal: character was created successfully, resources can be backfilled later
 		}
 
-		// Align spell point column with class level max (CharacterResource.spell_points is the spend pool for Rift Weaver)
+		// Align spell point column with class level max
 		if cl, err := h.classRepo.FindLevelByClassAndLevel(character.ClassID, character.Level); err == nil && cl != nil {
 			character.CurrentSpellPoints = cl.MaxSpellPoints
 			if err := h.characterRepo.Update(character); err != nil {

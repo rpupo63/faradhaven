@@ -23,6 +23,8 @@ interface PowderMageSpeedDialMenuProps {
   token: string;
   onGoToSpellForge?: () => void;
   className?: string;
+  /** Piston Brawler shares the same saved-slot API (blueprints). */
+  variant?: 'speed_dial' | 'blueprint';
 }
 
 export function PowderMageSpeedDialMenu({
@@ -31,7 +33,9 @@ export function PowderMageSpeedDialMenu({
   token,
   onGoToSpellForge,
   className,
+  variant = 'speed_dial',
 }: PowderMageSpeedDialMenuProps) {
+  const isBlueprint = variant === 'blueprint';
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
 
@@ -45,7 +49,7 @@ export function PowderMageSpeedDialMenu({
   const { data: saved = [], isLoading } = useQuery({
     queryKey: ['speed-dial', characterId],
     queryFn: () => getSpeedDial(characterId, token),
-    enabled: !!characterId && !!token && open && maxSlots > 0,
+    enabled: !!characterId && !!token && maxSlots > 0,
     staleTime: 15_000,
   });
 
@@ -61,7 +65,7 @@ export function PowderMageSpeedDialMenu({
     mutationFn: (slotIndex: number) => clearSpeedDialSlot(characterId, slotIndex, token),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['speed-dial', characterId] });
-      toast.success('Speed Dial slot cleared');
+      toast.success(isBlueprint ? 'Blueprint slot cleared' : 'Speed Dial slot cleared');
     },
     onError: (e: Error) => toast.error(e.message || 'Failed to clear slot'),
   });
@@ -81,23 +85,36 @@ export function PowderMageSpeedDialMenu({
           onClick={(e) => e.stopPropagation()}
         >
           <Layers className="h-4 w-4 shrink-0" />
-          <span>Speed Dial</span>
+          <span>{isBlueprint ? 'Blueprint slots' : 'Speed Dial'}</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[min(22rem,calc(100vw-2rem))] space-y-3" align="start">
         <div>
-          <p className="text-sm font-tome-subheading text-primary">Pre-mix (Speed Dial)</p>
+          <p className="text-sm font-tome-subheading text-primary">
+            {isBlueprint ? 'Blueprint pre-mix' : 'Pre-mix (Speed Dial)'}
+          </p>
           <p className="text-micro font-tome-marginalia text-muted-foreground mt-1 leading-snug">
-            Save up to 3 components per slot in Spell Forge. Slot uses restore on{' '}
-            <span className="text-foreground/90">short or long rest</span> (see Resources). You can
-            reassign your strings anytime in the forge.
+            {isBlueprint ? (
+              <>
+                Pre-calculate combinations during rests (level 13+). Save component strings in Spell Forge.
+                Slot uses restore on <span className="text-foreground/90">short or long rest</span>.
+              </>
+            ) : (
+              <>
+                Save up to 3 components per slot in Spell Forge. Slot uses restore on{' '}
+                <span className="text-foreground/90">short or long rest</span> (see Resources). You can
+                reassign your strings anytime in the forge.
+              </>
+            )}
           </p>
         </div>
 
         {maxSlots <= 0 ? (
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground italic">
-              Speed Dial (Pre-mix) unlocks at level 3.
+              {isBlueprint
+                ? 'Blueprint slots unlock at higher level (see class progression).'
+                : 'Speed Dial (Pre-mix) unlocks at level 3.'}
             </p>
             <Button type="button" variant="outline" className="w-full gap-2" onClick={goForge}>
               <Wand2 className="h-4 w-4" />

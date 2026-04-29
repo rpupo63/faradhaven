@@ -38,8 +38,8 @@ type CharacterLink struct {
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationships
-	SourceCharacter Character `json:"-" gorm:"foreignKey:SourceCharacterID;references:ID;constraint:OnDelete:CASCADE"`
-	TargetCharacter Character `json:"-" gorm:"foreignKey:TargetCharacterID;references:ID;constraint:OnDelete:CASCADE"`
+	SourceCharacter Character `json:"-" gorm:"foreignKey:SourceCharacterID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	TargetCharacter Character `json:"-" gorm:"foreignKey:TargetCharacterID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 // TableName specifies the table name for GORM

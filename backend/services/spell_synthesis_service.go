@@ -1,9 +1,11 @@
 package services
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/database"
+	"github.com/rpupo63/faradhaven/backend/models"
 )
 
 // SpellSynthesis holds auto-derived suggestions from a set of components.
@@ -24,6 +26,11 @@ type SpellSynthesisService struct {
 	componentRepo *database.ComponentRepo
 }
 
+type componentPhase struct {
+	number     int
+	components []models.Component
+}
+
 // NewSpellSynthesisService creates a new SpellSynthesisService.
 func NewSpellSynthesisService(componentRepo *database.ComponentRepo) *SpellSynthesisService {
 	return &SpellSynthesisService{componentRepo: componentRepo}
@@ -34,11 +41,39 @@ func (s *SpellSynthesisService) FetchComponents(ids []uuid.UUID) ([]models.Compo
 	return s.componentRepo.GetComponentsByIDsOrdered(ids)
 }
 
+// splitNonLogicaPhases returns non-empty non-Logica runs in chain order.
+// This mirrors ComponentFingerprint phase boundaries for validation consistency.
+func splitNonLogicaPhases(components []models.Component) []componentPhase {
+	phases := make([]componentPhase, 0)
+	current := make([]models.Component, 0)
+	phaseNum := 1
+
+	flush := func() {
+		if len(current) == 0 {
+			return
+		}
+		phaseComponents := append([]models.Component(nil), current...)
+		phases = append(phases, componentPhase{number: phaseNum, components: phaseComponents})
+		phaseNum++
+		current = current[:0]
+	}
+
+	for _, c := range components {
+		if c.Category == models.CategoryLogica {
+			flush()
+			continue
+		}
+		current = append(current, c)
+	}
+	flush()
+
+	return phases
+}
+
 // Validate checks component MECE rules and returns any violations.
 func (s *SpellSynthesisService) Validate(components []models.Component) []string {
 	var errors []string
 
-	var formaCount int
 	var essentiaCount int
 	var hasIncrease, hasDecrease, hasStrong, hasWeak bool
 
@@ -47,7 +82,7 @@ func (s *SpellSynthesisService) Validate(components []models.Component) []string
 		case models.CategoryLogica:
 			continue
 		case models.CategoryForma:
-			formaCount++
+		case models.CategoryScopus:
 		case models.CategoryEssentia:
 			essentiaCount++
 		case models.CategoryMagnitudo:
@@ -64,10 +99,28 @@ func (s *SpellSynthesisService) Validate(components []models.Component) []string
 		}
 	}
 
-	if formaCount == 0 {
-		errors = append(errors, "Exactly 1 Forma (shape) component is required")
-	} else if formaCount > 1 {
-		errors = append(errors, "Only 1 Forma (shape) component is allowed")
+	phases := splitNonLogicaPhases(components)
+	for _, phase := range phases {
+		phaseFormaCount := 0
+		phaseScopusCount := 0
+		for _, comp := range phase.components {
+			switch comp.Category {
+			case models.CategoryForma:
+				phaseFormaCount++
+			case models.CategoryScopus:
+				phaseScopusCount++
+			}
+		}
+		if phaseFormaCount == 0 {
+			errors = append(errors, fmt.Sprintf("Phase %d requires exactly 1 Forma (shape) component", phase.number))
+		} else if phaseFormaCount > 1 {
+			errors = append(errors, fmt.Sprintf("Phase %d allows only 1 Forma (shape) component", phase.number))
+		}
+		if phaseScopusCount == 0 {
+			errors = append(errors, fmt.Sprintf("Phase %d requires exactly 1 Scopus (targeting) component", phase.number))
+		} else if phaseScopusCount > 1 {
+			errors = append(errors, fmt.Sprintf("Phase %d allows only 1 Scopus (targeting) component", phase.number))
+		}
 	}
 
 	if essentiaCount == 0 {
@@ -86,6 +139,15 @@ func (s *SpellSynthesisService) Validate(components []models.Component) []string
 
 // Synthesize derives spell property suggestions from a set of components.
 func (s *SpellSynthesisService) Synthesize(components []models.Component) *SpellSynthesis {
+	return s.SynthesizeWithOverrides(components, nil, nil)
+}
+
+// SynthesizeWithOverrides derives spell properties and lets callers provide optional draft overrides.
+func (s *SpellSynthesisService) SynthesizeWithOverrides(
+	components []models.Component,
+	damageTypeOverride *models.DamageType,
+	rangeOverride *int,
+) *SpellSynthesis {
 	syn := &SpellSynthesis{
 		SuggestedType: models.SpellTypeUtility,
 	}
@@ -100,6 +162,9 @@ func (s *SpellSynthesisService) Synthesize(components []models.Component) *Spell
 	var magnitudes []string
 	var hasDamage bool
 
+	// For multi-phase chains, synthesis currently uses the first Forma/Scopus seen in
+	// flat order. For later phases with different pairs, whole-spell suggestions remain
+	// approximate until phase-aware synthesis is implemented.
 	for _, c := range components {
 		switch c.Category {
 		case models.CategoryLogica:
@@ -143,6 +208,18 @@ func (s *SpellSynthesisService) Synthesize(components []models.Component) *Spell
 		case models.CategoryMagnitudo:
 			magnitudes = append(magnitudes, c.Name)
 		}
+	}
+
+	if rangeOverride != nil {
+		// Draft range override: keep synthesis response aligned with current forge edits.
+		r := *rangeOverride
+		syn.SuggestedRange = &r
+	}
+
+	if damageTypeOverride != nil {
+		s := string(*damageTypeOverride)
+		syn.SuggestedDamageType = &s
+		hasDamage = true
 	}
 
 	// Compute damage dice via Laws of Equivalency
@@ -194,20 +271,32 @@ func mapElementToDamageType(element string) string {
 // mapFormaToRangeFeet maps Forma component names to range in feet (0 = self-centered shapes).
 func mapFormaToRangeFeet(name string) int {
 	switch name {
+	case "Touch":
+		return 5
 	case "Projectile":
 		return 120
+	case "Lance":
+		return 150
 	case "Beam":
 		return 100
+	case "Arc":
+		return 90
 	case "Nova":
 		return 0
 	case "Cone":
 		return 0
 	case "Wall":
 		return 120
+	case "Pillar":
+		return 120
 	case "Zone":
 		return 90
+	case "Ring":
+		return 60
 	case "Aura":
 		return 0
+	case "Orbit":
+		return 60
 	default:
 		return 60
 	}

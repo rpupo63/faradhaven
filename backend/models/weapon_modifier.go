@@ -35,7 +35,7 @@ type WeaponModifier struct {
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationships
-	CharacterWeapon *CharacterWeapon `json:"-" gorm:"foreignKey:CharacterWeaponID;references:ID;constraint:OnDelete:CASCADE"`
+	CharacterWeapon *CharacterWeapon `json:"-" gorm:"foreignKey:CharacterWeaponID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 // ModifierMetadata holds type-specific data for weapon modifiers

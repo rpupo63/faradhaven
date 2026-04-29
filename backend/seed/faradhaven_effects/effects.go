@@ -2,7 +2,8 @@ package faradhaven_effects
 
 import (
 	"fmt"
-	"github.com/rpupo63/unified-personal-site-backend/seed/faradhaven_classes"
+
+	"github.com/rpupo63/faradhaven/backend/seed/faradhaven_classes"
 )
 
 // EffectSeed defines the data structure for seeding effects
@@ -29,7 +30,7 @@ func AllEffects() []EffectSeed {
 			Category:    "Condition",
 			Mechanics:   "Cannot cast spells. Must attack nearest creature. Resistance to Physical damage.",
 		},
-		
+
 		// Class Specific Conditions
 		{
 			Name:        "Sanguine Fatigue",

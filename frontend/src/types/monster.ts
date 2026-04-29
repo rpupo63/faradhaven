@@ -61,6 +61,18 @@ export interface Monster {
   lair_actions: string[];
   environments: string[];
   source: string;
+  generation_mode?: string;
+  generation_template?: string;
+  generation_class_name?: string;
+  generation_context?: {
+    role?: string;
+    environment?: string;
+    temperament?: string;
+    encounter_goal?: string;
+    party_level?: number;
+    template_id?: string;
+    class_theme_intensity?: "light" | "strong";
+  };
   visual_description: string;
   parsed_cr?: number; // Added from custom MarshalJSON in backend
   created_at: string;

@@ -20,8 +20,8 @@ type MapToken struct {
 	Visible         bool       `gorm:"default:true" json:"visible"`
 	InitiativeOrder *int       `gorm:"type:int" json:"initiative_order,omitempty"`
 
-	Map          GameMap    `gorm:"foreignKey:MapID;constraint:OnDelete:CASCADE" json:"-"`
-	Character    *Character `gorm:"foreignKey:CharacterID;constraint:OnDelete:SET NULL" json:"-"`
-	Monster      *Monster   `gorm:"foreignKey:MonsterID;constraint:OnDelete:SET NULL" json:"-"`
-	AssignedUser *User      `gorm:"foreignKey:AssignedUserID;constraint:OnDelete:SET NULL" json:"-"`
+	Map          GameMap    `gorm:"foreignKey:MapID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"-"`
+	Character    *Character `gorm:"foreignKey:CharacterID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL" json:"-"`
+	Monster      *Monster   `gorm:"foreignKey:MonsterID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL" json:"-"`
+	AssignedUser *User      `gorm:"foreignKey:AssignedUserID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL" json:"-"`
 }

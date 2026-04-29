@@ -39,6 +39,8 @@ import { PartyBestiary } from '@/components/PartyBestiary'; // NEW: Import Party
 import { PartyMembers } from '@/components/PartyMembers';   // NEW: Import PartyMembers
 import { dispatchClearDice } from '@/lib/dice';
 import { displayClassName } from '@/lib/characterDisplay';
+import { shouldOfferRestSpellPreparation } from '@/lib/restSpellPreparation';
+import { RestSpellPreparationDialog } from '@/components/RestSpellPreparationDialog';
 
 type CharacterTab = 'sheet' | 'spellbook' | 'backstory' | 'bestiary' | 'party'; // NEW: Added bestiary and party
 
@@ -50,20 +52,41 @@ export default function CharacterSheetPage() {
 
   // Tab state
   const [activeTab, setActiveTab] = useState<CharacterTab>('sheet');
-  const [spellbookSubTab, setSpellbookSubTab] = useState<'spells' | 'forge'>('spells');
+  const [spellbookSubTab, setSpellbookSubTab] = useState<'spells' | 'forge' | 'forge2'>('spells');
 
   // Level-up/down dialog state
   const [showLevelUpWizard, setShowLevelUpWizard] = useState(false);
   const [showLevelHistory, setShowLevelHistory] = useState(false);
   const [showLevelDownConfirm, setShowLevelDownConfirm] = useState(false);
   const [showLootModal, setShowLootModal] = useState(false);
+  const [restSpellPrepOpen, setRestSpellPrepOpen] = useState(false);
+  const [restSpellPrepKind, setRestSpellPrepKind] = useState<'short' | 'long'>('short');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  const { token, setDicePrefsOverride } = useAuth();
+  const { token, setCharacterDicePrefs } = useAuth();
 
   const character = state.characters.find((c) => c.id === id);
+
+  const readStringArray = (value: unknown): string[] => {
+    if (!Array.isArray(value)) return [];
+    return value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0);
+  };
+
+  const normalizedSkillProficiencies = readStringArray(
+    (character as { skill_proficiencies?: unknown; skillProficiencies?: unknown } | undefined)
+      ?.skill_proficiencies ??
+      (character as { skill_proficiencies?: unknown; skillProficiencies?: unknown } | undefined)
+        ?.skillProficiencies
+  );
+
+  const normalizedSavingThrowProficiencies = readStringArray(
+    (character as { saving_throw_proficiencies?: unknown; savingThrowProficiencies?: unknown } | undefined)
+      ?.saving_throw_proficiencies ??
+      (character as { saving_throw_proficiencies?: unknown; savingThrowProficiencies?: unknown } | undefined)
+        ?.savingThrowProficiencies
+  );
 
   const goToSpellForge = () => {
     setSpellbookSubTab('forge');
@@ -129,6 +152,10 @@ export default function CharacterSheetPage() {
           wisdom: character.wisdom ?? 10,
           charisma: character.charisma ?? 10,
           current_spell_points: character.current_spell_points,
+          skill_proficiencies: normalizedSkillProficiencies,
+          saving_throw_proficiencies: normalizedSavingThrowProficiencies as (
+            'strength' | 'dexterity' | 'constitution' | 'intelligence' | 'wisdom' | 'charisma'
+          )[],
         },
         classWithLevels,
         levelData
@@ -151,14 +178,14 @@ export default function CharacterSheetPage() {
     if (!apiSheet?.character) return;
     const { dice_theme, dice_theme_color, dice_font_color } = apiSheet.character;
     if (dice_theme || dice_theme_color || dice_font_color) {
-      setDicePrefsOverride({ dice_theme, dice_theme_color, dice_font_color });
+      setCharacterDicePrefs({ dice_theme, dice_theme_color, dice_font_color });
     }
-    return () => setDicePrefsOverride(null);
+    return () => setCharacterDicePrefs(null);
   }, [
     apiSheet?.character?.dice_theme,
     apiSheet?.character?.dice_theme_color,
     apiSheet?.character?.dice_font_color,
-    setDicePrefsOverride,
+    setCharacterDicePrefs,
   ]);
 
   useEffect(() => {
@@ -186,16 +213,27 @@ export default function CharacterSheetPage() {
     queryClient.invalidateQueries({ queryKey: ['character-sheet', id] });
   };
 
+  const maybeOpenRestSpellPrep = (kind: 'short' | 'long') => {
+    const cn = sheet.class?.name;
+    const lvl = sheet.character.level;
+    if (shouldOfferRestSpellPreparation(cn, lvl)) {
+      setRestSpellPrepKind(kind);
+      setRestSpellPrepOpen(true);
+    }
+  };
+
   const handleShortRest = async () => {
     if (!apiSheet || !token) return;
     await shortRest(id!, token);
     queryClient.invalidateQueries({ queryKey: ['character-sheet', id] });
+    maybeOpenRestSpellPrep('short');
   };
 
   const handleLongRest = async () => {
     if (!apiSheet || !token) return;
     await longRest(id!, token);
     queryClient.invalidateQueries({ queryKey: ['character-sheet', id] });
+    maybeOpenRestSpellPrep('long');
   };
 
   const handleMoneyChange = async (newTotal: number) => {
@@ -384,6 +422,7 @@ export default function CharacterSheetPage() {
           </div>
         </div>
 
+        {/* Sheet tab: class resources include Elixirist → PreparedFormulasSummary (active prepared formulas). */}
         <TabsContent value="sheet" className="mt-6">
           <CharacterSheetView
             sheet={sheet}
@@ -429,7 +468,7 @@ export default function CharacterSheetPage() {
             userId={apiSheet?.character?.user_id}
             characterId={id}
             token={token ?? undefined}
-            timerDuration={sheet.class_resources?.find(r => r.key === 'timer_duration')?.value}
+            timerDuration={(() => { const r = sheet.class_resources?.find(r => r.key === 'available_timer'); return r ? (r.current_value ?? r.value) : undefined; })()}
             components={sheet.components || []}
             sheet={apiSheet}
             isPowderMage={sheet.class?.name === 'The Powder Mage'}
@@ -504,7 +543,20 @@ export default function CharacterSheetPage() {
             dispatchClearDice();
           }}
           characterId={id}
+          characterLevel={sheet.character.level}
           token={token}
+        />
+      )}
+
+      {id && token && (
+        <RestSpellPreparationDialog
+          open={restSpellPrepOpen}
+          onOpenChange={setRestSpellPrepOpen}
+          restKind={restSpellPrepKind}
+          characterId={id}
+          token={token}
+          characterName={sheet.character.name}
+          gameClassName={sheet.class?.name}
         />
       )}
 

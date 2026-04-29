@@ -126,21 +126,21 @@ type Character struct {
 	// ============================================================
 	// RELATIONSHIPS: Loaded via Preload, stored via foreign keys
 	// ============================================================
-	User               User                 `json:"-" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	Race               Race                 `json:"race" gorm:"foreignKey:RaceID;references:ID"`
-	Class              Class                `json:"class" gorm:"foreignKey:ClassID;references:ID"`
-	Archetype          *Archetype           `json:"archetype,omitempty" gorm:"foreignKey:ArchetypeID;references:ID"`
-	Party              *Party               `json:"party,omitempty" gorm:"foreignKey:PartyID;references:ID;constraint:OnDelete:SET NULL"` // NEW: Relationship to Party
-	SkillProficiencies []CharacterSkill     `json:"-" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
-	Components         []CharacterComponent `json:"components,omitempty" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
-	ActiveEffects      []CharacterEffect    `json:"active_effects,omitempty" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
+	User               User                 `json:"-" gorm:"foreignKey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Race               Race                 `json:"race" gorm:"foreignKey:RaceID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Class              Class                `json:"class" gorm:"foreignKey:ClassID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Archetype          *Archetype           `json:"archetype,omitempty" gorm:"foreignKey:ArchetypeID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	Party              *Party               `json:"party,omitempty" gorm:"foreignKey:PartyID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"` // NEW: Relationship to Party
+	SkillProficiencies []CharacterSkill     `json:"-" gorm:"foreignKey:CharacterID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Components         []CharacterComponent `json:"components,omitempty" gorm:"foreignKey:CharacterID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	ActiveEffects      []CharacterEffect    `json:"active_effects,omitempty" gorm:"foreignKey:CharacterID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
 	// Inventory Relationships
-	CharacterWeapons []CharacterWeapon `json:"character_weapons,omitempty" gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE"`
-	Weapons          []Weapon          `json:"weapons,omitempty" gorm:"many2many:character_weapons_v2;constraint:OnDelete:CASCADE"`
-	Items            []Item            `json:"items,omitempty" gorm:"many2many:character_items;constraint:OnDelete:CASCADE"`
-	EquippedArmor    *Item             `json:"equipped_armor,omitempty" gorm:"foreignKey:EquippedArmorID;references:ID"`
-	EquippedShield   *Item             `json:"equipped_shield,omitempty" gorm:"foreignKey:EquippedShieldID;references:ID"`
+	CharacterWeapons []CharacterWeapon `json:"character_weapons,omitempty" gorm:"foreignKey:CharacterID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Weapons          []Weapon          `json:"weapons,omitempty" gorm:"many2many:character_weapons_v2;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Items            []Item            `json:"items,omitempty" gorm:"many2many:character_items;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	EquippedArmor    *Item             `json:"equipped_armor,omitempty" gorm:"foreignKey:EquippedArmorID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	EquippedShield   *Item             `json:"equipped_shield,omitempty" gorm:"foreignKey:EquippedShieldID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 
 	// ============================================================
 	// COMPUTED SUB-MODELS: Not stored in DB, populated in Go code

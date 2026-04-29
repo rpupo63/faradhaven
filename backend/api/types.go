@@ -3,7 +3,8 @@ package api
 import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/models"
+	"github.com/rpupo63/faradhaven/backend/services"
 )
 
 // routeHandlers contains all the handlers for the API routes
@@ -80,16 +81,16 @@ type CreateTokenRequest struct {
 }
 
 type UpdateTokenRequest struct {
-	GridX          *int       `json:"grid_x,omitempty"`
-	GridY          *int       `json:"grid_y,omitempty"`
-	Visible        *bool      `json:"visible,omitempty"`
-	Size           *int       `json:"size,omitempty"`
-	Color          *string    `json:"color,omitempty"`
-	AssignedUserID *uuid.UUID `json:"assigned_user_id,omitempty"` // For DM to reassign
-	CharacterID    *uuid.UUID `json:"character_id,omitempty"`     // DM re-link to character
-	MonsterID      *uuid.UUID `json:"monster_id,omitempty"`       // DM re-link to monster
-	Name           *string    `json:"name,omitempty"`
-	ImageURL       *string    `json:"image_url,omitempty"`
+	GridX          *int                 `json:"grid_x,omitempty"`
+	GridY          *int                 `json:"grid_y,omitempty"`
+	Visible        *bool                `json:"visible,omitempty"`
+	Size           *int                 `json:"size,omitempty"`
+	Color          *string              `json:"color,omitempty"`
+	AssignedUserID *uuid.UUID           `json:"assigned_user_id,omitempty"` // For DM to reassign
+	CharacterID    *uuid.UUID           `json:"character_id,omitempty"`     // DM re-link to character
+	MonsterID      *uuid.UUID           `json:"monster_id,omitempty"`       // DM re-link to monster
+	Name           *string              `json:"name,omitempty"`
+	ImageURL       *string              `json:"image_url,omitempty"`
 	TokenType      *models.MapTokenType `json:"token_type,omitempty"`
 }
 
@@ -123,7 +124,37 @@ type InitiativeEntry struct {
 type GenerateLootRequest struct {
 	CharacterID uuid.UUID `json:"character_id"`
 	Source      string    `json:"source"`
-	Tier        string    `json:"tier"`
+	RoomTheme   string    `json:"room_theme"`
+	Location    *string   `json:"location,omitempty"`
+	LootLevel   int       `json:"loot_level"`
+}
+
+type LootAssignment struct {
+	DropIndex   int       `json:"drop_index"`
+	CharacterID uuid.UUID `json:"character_id"`
+}
+
+type ConfirmLootPickupRequest struct {
+	SessionID   uuid.UUID        `json:"session_id"`
+	Assignments []LootAssignment `json:"assignments"`
+}
+
+type PartyLootMember struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+type GenerateLootPreviewResponse struct {
+	SessionID    uuid.UUID          `json:"session_id"`
+	Loot         services.LootResult `json:"loot"`
+	PartyMembers []PartyLootMember  `json:"party_members"`
+}
+
+type LootOptionsResponse struct {
+	Themes     []string `json:"themes"`
+	Locations  []string `json:"locations"`
+	Sources    []string `json:"sources"`
+	LootLevels []int    `json:"loot_levels"`
 }
 
 // Party Types
@@ -181,7 +212,7 @@ type CreateCharacterRequest struct {
 // Class/Compendium Types
 
 type ClassWithLevelsResponse struct {
-	models.Class       `json:",inline"` // Embed models.Class directly
+	models.Class `json:",inline"`    // Embed models.Class directly
 	Levels       []models.ClassLevel `json:"levels"`
 	MadnessTable map[int]string      `json:"madness_table,omitempty"`
 }
@@ -368,9 +399,16 @@ type UpdateBackstoryRequest struct {
 
 // PurchaseItemRequest is the request body for purchasing an item or weapon
 type PurchaseItemRequest struct {
-	ItemType      string     `json:"item_type"` // "weapon" or "item"
-	ItemID        uuid.UUID  `json:"item_id"`
-	StoreOwnerID  *uuid.UUID `json:"store_owner_id,omitempty"` // optional vendor; applies exchange_rate when valid
+	ItemType     string     `json:"item_type"` // "weapon" or "item"
+	ItemID       uuid.UUID  `json:"item_id"`
+	StoreOwnerID *uuid.UUID `json:"store_owner_id,omitempty"` // optional vendor; applies exchange_rate when valid
+}
+
+// SellItemRequest is the request body for selling an owned item or weapon
+type SellItemRequest struct {
+	ItemType          string     `json:"item_type"`                     // "weapon" or "item"
+	ItemID            uuid.UUID  `json:"item_id"`                       // item id, or weapon id for convenience
+	CharacterWeaponID *uuid.UUID `json:"character_weapon_id,omitempty"` // required for selling a specific owned weapon instance
 }
 
 // CastSpellRequest is the request body for casting a spell
@@ -423,36 +461,36 @@ type BonusDamageInfo struct {
 
 // CharacterSheetResponse is the response for GET character sheet
 type CharacterSheetResponse struct {
-	Character                *models.Character           `json:"character"`
-	Class                    *models.Class               `json:"class"`
-	ClassLevel               *models.ClassLevel          `json:"class_level"`
-	MaxHP                    int                         `json:"max_hp"`
-	CurrentHP                int                         `json:"current_hp"`
-	TempHP                   int                         `json:"temp_hp"`
-	AC                       int                         `json:"ac"`
-	SaveDC                   int                         `json:"save_dc"`
-	MaxSpellPoints           int                         `json:"max_spell_points"`
-	CurrentSpellPoints       int                         `json:"current_spell_points"`
-	SavingThrowProficiencies []string                    `json:"saving_throw_proficiencies"`
+	Character                *models.Character  `json:"character"`
+	Class                    *models.Class      `json:"class"`
+	ClassLevel               *models.ClassLevel `json:"class_level"`
+	MaxHP                    int                `json:"max_hp"`
+	CurrentHP                int                `json:"current_hp"`
+	TempHP                   int                `json:"temp_hp"`
+	AC                       int                `json:"ac"`
+	SaveDC                   int                `json:"save_dc"`
+	MaxSpellPoints           int                `json:"max_spell_points"`
+	CurrentSpellPoints       int                `json:"current_spell_points"`
+	SavingThrowProficiencies []string           `json:"saving_throw_proficiencies"`
 	// Class + race pool from live Class.Components / Race.Components (not character_components).
-	AvailableComponents      []models.Component          `json:"available_components"`
-	HitDiceTotal             int                         `json:"hit_dice_total"`
-	HitDiceRemaining         int                         `json:"hit_dice_remaining"`
-	HitDie                   int                         `json:"hit_die"`
-	Money                    int64                       `json:"money"`
-	MeleeAttackBonus         int                         `json:"melee_attack_bonus"`
-	RangedAttackBonus        int                         `json:"ranged_attack_bonus"`
-	RaceTraits               []models.Trait              `json:"race_traits"`
-	Lineage                  *models.Lineage             `json:"lineage,omitempty"`
-	InventoryWeapons         []CharacterWeaponResponse   `json:"inventory_weapons"`
-	InventoryItems           []models.Item               `json:"inventory_items"`
+	AvailableComponents []models.Component        `json:"available_components"`
+	HitDiceTotal        int                       `json:"hit_dice_total"`
+	HitDiceRemaining    int                       `json:"hit_dice_remaining"`
+	HitDie              int                       `json:"hit_die"`
+	Money               int64                     `json:"money"`
+	MeleeAttackBonus    int                       `json:"melee_attack_bonus"`
+	RangedAttackBonus   int                       `json:"ranged_attack_bonus"`
+	RaceTraits          []models.Trait            `json:"race_traits"`
+	Lineage             *models.Lineage           `json:"lineage,omitempty"`
+	InventoryWeapons    []CharacterWeaponResponse `json:"inventory_weapons"`
+	InventoryItems      []models.Item             `json:"inventory_items"`
 	// Expendable / acquired component counts (character_components). Spell pool is available_components.
-	Components               []models.CharacterComponent `json:"components"`
-	HarvestedAbilities       models.HarvestedAbilities   `json:"harvested_abilities"`
-	ClassResources           []ClassResourceResponse     `json:"class_resources"`
-	MadnessTable             map[int]string              `json:"madness_table,omitempty"`
-	TraitUseStates           map[string]int              `json:"trait_use_states,omitempty"` // traitID → current uses
-	TraitMaxUses             map[string]int              `json:"trait_max_uses,omitempty"`   // traitID → max uses
+	Components         []models.CharacterComponent `json:"components"`
+	HarvestedAbilities models.HarvestedAbilities   `json:"harvested_abilities"`
+	ClassResources     []ClassResourceResponse     `json:"class_resources"`
+	MadnessTable       map[int]string              `json:"madness_table,omitempty"`
+	TraitUseStates     map[string]int              `json:"trait_use_states,omitempty"` // traitID → current uses
+	TraitMaxUses       map[string]int              `json:"trait_max_uses,omitempty"`   // traitID → max uses
 }
 
 // ConsumeCorpseRequest is the request body for consuming a corpse (Lorewright Visceral Psychometry)
@@ -462,15 +500,15 @@ type ConsumeCorpseRequest struct {
 
 // CreateCorpseRequest is the request body for creating a corpse
 type CreateCorpseRequest struct {
-	MapID               *uuid.UUID `json:"map_id,omitempty"`
-	Name                string     `json:"name"`
-	CreatureType        string     `json:"creature_type"` // parsed via [models.ParseCreatureType]
-	CreatureSize        string     `json:"creature_size,omitempty"`
-	ChallengeRating     float64    `json:"challenge_rating,omitempty"`
-	GridX               *int       `json:"grid_x,omitempty"`
-	GridY               *int       `json:"grid_y,omitempty"`
+	MapID           *uuid.UUID `json:"map_id,omitempty"`
+	Name            string     `json:"name"`
+	CreatureType    string     `json:"creature_type"` // parsed via [models.ParseCreatureType]
+	CreatureSize    string     `json:"creature_size,omitempty"`
+	ChallengeRating float64    `json:"challenge_rating,omitempty"`
+	GridX           *int       `json:"grid_x,omitempty"`
+	GridY           *int       `json:"grid_y,omitempty"`
 	// When empty or all IDs unknown, server picks 1–4 random distinct components from the current catalog.
-	AvailableComponents []string `json:"available_components,omitempty"`
+	AvailableComponents []string   `json:"available_components,omitempty"`
 	ComponentYield      int        `json:"component_yield,omitempty"`
 	SourceBeastID       *uuid.UUID `json:"source_beast_id,omitempty"`
 	ExpiresInMinutes    *int       `json:"expires_in_minutes,omitempty"`
@@ -612,38 +650,38 @@ type RetryAIFieldRequest struct {
 }
 
 type CreateSpellRequest struct {
-	UserID             uuid.UUID             `json:"user_id"`
-	CharacterID        *uuid.UUID            `json:"character_id,omitempty"`
-	Name               string                `json:"name"`
-	Description        string                `json:"description"`
-	Type               models.SpellType      `json:"type"`
-	Range              *int                  `json:"range,omitempty"`
-	Duration           *string               `json:"duration,omitempty"`
-	Concentration      bool                  `json:"concentration"`
-	SaveAttr           *models.SaveAttribute `json:"save_attr,omitempty"`
-	DamageDiceCount    *int                  `json:"damage_dice_count,omitempty"`
-	DamageDieSize      *int                  `json:"damage_die_size,omitempty"`
+	UserID          uuid.UUID             `json:"user_id"`
+	CharacterID     *uuid.UUID            `json:"character_id,omitempty"`
+	Name            string                `json:"name"`
+	Description     string                `json:"description"`
+	Type            models.SpellType      `json:"type"`
+	Range           *int                  `json:"range,omitempty"`
+	Duration        *string               `json:"duration,omitempty"`
+	Concentration   bool                  `json:"concentration"`
+	SaveAttr        *models.SaveAttribute `json:"save_attr,omitempty"`
+	DamageDiceCount *int                  `json:"damage_dice_count,omitempty"`
+	DamageDieSize   *int                  `json:"damage_die_size,omitempty"`
 	// DamageType is optional; unknown or empty strings are treated as omitted (not all spells deal damage).
-	DamageType *string `json:"damage_type,omitempty"`
-	AddModifier        bool                  `json:"add_modifier"`
-	ComponentIDs       []uuid.UUID           `json:"component_ids"`
+	DamageType   *string     `json:"damage_type,omitempty"`
+	AddModifier  bool        `json:"add_modifier"`
+	ComponentIDs []uuid.UUID `json:"component_ids"`
 }
 
 type UpdateSpellRequest struct {
-	Name              *string               `json:"name,omitempty"`
-	Description       *string               `json:"description,omitempty"`
-	Type              *models.SpellType     `json:"type,omitempty"`
-	Range             *int                  `json:"range,omitempty"`
-	Duration          *string               `json:"duration,omitempty"`
-	Concentration     *bool                 `json:"concentration,omitempty"`
-	SaveAttr          *models.SaveAttribute `json:"save_attr,omitempty"`
-	DamageDiceCount   *int                  `json:"damage_dice_count,omitempty"`
-	DamageDieSize     *int                  `json:"damage_die_size,omitempty"`
+	Name            *string               `json:"name,omitempty"`
+	Description     *string               `json:"description,omitempty"`
+	Type            *models.SpellType     `json:"type,omitempty"`
+	Range           *int                  `json:"range,omitempty"`
+	Duration        *string               `json:"duration,omitempty"`
+	Concentration   *bool                 `json:"concentration,omitempty"`
+	SaveAttr        *models.SaveAttribute `json:"save_attr,omitempty"`
+	DamageDiceCount *int                  `json:"damage_dice_count,omitempty"`
+	DamageDieSize   *int                  `json:"damage_die_size,omitempty"`
 	// DamageType is optional; unknown or empty strings clear the field.
-	DamageType *string `json:"damage_type,omitempty"`
-	AddModifier       *bool                 `json:"add_modifier,omitempty"`
-	Checked           *bool                 `json:"checked,omitempty"`
-	ComponentIDs      []uuid.UUID           `json:"component_ids,omitempty"`
+	DamageType   *string     `json:"damage_type,omitempty"`
+	AddModifier  *bool       `json:"add_modifier,omitempty"`
+	Checked      *bool       `json:"checked,omitempty"`
+	ComponentIDs []uuid.UUID `json:"component_ids,omitempty"`
 }
 
 // User Types

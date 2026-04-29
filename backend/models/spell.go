@@ -20,7 +20,7 @@ type Spell struct {
 	Type                SpellType   `json:"type" gorm:"type:text;not null;default:'Utility'"` // Attack, Save, Effect, Healing, Utility
 	Range               *int        `json:"range,omitempty" gorm:"type:integer"`
 	Duration            *string     `json:"duration,omitempty" gorm:"type:text"` // see ValidateSpellDuration
-	Concentration         bool           `json:"concentration" gorm:"default:false"`
+	Concentration       bool        `json:"concentration" gorm:"type:boolean;not null;default:true"`
 	SaveAttr              *SaveAttribute `json:"save_attr,omitempty" gorm:"type:text"`
 	DamageDiceCount       *int           `json:"damage_dice_count,omitempty" gorm:"type:integer"`
 	DamageDieSize         *int           `json:"damage_die_size,omitempty" gorm:"type:integer"` // faces: 6 = d6
@@ -54,9 +54,9 @@ type Spell struct {
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationships
-	User           User             `json:"-" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	Character      *Character       `json:"-" gorm:"foreignKey:CharacterID;references:ID;constraint:OnDelete:SET NULL"`
-	ComponentLinks []SpellComponent `json:"-" gorm:"foreignKey:SpellID;references:ID;constraint:OnDelete:CASCADE"`
+	User           User             `json:"-" gorm:"foreignKey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Character      *Character       `json:"-" gorm:"foreignKey:CharacterID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	ComponentLinks []SpellComponent `json:"-" gorm:"foreignKey:SpellID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 	// Components is populated from ComponentLinks in spell order (duplicates allowed). Not persisted directly.
 	Components []Component `json:"components" gorm:"-"`
 }

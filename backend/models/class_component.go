@@ -13,6 +13,6 @@ type ClassComponent struct {
 	ComponentID uuid.UUID `json:"component_id" gorm:"type:uuid;primaryKey;not null"`
 	CreatedAt   time.Time `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 
-	Class     Class     `json:"-" gorm:"foreignKey:ClassID;references:ID;constraint:OnDelete:CASCADE"`
-	Component Component `json:"-" gorm:"foreignKey:ComponentID;references:ID;constraint:OnDelete:CASCADE"`
+	Class     Class     `json:"-" gorm:"foreignKey:ClassID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Component Component `json:"-" gorm:"foreignKey:ComponentID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

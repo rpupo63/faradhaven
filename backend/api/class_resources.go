@@ -2,14 +2,13 @@ package api
 
 import (
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/models"
-	"github.com/rpupo63/unified-personal-site-backend/services"
+	"github.com/rpupo63/faradhaven/backend/database"
+	"github.com/rpupo63/faradhaven/backend/models"
 )
 
 // buildClassResources aggregates resource definitions, level values, and character state
 // into a response-ready slice. Shared between characterHandler and levelHandler.
-// character may be nil; when set, Vapor Blade shadow_points Value reflects Dex + proficiency.
+// character may be nil.
 func buildClassResources(
 	classRepo database.ClassRepository,
 	characterResourceRepo database.CharacterResourceRepository,
@@ -32,9 +31,6 @@ func buildClassResources(
 	result := make([]ClassResourceResponse, 0, len(defs))
 	for _, def := range defs {
 		val := resourceMap[def.ResourceKey]
-		if def.ResourceKey == "shadow_points" && character != nil {
-			val = services.VaporBladeShadowPointsMax(character.Dexterity, level)
-		}
 		resp := ClassResourceResponse{
 			Key:          def.ResourceKey,
 			DisplayName:  def.DisplayName,

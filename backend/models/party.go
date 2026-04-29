@@ -15,12 +15,12 @@ type Party struct {
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationships
-	Owner User `json:"-" gorm:"foreignKey:OwnerID;references:ID;constraint:OnDelete:CASCADE"`
+	Owner User `json:"-" gorm:"foreignKey:OwnerID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
 	// Many2Many for IdentifiedBeasts (through PartyBeast)
-	IdentifiedBeasts []*Beast `json:"identified_beasts" gorm:"many2many:party_beasts;references:ID;joinReferences:BeastID"`
+	IdentifiedBeasts []*Beast `json:"identified_beasts" gorm:"many2many:party_beasts;references:ID;joinReferences:BeastID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 	// Has many for Members
-	Members []*Character `json:"members" gorm:"foreignKey:PartyID"`
+	Members []*Character `json:"members" gorm:"foreignKey:PartyID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 }
 
 // PartyBeast is the join table for Party and Beast to track which beasts a party has identified.

@@ -3,19 +3,19 @@ package services
 import (
 	"testing"
 
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/models"
 )
 
 func TestCalculateSpellEffect(t *testing.T) {
 	tests := []struct {
-		name         string
-		level        int
-		damageType   models.DamageType
-		formaName    string
-		scopusName   string
-		magnitudes   []string
-		wantCount    int
-		wantFaces    int
+		name       string
+		level      int
+		damageType models.DamageType
+		formaName  string
+		scopusName string
+		magnitudes []string
+		wantCount  int
+		wantFaces  int
 	}{
 		{
 			name:       "Standard Ranged Single Target (Rare)",
@@ -76,6 +76,26 @@ func TestCalculateSpellEffect(t *testing.T) {
 			magnitudes: []string{},
 			wantCount:  7, // 8 - 1
 			wantFaces:  8, // 8 - 4 (Zone) + 4 (Fire)
+		},
+		{
+			name:       "Lance + Marked boosts precision damage",
+			level:      3,
+			damageType: models.DamageThunder,
+			formaName:  "Lance",
+			scopusName: "Marked",
+			magnitudes: []string{},
+			wantCount:  2,
+			wantFaces:  12, // 8 + 2 (Lance) + 2 (Marked)
+		},
+		{
+			name:       "Orbit + Area-First lowers sustained area damage",
+			level:      4,
+			damageType: models.DamageCold,
+			formaName:  "Orbit",
+			scopusName: "Area-First",
+			magnitudes: []string{},
+			wantCount:  2, // 3 - 1
+			wantFaces:  4, // 8 - 4 (Orbit) - 2 (Area-First) + 2 (Cold)
 		},
 	}
 

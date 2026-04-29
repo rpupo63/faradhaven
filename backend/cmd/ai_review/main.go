@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/rpupo63/unified-personal-site-backend/internal/bootstrap"
-	"github.com/rpupo63/unified-personal-site-backend/models"
-	"github.com/rpupo63/unified-personal-site-backend/services"
+	"github.com/rpupo63/faradhaven/backend/internal/bootstrap"
+	"github.com/rpupo63/faradhaven/backend/models"
+	"github.com/rpupo63/faradhaven/backend/services"
 	"gorm.io/gorm"
 )
 
@@ -80,18 +80,18 @@ func main() {
 		aiT, aiR, aiD := models.NormalizeSpellAIRecommendations(opinion.RecommendedType, opinion.RecommendedRange, opinion.RecommendedDuration)
 		sa, dt, aiDC, aiDS := models.NormalizeSpellAIRecommendationsExtras(opinion.RecommendedSaveAttr, opinion.RecommendedDamageType, opinion.RecommendedDamageDiceCount, opinion.RecommendedDamageDieSize)
 		updates := map[string]interface{}{
-			"ai_description_opinion":       &opinion.DescriptionOpinion,
-			"ai_damage_opinion":            &opinion.DamageOpinion,
-			"ai_effect_opinion":            &opinion.EffectOpinion,
-			"ai_overall_verdict":           &opinion.OverallVerdict,
-			"ai_raw_output":                &raw,
-			"ai_recommended_name":          opinion.RecommendedName,
-			"ai_recommended_description":   opinion.RecommendedDescription,
-			"ai_recommended_save_attr":     sa,
-			"ai_recommended_damage_type":   dt,
+			"ai_description_opinion":           &opinion.DescriptionOpinion,
+			"ai_damage_opinion":                &opinion.DamageOpinion,
+			"ai_effect_opinion":                &opinion.EffectOpinion,
+			"ai_overall_verdict":               &opinion.OverallVerdict,
+			"ai_raw_output":                    &raw,
+			"ai_recommended_name":              opinion.RecommendedName,
+			"ai_recommended_description":       opinion.RecommendedDescription,
+			"ai_recommended_save_attr":         sa,
+			"ai_recommended_damage_type":       dt,
 			"ai_recommended_damage_dice_count": aiDC,
 			"ai_recommended_damage_die_size":   aiDS,
-			"updated_at":                   time.Now(),
+			"updated_at":                       time.Now(),
 		}
 		if aiT != nil {
 			updates["ai_recommended_type"] = string(*aiT)

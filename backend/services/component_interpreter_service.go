@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/database"
+	"github.com/rpupo63/faradhaven/backend/models"
 )
 
 // =============================================================================
@@ -168,6 +168,23 @@ func (s *ComponentInterpreterService) Interpret(components []string) (*SpellResu
 			case "Aura":
 				result.AreaOfEffect = "10ft radius aura"
 				result.Range = 0
+			case "Touch":
+				result.Range = 5
+			case "Arc":
+				result.AreaOfEffect = "curved arc path"
+				result.Range = 90
+			case "Ring":
+				result.AreaOfEffect = "20ft diameter ring"
+				result.Range = 60
+			case "Pillar":
+				result.AreaOfEffect = "10ft radius, 30ft high pillar"
+				result.Range = 120
+			case "Orbit":
+				result.AreaOfEffect = "10ft radius orbit"
+				result.Range = 60
+			case "Lance":
+				result.AreaOfEffect = "150ft precision line"
+				result.Range = 150
 			}
 			shapeSet = true
 		}
@@ -274,6 +291,48 @@ func (s *ComponentInterpreterService) InterpretModels(components []models.Compon
 					Origin:   "self",
 					MaxRange: "Self",
 				}
+			case "Touch":
+				exec.Geometry = GeometryInfo{
+					Shape:    "point",
+					Size:     "single contact",
+					Origin:   "self",
+					MaxRange: "5 ft",
+				}
+			case "Arc":
+				exec.Geometry = GeometryInfo{
+					Shape:    "arc",
+					Size:     "curved path",
+					Origin:   "ranged",
+					MaxRange: "90 ft",
+				}
+			case "Ring":
+				exec.Geometry = GeometryInfo{
+					Shape:    "ring",
+					Size:     "20 ft diameter (hollow center)",
+					Origin:   "ranged",
+					MaxRange: "60 ft",
+				}
+			case "Pillar":
+				exec.Geometry = GeometryInfo{
+					Shape:    "cylinder",
+					Size:     "10 ft radius, 30 ft high",
+					Origin:   "point",
+					MaxRange: "120 ft",
+				}
+			case "Orbit":
+				exec.Geometry = GeometryInfo{
+					Shape:    "sphere",
+					Size:     "10 ft radius mobile field",
+					Origin:   "target",
+					MaxRange: "60 ft",
+				}
+			case "Lance":
+				exec.Geometry = GeometryInfo{
+					Shape:    "line",
+					Size:     "150 ft long, 2 ft wide",
+					Origin:   "ranged",
+					MaxRange: "150 ft",
+				}
 			}
 
 		// -----------------------------------------------------------------
@@ -290,6 +349,21 @@ func (s *ComponentInterpreterService) InterpretModels(components []models.Compon
 				exec.Geometry.Origin = "point"
 			case "Chain":
 				exec.Mechanics.Actions = append(exec.Mechanics.Actions, "Chain (bounces to 3 targets)")
+			case "Ally":
+				exec.Mechanics.Actions = append(exec.Mechanics.Actions, "Target filter: allies only")
+			case "Enemy":
+				exec.Mechanics.Actions = append(exec.Mechanics.Actions, "Target filter: enemies only")
+			case "Object":
+				exec.Mechanics.Actions = append(exec.Mechanics.Actions, "Target filter: objects/structures only")
+			case "Marked":
+				exec.Mechanics.Actions = append(exec.Mechanics.Actions, "Target filter: marked targets only")
+			case "Area-First":
+				exec.Geometry.Origin = "point"
+				exec.Mechanics.Actions = append(exec.Mechanics.Actions, "Area-first retargeting (nearest valid)")
+			case "LOS-Only":
+				exec.Mechanics.Actions = append(exec.Mechanics.Actions, "Requires line of sight")
+			case "Through-Walls":
+				exec.Mechanics.Actions = append(exec.Mechanics.Actions, "Can anchor through opaque barriers")
 			}
 
 		// -----------------------------------------------------------------

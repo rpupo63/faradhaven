@@ -16,6 +16,10 @@ type Class struct {
 	PrimaryAbility string    `json:"primary_ability" gorm:"type:text;not null"` // e.g. "intelligence", "wisdom"
 	PhotoURL       string    `json:"photo_url" gorm:"type:text"`                // URL to class artwork/photo
 
+	// SpellCastingComponent is how this class satisfies spellcasting at the table: one of verbal, somatic, material (Faradhaven flavor).
+	SpellCastingComponent   string `json:"spell_casting_component,omitempty" gorm:"type:text"`
+	SpellCastingDescription string `json:"spell_casting_description,omitempty" gorm:"type:text"` // In-world description of what casting looks like
+
 	// D&D-style proficiencies and starting data (stored as PostgreSQL arrays)
 	Proficiencies     string         `json:"proficiencies" gorm:"type:text"`               // weapon/armor proficiencies (e.g. "Simple weapons, Light Armor")
 	SkillFocus        pq.StringArray `json:"skill_focus" gorm:"type:text[]"`               // fixed skill proficiencies (e.g. Persuasion, Medicine)
@@ -36,9 +40,9 @@ type Class struct {
 	// ============================================================
 	// RELATIONSHIPS: Loaded via Preload, stored via foreign keys
 	// ============================================================
-	Levels              []ClassLevel                   `json:"levels,omitempty" gorm:"foreignKey:ClassID;constraint:OnDelete:CASCADE"`
-	Components          []Component                    `json:"components,omitempty" gorm:"many2many:class_components;foreignKey:ID;joinForeignKey:ClassID;References:ID;joinReferences:ComponentID"`
-	Archetypes          []Archetype                    `json:"archetypes,omitempty" gorm:"foreignKey:ClassID;constraint:OnDelete:CASCADE"`
-	EquipmentChoices    []ClassStartingEquipmentChoice `json:"equipment_choices,omitempty" gorm:"foreignKey:ClassID;constraint:OnDelete:CASCADE"`
-	ResourceDefinitions []ClassResourceDefinition      `json:"resource_definitions,omitempty" gorm:"foreignKey:ClassID;constraint:OnDelete:CASCADE"`
+	Levels              []ClassLevel                   `json:"levels,omitempty" gorm:"foreignKey:ClassID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Components          []Component                    `json:"components,omitempty" gorm:"many2many:class_components;foreignKey:ID;joinForeignKey:ClassID;References:ID;joinReferences:ComponentID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Archetypes          []Archetype                    `json:"archetypes,omitempty" gorm:"foreignKey:ClassID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	EquipmentChoices    []ClassStartingEquipmentChoice `json:"equipment_choices,omitempty" gorm:"foreignKey:ClassID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	ResourceDefinitions []ClassResourceDefinition      `json:"resource_definitions,omitempty" gorm:"foreignKey:ClassID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

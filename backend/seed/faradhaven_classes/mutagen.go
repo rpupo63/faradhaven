@@ -1,7 +1,7 @@
 package faradhaven_classes
 
 import (
-	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+	"github.com/rpupo63/faradhaven/backend/seed/seedmedia"
 )
 
 // Mutagen returns the Mutagen class seed
@@ -24,6 +24,8 @@ func Mutagen() FaradhavenClassSeed {
 		AutomaticEquipNames:  []string{"Alchemist's Supplies"},
 		AutomaticWeaponNames: []string{"Mutagen Bite"},
 		AutomaticItemNames:   []string{"Scale Mail", "Explorer's Pack"},
+		SpellCastingComponent:   "somatic",
+		SpellCastingDescription: "You channel formulae through your body—muscle memory, posture shifts, and violent kinetic punctuation as altered flesh answers the mix. No discrete toolkit: observers watch your transformation in motion, impossible to mistake for subtle spellcraft.",
 		EquipmentChoices: []EquipmentChoiceSeed{
 			{
 				Instruction: "Choose your heavy weapon",

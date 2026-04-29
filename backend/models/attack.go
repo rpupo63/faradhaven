@@ -20,5 +20,5 @@ type Attack struct {
 	CreatedAt   time.Time  `json:"created_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationship back to Beast
-	Beast Beast `json:"-" gorm:"foreignKey:BeastID;references:ID;constraint:OnDelete:CASCADE"`
+	Beast Beast `json:"-" gorm:"foreignKey:BeastID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

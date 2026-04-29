@@ -1,3 +1,4 @@
+import type { DragEvent } from 'react';
 import { cn } from '@/lib/utils';
 import type { ApiComponent, ComponentCategory } from '@/types/game';
 import { ComponentRpgGlyph } from './ComponentRpgGlyph';
@@ -62,7 +63,16 @@ interface ElementTileProps {
   showElement?: boolean;
   locked?: boolean;
   selected?: boolean;
+  selectedAnywhere?: boolean;
   count?: number;
+  /**
+   * When true and not locked, tile renders as a draggable div (not a button) so HTML5 drag works.
+   * Nested buttons block drag initiation on a parent draggable in most browsers.
+   */
+  dragSource?: boolean;
+  onNativeDragStart?: (e: DragEvent<HTMLDivElement>) => void;
+  onNativeDrag?: (e: DragEvent<HTMLDivElement>) => void;
+  onNativeDragEnd?: () => void;
 }
 
 export function ElementTile({
@@ -72,7 +82,12 @@ export function ElementTile({
   showElement = true,
   locked = false,
   selected = false,
+  selectedAnywhere = false,
   count,
+  dragSource = false,
+  onNativeDragStart,
+  onNativeDrag,
+  onNativeDragEnd,
 }: ElementTileProps) {
   const colors = categoryColors[component.category] || categoryColors.Essentia;
   const elementIcon = component.element ? elementIcons[component.element] : null;
@@ -95,37 +110,44 @@ export function ElementTile({
     lg: 'text-xs md:text-sm',
   };
 
-  return (
-    <button
-      onClick={() => !locked && onClick?.(component)}
-      disabled={locked}
-      className={cn(
-        'element-tile group relative flex flex-col items-center justify-center',
-        'border-2 rounded-sm transition-all duration-200',
-        'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1',
-        colors.bg,
-        colors.border,
-        sizeClasses[size],
-        locked
-          ? 'opacity-40 blur-[1px] cursor-not-allowed grayscale'
-          : 'hover:scale-105 hover:shadow-lg hover:z-10',
-        selected && !locked && 'ring-2 ring-primary ring-offset-2 scale-105 shadow-lg shadow-primary/30'
-      )}
-      title={locked ? 'Locked - not available to this character' : `${component.name} - ${component.description}`}
-    >
-      {/* Element icon indicator */}
+  const shellClass = cn(
+    'element-tile group relative flex flex-col items-center justify-center',
+    'border-2 rounded-sm transition-all duration-200',
+    'focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1',
+    colors.bg,
+    colors.border,
+    sizeClasses[size],
+    locked
+      ? 'opacity-40 blur-[1px] cursor-not-allowed grayscale'
+      : 'hover:scale-105 hover:shadow-lg hover:z-10',
+    selectedAnywhere && !selected && !locked && 'ring-1 ring-primary/40 ring-offset-1',
+    selected && !locked && 'ring-2 ring-primary ring-offset-2 scale-105 shadow-lg shadow-primary/30',
+  );
+
+  const titleStr = locked ? 'Locked - not available to this character' : `${component.name} - ${component.description}`;
+
+  /** Hide the browser's default drag ghost; Spell Forge V2 draws its own follower via dragover + portal. */
+  const onGlyphDragStart = (e: DragEvent<HTMLDivElement>) => {
+    onNativeDragStart?.(e);
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    e.dataTransfer.setDragImage(canvas, 0, 0);
+  };
+
+  const tileBody = (
+    <>
       {showElement && elementIcon && (
         <span className="absolute top-0.5 right-0.5 text-micro md:text-xs opacity-70">
           {elementIcon}
         </span>
       )}
 
-      {/* Count Badge */}
       {count !== undefined && (
-        <span 
+        <span
           className={cn(
-            "absolute -top-1.5 -left-1.5 z-20 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full border border-background bg-primary px-1 text-micro font-bold text-primary-foreground shadow-sm",
-            size === 'sm' && "h-4 min-w-[1rem] text-tiny -top-1 -left-1"
+            'absolute -top-1.5 -left-1.5 z-20 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full border border-background bg-primary px-1 text-micro font-bold text-primary-foreground shadow-sm',
+            size === 'sm' && 'h-4 min-w-[1rem] text-tiny -top-1 -left-1',
           )}
           title={`Quantity: ${count >= 999 ? 'Infinite' : count}`}
         >
@@ -133,38 +155,110 @@ export function ElementTile({
         </span>
       )}
 
-      {/* RPG Awesome icon or alchemical symbol */}
       <ComponentRpgGlyph
         component={component}
         iconClassName={cn('leading-none', colors.text, symbolSizes[size])}
         fallbackClassName={cn(
           'font-bold font-mono leading-none',
           colors.text,
-          symbolSizes[size]
+          symbolSizes[size],
         )}
       />
 
-      {/* Name - small text below */}
       <span
         className={cn(
           'font-medium leading-tight text-center px-0.5 truncate w-full',
           'text-muted-foreground group-hover:text-foreground',
-          nameSizes[size]
+          nameSizes[size],
         )}
       >
         {component.name}
       </span>
 
-      {/* Hover glow effect */}
       {!locked && (
         <div
           className={cn(
             'absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity',
             'bg-gradient-to-t from-transparent via-transparent to-white/20 dark:to-white/10',
-            'pointer-events-none rounded-sm'
+            'pointer-events-none rounded-sm',
           )}
         />
       )}
+    </>
+  );
+
+  if (dragSource && !locked) {
+    return (
+      <div className={shellClass} title={titleStr}>
+        {showElement && elementIcon && (
+          <span className="absolute top-0.5 right-0.5 text-micro md:text-xs">{elementIcon}</span>
+        )}
+        {count !== undefined && (
+          <span
+            className={cn(
+              'absolute -top-1.5 -left-1.5 z-20 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full border border-background bg-primary px-1 text-micro font-bold text-primary-foreground shadow-sm',
+              size === 'sm' && 'h-4 min-w-[1rem] text-tiny -top-1 -left-1',
+            )}
+            title={`Quantity: ${count >= 999 ? 'Infinite' : count}`}
+          >
+            {count >= 999 ? '∞' : count}
+          </span>
+        )}
+        <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-1 px-0.5 pt-0.5">
+          <div
+            draggable
+            onDragStart={onGlyphDragStart}
+            onDrag={onNativeDrag}
+            onDragEnd={onNativeDragEnd}
+            onClick={(ev) => {
+              ev.stopPropagation();
+              onClick?.(component);
+            }}
+            className="relative z-[1] flex min-h-[3rem] min-w-[3rem] shrink-0 cursor-grab items-center justify-center rounded-lg p-2 transition-colors active:cursor-grabbing"
+            aria-label={`Drag icon into spell: ${component.name}`}
+          >
+            <ComponentRpgGlyph
+              component={component}
+              iconClassName={cn('leading-none', colors.text, symbolSizes[size])}
+              fallbackClassName={cn(
+                'font-bold font-mono leading-none',
+                colors.text,
+                symbolSizes[size],
+              )}
+            />
+          </div>
+          <button
+            type="button"
+            className={cn(
+              'max-w-full truncate font-medium leading-tight text-center text-foreground',
+              nameSizes[size],
+            )}
+            onClick={() => onClick?.(component)}
+          >
+            {component.name}
+          </button>
+        </div>
+        {!locked && (
+          <div
+            className={cn(
+              'pointer-events-none absolute inset-0 rounded-sm opacity-0 transition-opacity group-hover:opacity-100',
+              'bg-gradient-to-t from-transparent via-transparent to-white/20 dark:to-white/10',
+            )}
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => !locked && onClick?.(component)}
+      disabled={locked}
+      className={shellClass}
+      title={titleStr}
+    >
+      {tileBody}
     </button>
   );
 }

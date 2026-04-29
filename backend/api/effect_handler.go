@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/database"
+	"github.com/rpupo63/faradhaven/backend/database"
 	"github.com/rs/zerolog/log"
 )
 

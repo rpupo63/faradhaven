@@ -4,7 +4,7 @@ import (
 	"sort"
 
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/models"
 )
 
 // SpellPoolAllowlist returns component IDs a character always has from their **current**

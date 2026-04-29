@@ -60,7 +60,9 @@ export function MobileSheetBottomBar({
           onClick={onOpenDice}
         >
           <RaIcon name="perspective-dice-six" className="text-sm shrink-0" />
-          <span className="text-micro font-tome-marginalia leading-tight">Dice</span>
+          <span className="text-micro font-tome-marginalia leading-tight text-center">
+            Roll any die
+          </span>
         </Button>
       </div>
     </div>

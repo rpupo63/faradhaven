@@ -4,11 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { NormalizedCharacterSheet, ApiCharacterWeapon, ApiWeapon, ApiWeaponDamage } from '@/types/game';
-import { updateEquipment } from '@/lib/api';
+import { sellItem, tossItem, updateEquipment } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { parseCostToCp, formatCpToDisplay } from '@/lib/currency';
+import { toast } from 'sonner';
 
 interface EquipmentSectionProps {
   sheet: NormalizedCharacterSheet;
@@ -68,6 +69,8 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
   const { character, modifiers } = sheet;
   const { token } = useAuth();
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [isSelling, setIsSelling] = useState<string | null>(null);
+  const [isTossing, setIsTossing] = useState<string | null>(null);
   const [equipError, setEquipError] = useState<string | null>(null);
   const [attackError, setAttackError] = useState<string | null>(null);
 
@@ -90,6 +93,62 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
       setEquipError(msg);
     } finally {
       setIsLoading(null);
+    }
+  };
+
+  const handleSellItem = async (payload: {
+    item_id: string;
+    item_type: 'item' | 'weapon';
+    character_weapon_id?: string;
+    loadingKey: string;
+  }) => {
+    if (!token) return;
+    setIsSelling(payload.loadingKey);
+    try {
+      const res = await sellItem(
+        character.id,
+        {
+          item_id: payload.item_id,
+          item_type: payload.item_type,
+          character_weapon_id: payload.character_weapon_id,
+        },
+        token
+      );
+      toast.success(res.message);
+      onEquipmentChange();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to sell item';
+      toast.error(msg);
+    } finally {
+      setIsSelling(null);
+    }
+  };
+
+  const handleTossItem = async (payload: {
+    item_id: string;
+    item_type: 'item' | 'weapon';
+    character_weapon_id?: string;
+    loadingKey: string;
+  }) => {
+    if (!token) return;
+    setIsTossing(payload.loadingKey);
+    try {
+      const res = await tossItem(
+        character.id,
+        {
+          item_id: payload.item_id,
+          item_type: payload.item_type,
+          character_weapon_id: payload.character_weapon_id,
+        },
+        token
+      );
+      toast.success(res.message);
+      onEquipmentChange();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to toss item';
+      toast.error(msg);
+    } finally {
+      setIsTossing(null);
     }
   };
   
@@ -193,10 +252,45 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
                             ({formatMod(totalAttackModifier)} Atk, {formatMod(damageAbilityMod)} Dmg)
                           </span>
                           {cw.weapon.cost && getSellValue(cw.weapon.cost) && (
-                            <span className="text-micro font-medium text-faded-gold bg-faded-gold/5 px-1.5 py-0.5 rounded border border-faded-gold/20 shrink-0" title={`Sell value: ${getSellValue(cw.weapon.cost)}`}>
-                              Sell: {getSellValue(cw.weapon.cost)}
-                            </span>
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              className="h-6 border-faded-gold/30 text-faded-gold hover:text-faded-gold"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSellItem({
+                                  item_id: cw.weapon.id,
+                                  item_type: 'weapon',
+                                  character_weapon_id: cw.character_weapon_id,
+                                  loadingKey: `weapon-${cw.character_weapon_id}`,
+                                });
+                              }}
+                              disabled={!!isLoading || !!isSelling}
+                              title={`Sell for ${getSellValue(cw.weapon.cost)}`}
+                            >
+                              {isSelling === `weapon-${cw.character_weapon_id}`
+                                ? 'Selling...'
+                                : `Sell ${getSellValue(cw.weapon.cost)}`}
+                            </Button>
                           )}
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            className="h-6 border-destructive/30 text-destructive hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTossItem({
+                                item_id: cw.weapon.id,
+                                item_type: 'weapon',
+                                character_weapon_id: cw.character_weapon_id,
+                                loadingKey: `weapon-${cw.character_weapon_id}`,
+                              });
+                            }}
+                            disabled={!!isLoading || !!isSelling || !!isTossing}
+                            title="Discard weapon with no money gained"
+                          >
+                            {isTossing === `weapon-${cw.character_weapon_id}` ? 'Tossing...' : 'Toss'}
+                          </Button>
                         </span>
                       </button>
                       <div className="flex flex-wrap items-center gap-1 shrink-0 justify-end">
@@ -267,10 +361,39 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
                             <span className="break-words">{it.name}</span>
                           </span>
                           {sellValue && (
-                            <span className="text-micro font-medium text-faded-gold bg-faded-gold/5 px-1.5 py-0.5 rounded border border-faded-gold/20" title={`Sell value: ${sellValue}`}>
-                              Sell: {sellValue}
-                            </span>
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              className="h-6 border-faded-gold/30 text-faded-gold hover:text-faded-gold"
+                              onClick={() =>
+                                handleSellItem({
+                                  item_id: it.id,
+                                  item_type: 'item',
+                                  loadingKey: `item-${it.id}`,
+                                })
+                              }
+                              disabled={!!isLoading || !!isSelling}
+                              title={`Sell for ${sellValue}`}
+                            >
+                              {isSelling === `item-${it.id}` ? 'Selling...' : `Sell ${sellValue}`}
+                            </Button>
                           )}
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            className="h-6 border-destructive/30 text-destructive hover:text-destructive"
+                            onClick={() =>
+                              handleTossItem({
+                                item_id: it.id,
+                                item_type: 'item',
+                                loadingKey: `item-${it.id}`,
+                              })
+                            }
+                            disabled={!!isLoading || !!isSelling || !!isTossing}
+                            title="Discard item with no money gained"
+                          >
+                            {isTossing === `item-${it.id}` ? 'Tossing...' : 'Toss'}
+                          </Button>
                         </div>
                         {it.armor_type && <span className="text-micro text-muted-foreground">{it.armor_type} Armor</span>}
                       </div>
@@ -314,10 +437,39 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
                             {it.name}
                           </span>
                           {sellValue && (
-                            <span className="text-micro font-medium text-faded-gold bg-faded-gold/5 px-1.5 py-0.5 rounded border border-faded-gold/20" title={`Sell value: ${sellValue}`}>
-                              Sell: {sellValue}
-                            </span>
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              className="h-6 border-faded-gold/30 text-faded-gold hover:text-faded-gold"
+                              onClick={() =>
+                                handleSellItem({
+                                  item_id: it.id,
+                                  item_type: 'item',
+                                  loadingKey: `item-${it.id}`,
+                                })
+                              }
+                              disabled={!!isLoading || !!isSelling}
+                              title={`Sell for ${sellValue}`}
+                            >
+                              {isSelling === `item-${it.id}` ? 'Selling...' : `Sell ${sellValue}`}
+                            </Button>
                           )}
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            className="h-6 border-destructive/30 text-destructive hover:text-destructive"
+                            onClick={() =>
+                              handleTossItem({
+                                item_id: it.id,
+                                item_type: 'item',
+                                loadingKey: `item-${it.id}`,
+                              })
+                            }
+                            disabled={!!isLoading || !!isSelling || !!isTossing}
+                            title="Discard item with no money gained"
+                          >
+                            {isTossing === `item-${it.id}` ? 'Tossing...' : 'Toss'}
+                          </Button>
                        </div>
                       <Button
                         size="xs"
@@ -351,10 +503,39 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
                       <div className="flex flex-wrap items-center gap-x-2 min-w-0">
                         <span className="font-bold text-primary break-words min-w-0">{it.name}</span>
                         {sellValue && (
-                          <span className="text-micro font-medium text-faded-gold bg-faded-gold/5 px-1.5 py-0.5 rounded border border-faded-gold/20" title={`Sell value: ${sellValue}`}>
-                            Sell: {sellValue}
-                          </span>
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            className="h-6 border-faded-gold/30 text-faded-gold hover:text-faded-gold"
+                            onClick={() =>
+                              handleSellItem({
+                                item_id: it.id,
+                                item_type: 'item',
+                                loadingKey: `item-${it.id}`,
+                              })
+                            }
+                            disabled={!!isLoading || !!isSelling}
+                            title={`Sell for ${sellValue}`}
+                          >
+                            {isSelling === `item-${it.id}` ? 'Selling...' : `Sell ${sellValue}`}
+                          </Button>
                         )}
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          className="h-6 border-destructive/30 text-destructive hover:text-destructive"
+                          onClick={() =>
+                            handleTossItem({
+                              item_id: it.id,
+                              item_type: 'item',
+                              loadingKey: `item-${it.id}`,
+                            })
+                          }
+                          disabled={!!isLoading || !!isSelling || !!isTossing}
+                          title="Discard item with no money gained"
+                        >
+                          {isTossing === `item-${it.id}` ? 'Tossing...' : 'Toss'}
+                        </Button>
                       </div>
                       <span className="text-micro text-muted-foreground shrink-0">{it.category}</span>
                     </div>

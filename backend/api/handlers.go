@@ -3,8 +3,8 @@ package api
 import (
 	"os" // Added os import for ConsoleWriter
 
-	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/services"
+	"github.com/rpupo63/faradhaven/backend/database"
+	"github.com/rpupo63/faradhaven/backend/services"
 	"github.com/rs/zerolog"     // Added zerolog import
 	"github.com/rs/zerolog/log" // Added zerolog/log for global logger setup
 )
@@ -67,7 +67,7 @@ func initializeHandlers(db database.Database, hub *Hub) *routeHandlers {
 		db.ComponentRepo(),
 	)
 
-	lootService := services.NewLootService(db.ItemRepo(), db.WeaponRepo(), db.CharacterRepo())
+	lootService := services.NewLootService(db.DB(), db.ItemRepo(), db.WeaponRepo(), db.CharacterRepo())
 
 	corpseService := services.NewCorpseService(db.CorpseRepo())
 	linkService := services.NewLinkService(db.CharacterLinkRepo())
@@ -83,6 +83,7 @@ func initializeHandlers(db database.Database, hub *Hub) *routeHandlers {
 	// NEW: Initialize MonsterGenerationService
 	monsterGenerationService := services.NewMonsterGenerationService(
 		db.MonsterRepo(),
+		db.MonsterGenerationEventRepo(),
 		s3Service,
 		llmClient,
 	)
@@ -128,7 +129,7 @@ func initializeHandlers(db database.Database, hub *Hub) *routeHandlers {
 		componentHandler:       newComponentHandler(db.ComponentRepo()),
 		effectHandler:          newEffectHandler(db.EffectRepo()),
 		characterEffectHandler: newCharacterEffectHandler(effectService),
-		resourceHandler:        newResourceHandler(db.CharacterResourceRepo()),
+		resourceHandler:        newResourceHandler(db.CharacterResourceRepo(), db.CharacterRepo(), resourceService),
 		minionHandler:          newMinionHandler(minionService),
 		noteHandler:            newNoteHandler(db.NoteRepo(), db.CharacterRepo(), s3Service),
 		gameMapHandler:         newGameMapHandler(db.GameMapRepo(), hub, s3Service),
@@ -137,12 +138,12 @@ func initializeHandlers(db database.Database, hub *Hub) *routeHandlers {
 		mechanicsHandler:       NewMechanicsHandler(db.DB()),
 		corpseHandler:          corpseHandlerInstance, // Use the instance
 		linkHandler:            newLinkHandler(linkService),
-		harvestHandler:         newHarvestHandler(harvestingService, db.CharacterRepo()),      // NEW: Harvest Handler
-		madnessHandler:         madnessHandlerInstance,                                        // NEW: Madness Handler
-		lootHandler:            newLootHandler(lootService, logger),                           // Pass logger
-		monsterHandler:         newMonsterHandler(db.MonsterRepo(), monsterGenerationService), // NEW: Monster Handler
-		partyHandler:           partyHandlerInstance,                                          // NEW: Party Handler
-		abilityHandler:         newAbilityHandler(db.CharacterRepo(), db.CharacterResourceRepo()),
+		harvestHandler:         newHarvestHandler(harvestingService, db.CharacterRepo()),                                       // NEW: Harvest Handler
+		madnessHandler:         madnessHandlerInstance,                                                                         // NEW: Madness Handler
+		lootHandler:            newLootHandler(lootService, logger),                                                            // Pass logger
+		monsterHandler:         newMonsterHandler(db.MonsterRepo(), db.MonsterGenerationEventRepo(), monsterGenerationService), // NEW: Monster Handler
+		partyHandler:           partyHandlerInstance,                                                                           // NEW: Party Handler
+		abilityHandler:         newAbilityHandler(db.CharacterRepo(), db.CharacterResourceRepo(), resourceService),
 		storeOwnerHandler:      newStoreOwnerHandler(db.StoreOwnerRepo(), s3Service),
 	}
 }

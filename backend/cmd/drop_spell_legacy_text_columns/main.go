@@ -1,5 +1,6 @@
 // Drops legacy spells table text columns used before dice were split into integers:
-//   damage_dice, suggested_damage_dice, ai_recommended_damage_dice
+//
+//	damage_dice, suggested_damage_dice, ai_recommended_damage_dice
 //
 // The normal path is: go run ./cmd/migrate_spells -apply
 // (that migrates data into damage_dice_count / damage_die_size / etc. and drops these columns).
@@ -22,7 +23,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/rpupo63/unified-personal-site-backend/internal/bootstrap"
+	"github.com/rpupo63/faradhaven/backend/internal/bootstrap"
 	"gorm.io/gorm"
 )
 

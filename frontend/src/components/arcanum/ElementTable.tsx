@@ -10,7 +10,7 @@ const categoryMeta: Record<
   { name: string; shortName: string; group: 'required' | 'optional' }
 > = {
   Forma: { name: 'Forma (Shape)', shortName: 'Forma', group: 'required' },
-  Scopus: { name: 'Scopus (Targeting)', shortName: 'Scopus', group: 'optional' },
+  Scopus: { name: 'Scopus (Targeting)', shortName: 'Scopus', group: 'required' },
   Essentia: { name: 'Essentia (Domain)', shortName: 'Essentia', group: 'required' },
   Actio: { name: 'Actio (Action)', shortName: 'Actio', group: 'optional' },
   Magnitudo: { name: 'Magnitudo (Scale)', shortName: 'Magnitudo', group: 'optional' },
@@ -27,6 +27,9 @@ const categoryOrder: ComponentCategory[] = [
   'Logica',
 ];
 
+/** MIME type for HTML5 drag payloads (Spell Forge 2). */
+export const COMPONENT_DRAG_MIME = 'application/x-faradhaven-component-id';
+
 interface ElementTableProps {
   components: ApiComponent[];
   onComponentClick?: (component: ApiComponent) => void;
@@ -34,10 +37,17 @@ interface ElementTableProps {
   availableComponentIds?: Set<string>;
   /** If provided, components in this set will be shown as selected/highlighted */
   selectedComponentIds?: Set<string>;
+  /** Optional secondary selection state (present outside the active phase). */
+  selectedAnywhereComponentIds?: Set<string>;
   /** If true, clicking a component will not open the detail modal */
   disableDetailPopup?: boolean;
   /** Character's inventory of components to display counts */
   characterComponents?: ApiCharacterComponent[];
+  /** When true, unlocked tiles can be dragged by icon into forge drop zones (Spell Forge 2). */
+  enableComponentDrag?: boolean;
+  onComponentDragStart?: (component: ApiComponent, clientX: number, clientY: number) => void;
+  onComponentDrag?: (component: ApiComponent, clientX: number, clientY: number) => void;
+  onComponentDragEnd?: () => void;
 }
 
 export function ElementTable({
@@ -45,8 +55,13 @@ export function ElementTable({
   onComponentClick,
   availableComponentIds,
   selectedComponentIds,
+  selectedAnywhereComponentIds,
   disableDetailPopup = false,
   characterComponents,
+  enableComponentDrag = false,
+  onComponentDragStart,
+  onComponentDrag,
+  onComponentDragEnd,
 }: ElementTableProps) {
   const [selectedComponent, setSelectedComponent] = useState<ApiComponent | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -123,8 +138,9 @@ export function ElementTable({
                 )}
               </div>
               <p className="text-center text-sm text-muted-foreground mb-4 font-tome-marginalia">
-                {cat === 'Forma' && 'The physical manifestation and geometric delivery of the magic. (One required)'}
-                {cat === 'Scopus' && 'The anchor point or entity the magic is allowed to interact with.'}
+                {cat === 'Forma' && 'The physical manifestation and geometric delivery of the magic. Every non-empty phase requires exactly one Forma.'}
+                {cat === 'Scopus' &&
+                  'Defines targeting anchor rules. Every non-empty phase requires exactly one Scopus.'}
                 {cat === 'Essentia' && 'The fundamental matter, energy, or abstract concept being manipulated. (At least one required)'}
                 {cat === 'Actio' && 'What the magic physically does to the Essentia or Scopus.'}
                 {cat === 'Magnitudo' && "The mathematical dials that adjust the spell's parameters."}
@@ -132,18 +148,35 @@ export function ElementTable({
                   'Optional — for multi-phase spells only. If / Then / Therefore split the chain into phases (default spells stay a single phase). Order matters — e.g. water, Then, cold.'}
               </p>
               <div className="flex flex-wrap justify-center gap-2 md:gap-3">
-                {comps.map((comp) => (
-                  <ElementTile
-                    key={comp.id}
-                    component={comp}
-                    onClick={handleTileClick}
-                    size="md"
-                    showElement={cat === 'Essentia'}
-                    locked={availableComponentIds ? !availableComponentIds.has(comp.id) : false}
-                    selected={selectedComponentIds?.has(comp.id)}
-                    count={componentCounts && !availableComponentIds?.has(comp.id) ? (componentCounts.get(comp.id) ?? 0) : undefined}
-                  />
-                ))}
+                {comps.map((comp) => {
+                  const locked = availableComponentIds ? !availableComponentIds.has(comp.id) : false;
+                  return (
+                    <ElementTile
+                      key={comp.id}
+                      component={comp}
+                      onClick={handleTileClick}
+                      size="md"
+                      showElement={cat === 'Essentia'}
+                      locked={locked}
+                      selected={selectedComponentIds?.has(comp.id)}
+                      selectedAnywhere={selectedAnywhereComponentIds?.has(comp.id)}
+                      count={componentCounts && !availableComponentIds?.has(comp.id) ? (componentCounts.get(comp.id) ?? 0) : undefined}
+                      dragSource={enableComponentDrag && !locked}
+                      onNativeDragStart={(e) => {
+                        e.dataTransfer.setData(COMPONENT_DRAG_MIME, comp.id);
+                        e.dataTransfer.setData('text/plain', comp.id);
+                        e.dataTransfer.effectAllowed = 'copy';
+                        onComponentDragStart?.(comp, e.clientX, e.clientY);
+                      }}
+                      onNativeDrag={(e) => {
+                        onComponentDrag?.(comp, e.clientX, e.clientY);
+                      }}
+                      onNativeDragEnd={() => {
+                        onComponentDragEnd?.();
+                      }}
+                    />
+                  );
+                })}
               </div>
             </section>
           );

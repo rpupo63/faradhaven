@@ -41,10 +41,10 @@ type Beast struct {
 	UpdatedAt        time.Time      `json:"updated_at" gorm:"type:timestamptz;not null;default:now()"`
 
 	// Relationships
-	User    User         `json:"-" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	Attacks []Attack     `json:"attacks,omitempty" gorm:"foreignKey:BeastID;references:ID;constraint:OnDelete:CASCADE"`
-	Skills  []BeastSkill `json:"skills,omitempty" gorm:"foreignKey:BeastID;references:ID;constraint:OnDelete:CASCADE"`
-	Parties []Party      `json:"-" gorm:"many2many:party_beasts;references:ID;joinReferences:PartyID"` // NEW: Many2Many with Party
+	User    User         `json:"-" gorm:"foreignKey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Attacks []Attack     `json:"attacks,omitempty" gorm:"foreignKey:BeastID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Skills  []BeastSkill `json:"skills,omitempty" gorm:"foreignKey:BeastID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Parties []Party      `json:"-" gorm:"many2many:party_beasts;references:ID;joinReferences:PartyID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"` // NEW: Many2Many with Party
 }
 
 // ParseChallengeRating converts the string ChallengeRating to a float64.

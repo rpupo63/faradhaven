@@ -101,6 +101,7 @@ export function DiceAnimation() {
   }, []);
 
   // Apply preference changes live via updateConfig (no re-init needed).
+  // Include diceBoxGeneration so prefs apply once the box finishes init (user prefs often load after first paint).
   useEffect(() => {
     if (!boxRef.current) return;
     boxRef.current.updateConfig({
@@ -108,7 +109,12 @@ export function DiceAnimation() {
       themeColor: activeDicePrefs.dice_theme_color,
       fontColor: activeDicePrefs.dice_font_color,
     });
-  }, [activeDicePrefs.dice_theme, activeDicePrefs.dice_theme_color, activeDicePrefs.dice_font_color]);
+  }, [
+    activeDicePrefs.dice_theme,
+    activeDicePrefs.dice_theme_color,
+    activeDicePrefs.dice_font_color,
+    diceBoxGeneration,
+  ]);
 
   // Keep canvas / physics bounds aligned when the viewport or tray size changes.
   useEffect(() => {
@@ -144,7 +150,10 @@ export function DiceAnimation() {
       if (dismissTimer.current) clearTimeout(dismissTimer.current);
       setResult({ id: crypto.randomUUID(), ...r });
       // Results stay up until clicked or 6 seconds pass
-      dismissTimer.current = setTimeout(() => setResult(null), 6000);
+      dismissTimer.current = setTimeout(() => {
+        setResult(null);
+        DiceManager.clear();
+      }, 6000);
     });
     return () => DiceManager.setOnResult(null);
   }, []);

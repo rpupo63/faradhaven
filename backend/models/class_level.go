@@ -29,7 +29,7 @@ type ClassLevel struct {
 
 	// --- Class traits/features ---
 	// Structured features with name and description
-	LevelFeatures []LevelFeature `json:"level_features,omitempty" gorm:"foreignKey:ClassLevelID"`
+	LevelFeatures []LevelFeature `json:"level_features,omitempty" gorm:"foreignKey:ClassLevelID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
 	// --- Ability Score Improvement (ASI) ---
 	// Points to add when leveling to this level: 0 = none, 2 = +2 to one ability or +1 to two (D&D standard at 4,8,12,16,19)
@@ -51,7 +51,7 @@ type ClassLevel struct {
 	// --- Faradhaven Class Resources ---
 	// Class-specific per-level resource values are stored in the ClassLevelResource table.
 	// Query via ClassRepo.GetLevelResourceMap(classID, level) or GetLevelResourceValue(classID, level, key).
-	ResourceValues []ClassLevelResource `json:"resource_values,omitempty" gorm:"foreignKey:ClassLevelID;constraint:OnDelete:CASCADE"`
+	ResourceValues []ClassLevelResource `json:"resource_values,omitempty" gorm:"foreignKey:ClassLevelID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
-	Class Class `json:"-" gorm:"foreignKey:ClassID;references:ID"`
+	Class Class `json:"-" gorm:"foreignKey:ClassID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

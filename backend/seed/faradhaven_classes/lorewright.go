@@ -1,7 +1,7 @@
 package faradhaven_classes
 
 import (
-	"github.com/rpupo63/unified-personal-site-backend/seed/seedmedia"
+	"github.com/rpupo63/faradhaven/backend/seed/seedmedia"
 )
 
 // Lorewright returns the Lorewright class seed.
@@ -25,6 +25,8 @@ func Lorewright() FaradhavenClassSeed {
 		SavingThrows:        []string{"Wisdom", "Intelligence"},
 		AutomaticEquipNames: []string{"Preservation kit (salt, jars)", "Traveler's clothes", "Bone talisman"},
 		AutomaticItemNames:  []string{"Leather armor", "Explorer's pack"},
+		SpellCastingComponent:   "material",
+		SpellCastingDescription: "You enact formulae through harvested matter—specimens, salts, and organs staged like ingredients on a cutting board. Witnesses see jars, preservatives, and trophy tissue woven into the weave; it reads as culinary necrology as much as spellcraft.",
 		EquipmentChoices: []EquipmentChoiceSeed{
 			{
 				Instruction: "Choose your harvesting tool",

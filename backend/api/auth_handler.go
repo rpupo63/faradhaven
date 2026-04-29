@@ -11,9 +11,9 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/rpupo63/unified-personal-site-backend/database"
-	"github.com/rpupo63/unified-personal-site-backend/errs"
-	"github.com/rpupo63/unified-personal-site-backend/models"
+	"github.com/rpupo63/faradhaven/backend/database"
+	"github.com/rpupo63/faradhaven/backend/errs"
+	"github.com/rpupo63/faradhaven/backend/models"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -200,7 +200,7 @@ func (h *authHandler) register() http.HandlerFunc {
 			h.responder.WriteError(w, errs.NewInternalError("token generation failed"))
 			return
 		}
-		
+
 		expiresAt := time.Now().Add(7 * 24 * time.Hour)
 
 		newUser := &models.User{
@@ -215,7 +215,7 @@ func (h *authHandler) register() http.HandlerFunc {
 			h.responder.WriteError(w, errs.NewInternalError("failed to create user"))
 			return
 		}
-		
+
 		accessToken, err := generateAccessToken(newUser.ID)
 		if err != nil {
 			h.responder.WriteError(w, errs.NewInternalError("access token generation failed"))
