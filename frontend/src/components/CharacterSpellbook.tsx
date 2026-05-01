@@ -303,7 +303,7 @@ export function CharacterSpellbook({
       onValueChange={(v) => setActiveTab(v as 'spells' | 'forge' | 'forge2')}
       className="w-full min-w-0"
     >
-      <TabsList className="grid w-full min-w-0 grid-cols-3 h-auto gap-0">
+      <TabsList className="grid h-auto w-full min-w-0 grid-cols-3 gap-0">
         <TabsTrigger value="spells" className="gap-1 sm:gap-2 px-1.5 sm:px-3 py-2.5 min-w-0 text-xs sm:text-sm">
           <RaIcon name="book" className="text-sm shrink-0" />
           <span className="truncate leading-tight text-center">Spells</span>
@@ -365,7 +365,6 @@ export function CharacterSpellbook({
           }
           isPowderMage={isPowderMage}
           speedDialSlots={speedDialSlots}
-          gameClassName={sheet?.class?.name}
         />
       </TabsContent>
     </Tabs>

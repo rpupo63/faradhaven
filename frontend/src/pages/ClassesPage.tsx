@@ -89,7 +89,14 @@ function FeatureBadge({ feature }: { feature: ApiLevelFeature }) {
   );
 }
 
-function ClassCard({ classData }: { classData: ApiClass }) {
+export function ClassCard({
+  classData,
+  asLink = true,
+}: {
+  classData: ApiClass;
+  /** When false, renders the same card without navigation (e.g. modal preview). */
+  asLink?: boolean;
+}) {
   const hasComponents = classData.components && classData.components.length > 0;
   // Sort components: core categories first, then others
   const sortedComponents = [...(classData.components ?? [])].sort((a, b) => {
@@ -104,8 +111,7 @@ function ClassCard({ classData }: { classData: ApiClass }) {
   const level1Features = classData.levels?.[0]?.level_features ?? [];
   const hasFeatures = level1Features.length > 0;
 
-  return (
-    <Link to={`/game-rules/classes/${classData.id}`} className="block h-full">
+  const card = (
       <Card className="arcane-border h-full hover:bg-primary/5 transition-all hover:shadow-lg hover:shadow-primary/10 cursor-pointer group overflow-hidden">
         {/* Class Photo */}
         {classData.photo_url && (
@@ -230,8 +236,17 @@ function ClassCard({ classData }: { classData: ApiClass }) {
           </div>
         </CardContent>
       </Card>
-    </Link>
   );
+
+  const wrapClass = 'block h-full';
+  if (asLink) {
+    return (
+      <Link to={`/game-rules/classes/${classData.id}`} className={wrapClass}>
+        {card}
+      </Link>
+    );
+  }
+  return <div className={wrapClass}>{card}</div>;
 }
 
 export function ClassesTabContent({ classId }: { classId?: string }) {

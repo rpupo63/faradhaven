@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
 import { CharacterSheetView } from '@/components/CharacterSheetView';
@@ -17,6 +17,7 @@ import { resolveSpellPoolComponents } from '@/lib/spellUtils';
 import {
   getCharacterSheet,
   getClassWithLevels,
+  getRaceWithTraits,
   updateCharacter as updateCharacterApi,
   levelDownCharacter,
   updateHP,
@@ -41,6 +42,8 @@ import { dispatchClearDice } from '@/lib/dice';
 import { displayClassName } from '@/lib/characterDisplay';
 import { shouldOfferRestSpellPreparation } from '@/lib/restSpellPreparation';
 import { RestSpellPreparationDialog } from '@/components/RestSpellPreparationDialog';
+import { ClassBook } from '@/components/ClassBook';
+import { RaceBook } from '@/components/RaceBook';
 
 type CharacterTab = 'sheet' | 'spellbook' | 'backstory' | 'bestiary' | 'party'; // NEW: Added bestiary and party
 
@@ -61,6 +64,8 @@ export default function CharacterSheetPage() {
   const [showLootModal, setShowLootModal] = useState(false);
   const [restSpellPrepOpen, setRestSpellPrepOpen] = useState(false);
   const [restSpellPrepKind, setRestSpellPrepKind] = useState<'short' | 'long'>('short');
+  const [raceCardOpen, setRaceCardOpen] = useState(false);
+  const [classCardOpen, setClassCardOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -131,6 +136,27 @@ export default function CharacterSheetPage() {
     queryKey: ['class', character?.class_id],
     queryFn: () => getClassWithLevels(character!.class_id!, token ?? undefined),
     enabled: !!character?.class_id && !apiSheet,
+    staleTime: 60_000,
+    retry: false,
+  });
+
+  const raceId = apiSheet?.character?.race_id ?? character?.race_id;
+  const classId = apiSheet?.character?.class_id ?? character?.class_id;
+
+  /** Same keys/query as Game Rules detail views — warm cache when visiting /game-rules/classes/:id */
+  const { data: classDataForCompendiumCard, isLoading: isLoadingClassBook } = useQuery({
+    queryKey: ['class', classId],
+    queryFn: () => getClassWithLevels(classId!, token ?? undefined),
+    enabled: !!classId && classCardOpen,
+    staleTime: 60_000,
+    retry: false,
+  });
+
+  /** Same keys/query as Game Rules detail views — warm cache when visiting /game-rules/races/:id */
+  const { data: raceDetailForBook, isLoading: isLoadingRaceBook } = useQuery({
+    queryKey: ['race', raceId],
+    queryFn: () => getRaceWithTraits(raceId!, token ?? undefined),
+    enabled: !!raceId && raceCardOpen,
     staleTime: 60_000,
     retry: false,
   });
@@ -329,8 +355,23 @@ export default function CharacterSheetPage() {
                   {sheet.character.name}
                 </h2>
                 <p className="text-xs text-muted-foreground font-tome-marginalia">
-                  Lvl {sheet.character.level} {displayClassName(sheet.character.className)}{' '}
-                  {sheet.character.raceName}
+                  Lvl {sheet.character.level}{' '}
+                  <button
+                    type="button"
+                    disabled={!classId}
+                    onClick={() => setClassCardOpen(true)}
+                    className="font-inherit text-inherit hover:text-primary hover:underline underline-offset-2 decoration-primary/50 disabled:opacity-60 disabled:no-underline disabled:cursor-not-allowed"
+                  >
+                    {displayClassName(sheet.character.className)}
+                  </button>{' '}
+                  <button
+                    type="button"
+                    disabled={!raceId}
+                    onClick={() => setRaceCardOpen(true)}
+                    className="font-inherit text-inherit hover:text-primary hover:underline underline-offset-2 decoration-primary/50 disabled:opacity-60 disabled:no-underline disabled:cursor-not-allowed"
+                  >
+                    {sheet.character.raceName}
+                  </button>
                 </p>
                 {sheet.character.partyName ? (
                   <p className="text-xs text-muted-foreground/90 font-tome-marginalia truncate">
@@ -386,8 +427,23 @@ export default function CharacterSheetPage() {
                   {sheet.character.name}
                 </h2>
                 <p className="text-sm text-muted-foreground font-tome-marginalia">
-                  Lvl {sheet.character.level} {displayClassName(sheet.character.className)}{' '}
-                  {sheet.character.raceName}
+                  Lvl {sheet.character.level}{' '}
+                  <button
+                    type="button"
+                    disabled={!classId}
+                    onClick={() => setClassCardOpen(true)}
+                    className="font-inherit text-inherit hover:text-primary hover:underline underline-offset-2 decoration-primary/50 disabled:opacity-60 disabled:no-underline disabled:cursor-not-allowed"
+                  >
+                    {displayClassName(sheet.character.className)}
+                  </button>{' '}
+                  <button
+                    type="button"
+                    disabled={!raceId}
+                    onClick={() => setRaceCardOpen(true)}
+                    className="font-inherit text-inherit hover:text-primary hover:underline underline-offset-2 decoration-primary/50 disabled:opacity-60 disabled:no-underline disabled:cursor-not-allowed"
+                  >
+                    {sheet.character.raceName}
+                  </button>
                 </p>
                 {sheet.character.partyName ? (
                   <p className="text-sm text-muted-foreground/90 font-tome-marginalia">
@@ -559,6 +615,64 @@ export default function CharacterSheetPage() {
           gameClassName={sheet.class?.name}
         />
       )}
+
+      <Dialog open={classCardOpen} onOpenChange={setClassCardOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto sm:max-w-5xl">
+          <DialogTitle className="sr-only">{sheet.character.className}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Full class entry from the game rules compendium.
+          </DialogDescription>
+          {isLoadingClassBook ? (
+            <div className="flex justify-center py-16">
+              <LoadingQuill label="Loading class..." />
+            </div>
+          ) : classDataForCompendiumCard ? (
+            <>
+              <ClassBook classData={classDataForCompendiumCard} />
+              {classId ? (
+                <div className="mt-6 flex justify-center border-t border-border/60 pt-4">
+                  <Button variant="link" asChild className="text-primary">
+                    <Link to={`/game-rules/classes/${classId}`}>Open in Game Rules</Link>
+                  </Button>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-muted-foreground text-sm font-tome-marginalia text-center py-6">
+              Could not load this class. Try Game Rules → Classes.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={raceCardOpen} onOpenChange={setRaceCardOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto sm:max-w-5xl">
+          <DialogTitle className="sr-only">{sheet.character.raceName}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Full race entry from the game rules compendium.
+          </DialogDescription>
+          {isLoadingRaceBook ? (
+            <div className="flex justify-center py-16">
+              <LoadingQuill label="Loading race..." />
+            </div>
+          ) : raceDetailForBook ? (
+            <>
+              <RaceBook raceData={raceDetailForBook} />
+              {raceId ? (
+                <div className="mt-6 flex justify-center border-t border-border/60 pt-4">
+                  <Button variant="link" asChild className="text-primary">
+                    <Link to={`/game-rules/races/${raceId}`}>Open in Game Rules</Link>
+                  </Button>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-muted-foreground text-sm font-tome-marginalia text-center py-6">
+              Could not load this race. Try Game Rules → Races.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

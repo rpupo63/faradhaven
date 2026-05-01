@@ -12,9 +12,15 @@ import { RaceBook } from '@/components/RaceBook';
 
 const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-function RaceCard({ raceData }: { raceData: ApiRace }) {
-  return (
-    <Link to={`/game-rules/races/${raceData.id}`} className="block h-full">
+export function RaceCard({
+  raceData,
+  asLink = true,
+}: {
+  raceData: ApiRace;
+  /** When false, renders the same card without navigation (e.g. modal preview). */
+  asLink?: boolean;
+}) {
+  const card = (
       <Card className="arcane-border h-full hover:bg-primary/5 transition-all hover:shadow-lg hover:shadow-primary/10 cursor-pointer group overflow-hidden">
         {/* Race Photo */}
         {raceData.photo_url && (
@@ -74,8 +80,17 @@ function RaceCard({ raceData }: { raceData: ApiRace }) {
           </div>
         </CardContent>
       </Card>
-    </Link>
   );
+
+  const wrapClass = 'block h-full';
+  if (asLink) {
+    return (
+      <Link to={`/game-rules/races/${raceData.id}`} className={wrapClass}>
+        {card}
+      </Link>
+    );
+  }
+  return <div className={wrapClass}>{card}</div>;
 }
 
 export function RacesTabContent({ raceId }: { raceId?: string }) {

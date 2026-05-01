@@ -236,63 +236,76 @@ export function EquipmentSection({ sheet, onWeaponClick, onGenerateLoot, onEquip
                     )}
                   >
                     <div className="flex flex-col gap-2 min-[480px]:flex-row min-[480px]:justify-between min-[480px]:items-start">
-                      <button onClick={() => {
-                        if (!cw.is_equipped) {
-                          setAttackError('Weapon must be equipped to attack.');
-                          setTimeout(() => setAttackError(null), 3000); // Clear error after 3 seconds
-                          return;
-                        }
-                        onWeaponClick(cw);
-                      }} className="min-w-0 flex-1 text-left">
-                        <span className="font-bold text-primary group-hover:text-primary/90 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                      <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          className="font-bold text-primary group-hover:text-primary/90 flex flex-wrap items-center gap-x-1.5 gap-y-1 min-w-0 cursor-pointer rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                          onClick={() => {
+                            if (!cw.is_equipped) {
+                              setAttackError('Weapon must be equipped to attack.');
+                              setTimeout(() => setAttackError(null), 3000);
+                              return;
+                            }
+                            onWeaponClick(cw);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key !== 'Enter' && e.key !== ' ') return;
+                            e.preventDefault();
+                            if (!cw.is_equipped) {
+                              setAttackError('Weapon must be equipped to attack.');
+                              setTimeout(() => setAttackError(null), 3000);
+                              return;
+                            }
+                            onWeaponClick(cw);
+                          }}
+                        >
                           {cw.is_equipped && <RaIcon name="crown" className="text-xs text-primary shrink-0" />}
                           <RaIcon name="archery-target" className={`text-xs shrink-0 ${cw.is_equipped ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`} />
                           <span className="break-words">{cw.custom_name || cw.weapon.name}</span>
                           <span className="text-xs text-muted-foreground font-normal min-[480px]:ml-2 shrink-0">
                             ({formatMod(totalAttackModifier)} Atk, {formatMod(damageAbilityMod)} Dmg)
                           </span>
-                          {cw.weapon.cost && getSellValue(cw.weapon.cost) && (
-                            <Button
-                              size="xs"
-                              variant="outline"
-                              className="h-6 border-faded-gold/30 text-faded-gold hover:text-faded-gold"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSellItem({
-                                  item_id: cw.weapon.id,
-                                  item_type: 'weapon',
-                                  character_weapon_id: cw.character_weapon_id,
-                                  loadingKey: `weapon-${cw.character_weapon_id}`,
-                                });
-                              }}
-                              disabled={!!isLoading || !!isSelling}
-                              title={`Sell for ${getSellValue(cw.weapon.cost)}`}
-                            >
-                              {isSelling === `weapon-${cw.character_weapon_id}`
-                                ? 'Selling...'
-                                : `Sell ${getSellValue(cw.weapon.cost)}`}
-                            </Button>
-                          )}
+                        </div>
+                        {cw.weapon.cost && getSellValue(cw.weapon.cost) && (
                           <Button
                             size="xs"
                             variant="outline"
-                            className="h-6 border-destructive/30 text-destructive hover:text-destructive"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTossItem({
+                            className="h-6 border-faded-gold/30 text-faded-gold hover:text-faded-gold"
+                            onClick={() =>
+                              handleSellItem({
                                 item_id: cw.weapon.id,
                                 item_type: 'weapon',
                                 character_weapon_id: cw.character_weapon_id,
                                 loadingKey: `weapon-${cw.character_weapon_id}`,
-                              });
-                            }}
-                            disabled={!!isLoading || !!isSelling || !!isTossing}
-                            title="Discard weapon with no money gained"
+                              })
+                            }
+                            disabled={!!isLoading || !!isSelling}
+                            title={`Sell for ${getSellValue(cw.weapon.cost)}`}
                           >
-                            {isTossing === `weapon-${cw.character_weapon_id}` ? 'Tossing...' : 'Toss'}
+                            {isSelling === `weapon-${cw.character_weapon_id}`
+                              ? 'Selling...'
+                              : `Sell ${getSellValue(cw.weapon.cost)}`}
                           </Button>
-                        </span>
-                      </button>
+                        )}
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          className="h-6 border-destructive/30 text-destructive hover:text-destructive"
+                          onClick={() =>
+                            handleTossItem({
+                              item_id: cw.weapon.id,
+                              item_type: 'weapon',
+                              character_weapon_id: cw.character_weapon_id,
+                              loadingKey: `weapon-${cw.character_weapon_id}`,
+                            })
+                          }
+                          disabled={!!isLoading || !!isSelling || !!isTossing}
+                          title="Discard weapon with no money gained"
+                        >
+                          {isTossing === `weapon-${cw.character_weapon_id}` ? 'Tossing...' : 'Toss'}
+                        </Button>
+                      </div>
                       <div className="flex flex-wrap items-center gap-1 shrink-0 justify-end">
                         {cw.weapon.properties?.includes('Transformative') && (
                           <Badge variant="outline" size="tiny" theme="warning">Transforms</Badge>

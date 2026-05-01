@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef, type DragEvent } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef, type DragEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -12,7 +12,7 @@ import {
 } from '@/lib/api';
 import { ElementTable, ComponentKeyboard, ComponentRpgGlyph, ComponentRpgChip } from '@/components/arcanum';
 import { COMPONENT_DRAG_MIME } from '@/components/arcanum/ElementTable';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { LoadingButton } from '@/components/ui/loading-button';
@@ -31,8 +31,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { X, Save, Timer, RotateCcw, Keyboard, Layers, AlertCircle, ChevronUp, ChevronDown, Loader2, Wand2 } from 'lucide-react';
+import {
+  X,
+  Save,
+  Timer,
+  RotateCcw,
+  Keyboard,
+  Layers,
+  AlertCircle,
+  ChevronUp,
+  ChevronDown,
+  Loader2,
+  Wand2,
+  Info,
+} from 'lucide-react';
 import { RaIcon } from '@/components/ui/RaIcon';
 import type { ApiComponent, ApiCharacterComponent, ApiSpell, SpellSynthesis } from '@/types/game';
 import { toast } from 'sonner';
@@ -56,7 +70,6 @@ import {
   validateFormaScopusPerPhase,
 } from '@/lib/spellLogicPhases';
 import { findMatchingPreparedSpell } from '@/lib/powderMageSpellMatch';
-import { resolveForgeVessel } from '@/components/spell-forge-vessels';
 import {
   formatSynthesisConcentrationHint,
   formatSynthesisDamageTypeHint,
@@ -88,13 +101,74 @@ interface CharacterSpellForgeV2Props {
   spellToEdit?: ApiSpell;
   onSaveComplete?: () => void;
   onClose?: () => void;
-  /** Character class display name (e.g. `sheet.class.name`) for themed forge vessel. */
-  gameClassName?: string;
 }
 
 const ABILITIES = ["STR", "DEX", "CON", "INT", "WIS", "CHA"] as const;
 
 const EMPTY_PREPARED_SPELLS: ApiSpell[] = [];
+
+/** Drop target shell for the spell chain; `children` is the unified chain / phase summary. */
+function SpellForgeCrucible({
+  sequence,
+  lastAddedComponentId,
+  className,
+  children,
+}: {
+  sequence: ApiComponent[];
+  lastAddedComponentId: string | null;
+  className?: string;
+  children?: ReactNode;
+}) {
+  const rimControls = useAnimation();
+  const len = sequence.length;
+  const depth = useMemo(() => {
+    if (len <= 0) return 'empty' as const;
+    if (len <= 4) return 'forming' as const;
+    return 'charged' as const;
+  }, [len]);
+
+  useEffect(() => {
+    if (!lastAddedComponentId) return;
+    void rimControls.start({
+      boxShadow: [
+        '0 0 0 0 rgba(59,130,246,0)',
+        '0 0 0 4px rgba(59,130,246,0.35)',
+        '0 0 0 0 rgba(59,130,246,0)',
+      ],
+      transition: { duration: 0.55, times: [0, 0.4, 1] },
+    });
+  }, [lastAddedComponentId, sequence.length, rimControls]);
+
+  return (
+    <motion.div
+      className={cn(
+        'relative flex min-h-[5.5rem] flex-col overflow-hidden rounded-lg border border-border/60 bg-muted/20',
+        className,
+      )}
+      initial={false}
+      animate={rimControls}
+      style={{
+        background:
+          depth === 'charged'
+            ? 'linear-gradient(145deg, rgba(15,23,42,0.5) 0%, rgba(30,41,59,0.45) 50%, rgba(59,130,246,0.08) 100%)'
+            : depth === 'forming'
+              ? 'linear-gradient(145deg, rgba(15,23,42,0.45) 0%, rgba(30,27,50,0.4) 100%)'
+              : undefined,
+      }}
+    >
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.35]"
+        style={{
+          background:
+            depth === 'empty'
+              ? undefined
+              : `radial-gradient(ellipse 80% 70% at 50% 0%, rgba(59,130,246,${0.06 + Math.min(len, 12) * 0.012}), transparent 55%)`,
+        }}
+      />
+      <div className="relative z-[1] min-h-0 min-w-0 p-3">{children}</div>
+    </motion.div>
+  );
+}
 
 /** Only send damage_type when it matches server enums (synthesis/UI can briefly hold unknown strings). */
 function damageTypeForSpellApi(raw: string): string | undefined {
@@ -118,7 +192,6 @@ export function CharacterSpellForgeV2({
   onClose,
   isPowderMage = false,
   speedDialSlots = 0,
-  gameClassName,
 }: CharacterSpellForgeV2Props) {
   const queryClient = useQueryClient();
   const isEditMode = !!spellToEdit;
@@ -652,8 +725,6 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
     prevSequenceLenRef.current = len;
   }, [selectedComponents]);
 
-  const ForgeVessel = useMemo(() => resolveForgeVessel(gameClassName), [gameClassName]);
-
   if (isLoading) {
     return (
       <div className="min-h-[40vh] flex flex-col items-center justify-center">
@@ -688,6 +759,11 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
     (synthesis && synthesis.validation_errors && synthesis.validation_errors.length > 0) ||
     !isDamageDiceValid ||
     !isDurationValid;
+  const validationIssueCount =
+    localPhaseErrors.length +
+    (synthesis?.validation_errors?.length ?? 0) +
+    (!isDamageDiceValid ? 1 : 0) +
+    (!isDurationValid ? 1 : 0);
   const canSave =
     userId &&
     token &&
@@ -787,9 +863,60 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
     <div className="relative w-full min-w-0">
       {forgeOverlays}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,360px)] min-w-0">
-        {/* Primary: spell being forged — sticky while page scrolls */}
-        <div className="flex flex-col gap-4 min-w-0 lg:sticky lg:top-4 lg:self-start lg:max-h-[80dvh] lg:min-h-0">
+      <div className="grid gap-6 lg:grid-cols-[minmax(260px,360px)_minmax(0,1.2fr)] min-w-0">
+        {/* Components palette — left on lg; below spell on small screens */}
+        <Card className="arcane-border bg-card order-2 min-w-0 flex flex-col lg:order-1 lg:max-h-[80dvh] lg:min-h-0 overflow-hidden">
+          <CardHeader className="shrink-0 pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-tome-heading text-primary">
+              <RaIcon name="crystal-wand" className="text-base" />
+              <span>Components</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pt-0">
+            <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 min-w-0">
+              <div className="flex items-center bg-muted/30 p-1 rounded-md border border-border shrink-0">
+                <Button variant={viewMode === 'table' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('table')} className="gap-2 h-8">
+                  <RaIcon name="aura" className="text-sm" /> Table
+                </Button>
+                <Button variant={viewMode === 'keyboard' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('keyboard')} className="gap-2 h-8">
+                  <Keyboard className="h-4 w-4" /> Keyboard
+                </Button>
+              </div>
+              {availableComponentIds && (
+                <div className="text-sm text-muted-foreground font-tome-marginalia text-right min-w-0 w-full sm:w-auto">
+                  <span className="text-primary font-semibold">{availableCount}</span> of{' '}
+                  <span className="text-muted-foreground">{totalCount}</span> available
+                </div>
+              )}
+            </div>
+
+            {viewMode === 'table' ? (
+              <ElementTable
+                components={allComponents}
+                availableComponentIds={availableComponentIds}
+                selectedComponentIds={selectedComponentIds}
+                selectedAnywhereComponentIds={selectedAnywhereComponentIds}
+                onComponentClick={handleComponentSelect}
+                disableDetailPopup={true}
+                characterComponents={components}
+                enableComponentDrag
+                onComponentDragStart={(comp, x, y) => setDragTrail({ component: comp, x, y })}
+                onComponentDragEnd={() => setDragTrail(null)}
+              />
+            ) : (
+              <ComponentKeyboard
+                availableComponents={availableComponents || allComponents}
+                selectedComponents={activePhaseComponents}
+                selectedAnywhereComponentIds={selectedAnywhereComponentIds}
+                onComponentSelect={handleComponentSelect}
+                isTimerActive={isTimerRunning}
+              />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Spellcrafting — right on lg; first on small screens */}
+        <div className="order-1 flex flex-col gap-4 min-w-0 lg:order-2 lg:sticky lg:top-4 lg:self-start lg:max-h-[80dvh] lg:min-h-0">
           {/* Timer Card */}
           {timerDuration !== undefined && (
             <Card className="arcane-border bg-card shrink-0 sticky top-4 z-10 lg:static">
@@ -851,7 +978,7 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
               </CardTitle>
             </CardHeader>
             <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain">
-              {/* Drop onto the vessel preview or the sequence box below — same phase as active. */}
+              {/* Drop target: one top strip for chain + phases + components. */}
               <div
                 className={cn(
                   'relative rounded-xl transition-shadow',
@@ -860,34 +987,288 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                 )}
                 {...phaseDropProps('forge-vessel', resolvedActivePhaseIndex)}
               >
-                <ForgeVessel
-                  sequence={selectedComponents}
-                  lastAddedComponentId={lastAddedComponentId}
-                />
+                <SpellForgeCrucible sequence={selectedComponents} lastAddedComponentId={lastAddedComponentId}>
+                  <div className="flex min-w-0 flex-col gap-2.5">
+                    <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2">
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="text-sm font-tome-heading text-foreground">Spell chain</span>
+                        <Badge variant="secondary" className="shrink-0 tabular-nums font-mono text-xs">
+                          {selectedComponents.length}
+                        </Badge>
+                        {selectedComponents.length > 0 && (
+                          <span className="text-tiny font-tome-marginalia text-muted-foreground">
+                            {spellChainHasLogica(selectedComponents) ? 'Multi-phase' : 'Single phase'}
+                          </span>
+                        )}
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+                                aria-label="How the spell chain works"
+                              >
+                                <Info className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="max-w-xs text-xs font-tome-marginalia">
+                              {spellChainHasLogica(selectedComponents) ? (
+                                <>
+                                  If / Then / Therefore components split the chain into phases. Each phase buckets
+                                  duplicate essentia. Click a phase to make it active for palette clicks.
+                                </>
+                              ) : (
+                                <>
+                                  One phase: components are bucketed by symbol; narrative order in the list is ignored.
+                                  Add Logica links to unlock multi-phase casting.
+                                </>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      {selectedComponents.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleClearComponents}
+                          className="h-7 shrink-0 gap-1 px-2 text-xs text-muted-foreground hover:text-destructive"
+                        >
+                          <Layers className="h-3 w-3" /> Clear
+                        </Button>
+                      )}
+                    </div>
+
+                    {selectedComponents.length === 0 ? (
+                      <div
+                        className={cn(
+                          'flex min-h-[4rem] items-center justify-center rounded-md border border-dashed px-3 py-3 transition-colors',
+                          dragOverZone === 'forge-vessel'
+                            ? 'border-primary/50 bg-primary/5'
+                            : 'border-border/50 bg-muted/15',
+                        )}
+                      >
+                        <p className="text-center text-xs text-muted-foreground">
+                          Drop components here or pick from the palette
+                        </p>
+                      </div>
+                    ) : spellChainHasLogica(selectedComponents) ? (
+                      <div className="flex min-w-0 flex-wrap items-stretch gap-2">
+                        {splitSpellSequenceByLogica(selectedComponents).map((seg, segKey) => {
+                          if (seg.kind === 'logic') {
+                            const { comp, index: idx } = seg.item;
+                            const logic = logicVariantFromName(comp.name);
+                            return (
+                              <div
+                                key={`logic-${idx}-${segKey}`}
+                                className="flex shrink-0 flex-col items-center justify-center gap-0.5 self-stretch px-0.5"
+                              >
+                                <button
+                                  type="button"
+                                  className="inline-flex max-w-[8.5rem] items-center gap-1 rounded-md border border-dashed border-primary/40 bg-background/60 px-1.5 py-1 text-left hover:bg-muted/50"
+                                  onClick={() => removeSequenceAt(idx)}
+                                  title={`Remove ${comp.name} (logic link)`}
+                                >
+                                  <span className="min-w-0 shrink">
+                                    {logic ? (
+                                      <LogicConnector variant={logic} />
+                                    ) : (
+                                      <span className="text-xs font-tome-marginalia text-primary">{comp.name}</span>
+                                    )}
+                                  </span>
+                                  <div className="flex shrink-0 flex-col border-l border-border/50 pl-0.5">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-5 w-5"
+                                      disabled={idx === 0}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        moveSequence(idx, -1);
+                                      }}
+                                      aria-label="Move link earlier"
+                                    >
+                                      <ChevronUp className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-5 w-5"
+                                      disabled={idx >= selectedComponents.length - 1}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        moveSequence(idx, 1);
+                                      }}
+                                      aria-label="Move link later"
+                                    >
+                                      <ChevronDown className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                  <X className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden />
+                                </button>
+                              </div>
+                            );
+                          }
+                          const isActivePhase = resolvedActivePhaseIndex + 1 === seg.phaseNumber;
+                          return (
+                            <div
+                              key={`phase-${seg.phaseNumber}-${segKey}`}
+                              className={cn(
+                                'flex min-w-[9.5rem] max-w-[24rem] flex-1 basis-[10.5rem] cursor-pointer flex-col gap-2 rounded-md border px-2 py-2 transition-shadow',
+                                isActivePhase
+                                  ? 'border-primary bg-primary/[0.1] shadow-sm'
+                                  : 'border-border/70 bg-background/50 hover:border-border',
+                                dragOverZone === `phase-${seg.phaseNumber}` &&
+                                  'ring-2 ring-primary/55 ring-offset-2 ring-offset-background',
+                              )}
+                              onClick={() => setActivePhaseIndex(seg.phaseNumber - 1)}
+                              {...phaseDropProps(`phase-${seg.phaseNumber}`, seg.phaseNumber - 1)}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-semibold tracking-wide text-foreground">
+                                  Phase {seg.phaseNumber}
+                                </span>
+                                {isActivePhase && (
+                                  <Badge variant="outline" className="h-5 border-primary/40 px-1.5 text-[10px] text-primary">
+                                    Active
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {bucketIndexedPhase(seg.items).map((bucket) => {
+                                  const n = bucket.indices.length;
+                                  const removeOne = () =>
+                                    removeSequenceAt(bucket.indices[bucket.indices.length - 1]);
+                                  return (
+                                    <button
+                                      key={bucket.comp.id}
+                                      type="button"
+                                      className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-xs text-primary hover:bg-primary/20"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        removeOne();
+                                      }}
+                                      title={`${bucket.comp.name} (Tier ${bucket.comp.tier}) — remove one`}
+                                    >
+                                      <ComponentRpgGlyph
+                                        component={bucket.comp}
+                                        iconClassName="text-sm"
+                                        fallbackClassName="font-mono font-bold text-xs"
+                                      />
+                                      <span className="hidden sm:inline">{bucket.comp.name}</span>
+                                      {n > 1 && (
+                                        <Badge variant="outline" className="h-4 px-1 text-[10px] font-mono">
+                                          ×{n}
+                                        </Badge>
+                                      )}
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div
+                        className={cn(
+                          'rounded-md border border-border/80 bg-background/50 p-2 transition-shadow',
+                          dragOverZone === 'seq-single' &&
+                            'ring-2 ring-primary/50 ring-offset-2 ring-offset-background',
+                        )}
+                        {...phaseDropProps('seq-single', 0)}
+                      >
+                        <div className="mb-1.5 flex items-center justify-between gap-2">
+                          <span className="text-xs font-medium text-muted-foreground">Phase 1</span>
+                          <Badge variant="outline" className="h-5 border-primary/40 px-1.5 text-[10px] text-primary">
+                            Active
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {bucketSequenceByComponentId(selectedComponents).map((bucket) => {
+                            const n = bucket.indices.length;
+                            const removeOne = () =>
+                              removeSequenceAt(bucket.indices[bucket.indices.length - 1]);
+                            return (
+                              <button
+                                key={bucket.comp.id}
+                                type="button"
+                                className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-xs text-primary hover:bg-primary/20"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeOne();
+                                }}
+                                title={`${bucket.comp.name} (Tier ${bucket.comp.tier}) — remove one`}
+                              >
+                                <ComponentRpgGlyph
+                                  component={bucket.comp}
+                                  iconClassName="text-sm"
+                                  fallbackClassName="font-mono font-bold text-xs"
+                                />
+                                <span className="hidden sm:inline">{bucket.comp.name}</span>
+                                {n > 1 && (
+                                  <Badge variant="outline" className="h-4 px-1 text-[10px] font-mono">
+                                    ×{n}
+                                  </Badge>
+                                )}
+                                <X className="h-3 w-3" />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </SpellForgeCrucible>
               </div>
 
-              {/* Validation Errors */}
+              {/* Validation issues — collapsed by default */}
               {hasValidationErrors && (
-                <div className="p-2 rounded-md bg-red-500/10 border border-red-500/30 space-y-1">
-                  {localPhaseErrors.map((err, i) => (
-                    <div key={`local-${i}`} className="flex items-center gap-2 text-xs text-red-500">
-                      <AlertCircle className="h-3 w-3 flex-shrink-0" />
-                      <span>{err}</span>
+                <Collapsible defaultOpen={false} className="rounded-md border border-red-500/30 bg-red-500/10">
+                  <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 px-2 py-2 text-left text-sm text-red-600 hover:bg-red-500/15 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-red-500/40">
+                    <span className="flex min-w-0 items-center gap-2 font-tome-marginalia">
+                      <AlertCircle className="h-4 w-4 shrink-0" aria-hidden />
+                      <span className="truncate">
+                        {validationIssueCount === 1 ? '1 issue' : `${validationIssueCount} issues`}
+                      </span>
+                      <span className="text-tiny font-normal text-red-500/80">— expand to review</span>
+                    </span>
+                    <ChevronDown className="h-4 w-4 shrink-0 text-red-600 transition-transform group-data-[state=open]:rotate-180" aria-hidden />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-1 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-top-1">
+                    <div className="space-y-1 border-t border-red-500/20 px-2 pb-2 pt-1">
+                      {localPhaseErrors.map((err, i) => (
+                        <div key={`local-${i}`} className="flex items-start gap-2 text-xs text-red-600">
+                          <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
+                          <span>{err}</span>
+                        </div>
+                      ))}
+                      {synthesis?.validation_errors?.map((err, i) => (
+                        <div key={i} className="flex items-start gap-2 text-xs text-red-600">
+                          <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
+                          <span>{err}</span>
+                        </div>
+                      ))}
+                      {!isDamageDiceValid && (
+                        <div className="flex items-start gap-2 text-xs text-red-600">
+                          <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
+                          <span>Set both dice count and die size (d4–d100), or leave both empty.</span>
+                        </div>
+                      )}
+                      {!isDurationValid && (
+                        <div className="flex items-start gap-2 text-xs text-red-600">
+                          <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
+                          <span>Duration must be empty or use valid spell duration syntax.</span>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                  {synthesis?.validation_errors?.map((err, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs text-red-500">
-                      <AlertCircle className="h-3 w-3 flex-shrink-0" />
-                      <span>{err}</span>
-                    </div>
-                  ))}
-                  {!isDamageDiceValid && (
-                    <div className="flex items-center gap-2 text-xs text-red-500">
-                      <AlertCircle className="h-3 w-3 flex-shrink-0" />
-                      <span>Set both dice count and die size (d4–d100), or leave both empty.</span>
-                    </div>
-                  )}
-                </div>
+                  </CollapsibleContent>
+                </Collapsible>
               )}
 
               {/* Synthesis indicator */}
@@ -910,238 +1291,6 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
                   </div>
                 </div>
               )}
-
-              {/* Ordered component sequence (narrative / logic flow) */}
-              <div className="relative space-y-2 overflow-hidden rounded-md border border-border bg-muted/20 p-2">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Label className="text-sm font-tome-marginalia text-muted-foreground shrink-0">
-                      Sequence ({selectedComponents.length})
-                    </Label>
-                    {selectedComponents.length > 0 && (
-                      <TooltipProvider delayDuration={150}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Badge
-                              variant="secondary"
-                              className="text-tiny font-normal font-tome-marginalia shrink-0 border border-border/60 cursor-help"
-                            >
-                              {spellChainHasLogica(selectedComponents) ? 'Multi-phase' : 'Single phase · buckets'}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs text-xs font-tome-marginalia">
-                            {spellChainHasLogica(selectedComponents)
-                              ? 'Optional multi-phase mode: If / Then / Therefore links split the sequence into phases. Components bucket within each phase.'
-                              : 'Default single-phase mode: components are bucketed by symbol and order is ignored.'}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                  </div>
-                  {selectedComponents.length > 0 && (
-                    <Button variant="ghost" size="sm" onClick={handleClearComponents} className="h-6 px-2 gap-1 text-xs text-muted-foreground hover:text-destructive shrink-0">
-                      <Layers className="h-3 w-3" /> Clear
-                    </Button>
-                  )}
-                </div>
-                {selectedComponents.length === 0 ? (
-                  <div
-                    className={cn(
-                      'relative z-10 flex min-h-[7rem] flex-col items-center justify-center rounded-md border-2 border-dashed px-2 py-6 transition-colors',
-                      dragOverZone === 'seq-empty'
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border/60 bg-muted/30',
-                    )}
-                    {...phaseDropProps('seq-empty', 0)}
-                  >
-                    <p className="text-xs text-muted-foreground italic text-center px-2">
-                      Drag component icons here or click palette tiles to add them
-                    </p>
-                  </div>
-                ) : spellChainHasLogica(selectedComponents) ? (
-                  <div className="flex flex-col gap-3">
-                    {splitSpellSequenceByLogica(selectedComponents).map((seg, segKey) => {
-                      if (seg.kind === 'logic') {
-                        const { comp, index: idx } = seg.item;
-                        const logic = logicVariantFromName(comp.name);
-                        return (
-                          <div
-                            key={`logic-${idx}-${segKey}`}
-                            className="flex flex-col items-center gap-1 py-0.5"
-                          >
-                            <div className="h-px w-full max-w-[12rem] bg-gradient-to-r from-transparent via-border to-transparent" aria-hidden />
-                            <button
-                              type="button"
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-dashed border-primary/40 bg-muted/30 hover:bg-muted/50"
-                              onClick={() => removeSequenceAt(idx)}
-                              title={`Remove ${comp.name} (logic link)`}
-                            >
-                              {logic ? (
-                                <LogicConnector variant={logic} />
-                              ) : (
-                                <span className="text-xs font-tome-marginalia text-primary">{comp.name}</span>
-                              )}
-                              <div className="flex flex-col border-l border-border/60 pl-1 ml-0.5">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-5 w-5"
-                                  disabled={idx === 0}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    moveSequence(idx, -1);
-                                  }}
-                                  aria-label="Move link earlier"
-                                >
-                                  <ChevronUp className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-5 w-5"
-                                  disabled={idx >= selectedComponents.length - 1}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    moveSequence(idx, 1);
-                                  }}
-                                  aria-label="Move link later"
-                                >
-                                  <ChevronDown className="h-3 w-3" />
-                                </Button>
-                              </div>
-                              <X className="h-3 w-3 text-muted-foreground" />
-                            </button>
-                          </div>
-                        );
-                      }
-                      return (
-                        <div
-                          key={`phase-${seg.phaseNumber}-${segKey}`}
-                          className={cn(
-                            'relative z-10 rounded-lg space-y-2 border p-2 transition-shadow',
-                            resolvedActivePhaseIndex + 1 === seg.phaseNumber
-                              ? 'border-primary bg-primary/[0.12]'
-                              : 'border-primary/25 bg-primary/[0.06]',
-                            dragOverZone === `phase-${seg.phaseNumber}` &&
-                              'ring-2 ring-primary/55 ring-offset-2 ring-offset-background',
-                          )}
-                          onClick={() => setActivePhaseIndex(seg.phaseNumber - 1)}
-                          {...phaseDropProps(`phase-${seg.phaseNumber}`, seg.phaseNumber - 1)}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-micro font-tome-marginalia uppercase tracking-wide text-primary/90">
-                              Phase {seg.phaseNumber}
-                            </span>
-                            <TooltipProvider delayDuration={150}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="text-tiny text-muted-foreground font-tome-marginalia cursor-help">
-                                    {resolvedActivePhaseIndex + 1 === seg.phaseNumber
-                                      ? 'Active phase'
-                                      : 'Bucketed — order ignored here'}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs text-xs font-tome-marginalia">
-                                  {resolvedActivePhaseIndex + 1 === seg.phaseNumber
-                                    ? `Active phase for clicks. Reclicking a component toggles it in Phase ${seg.phaseNumber}.`
-                                    : 'Within a phase, duplicate components are bucketed and order is ignored.'}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                          <div className="flex flex-wrap gap-2 items-stretch">
-                            {bucketIndexedPhase(seg.items).map((bucket) => {
-                              const n = bucket.indices.length;
-                              const removeOne = () =>
-                                removeSequenceAt(bucket.indices[bucket.indices.length - 1]);
-                              return (
-                                <button
-                                  key={bucket.comp.id}
-                                  type="button"
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-primary/15 text-primary border border-primary/25 hover:bg-primary/25"
-                                  onClick={removeOne}
-                                  title={`${bucket.comp.name} (Tier ${bucket.comp.tier}) — remove one`}
-                                >
-                                  <ComponentRpgGlyph
-                                    component={bucket.comp}
-                                    iconClassName="text-sm"
-                                    fallbackClassName="font-mono font-bold text-xs"
-                                  />
-                                  <span className="hidden sm:inline">{bucket.comp.name}</span>
-                                  {n > 1 && (
-                                    <Badge variant="outline" className="h-4 px-1 text-[10px] font-mono">
-                                      ×{n}
-                                    </Badge>
-                                  )}
-                                  <X className="h-3 w-3" />
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div
-                    className={cn(
-                      'relative z-10 space-y-2 rounded-lg border border-border/90 bg-background/50 p-2 transition-shadow',
-                      dragOverZone === 'seq-single' &&
-                        'ring-2 ring-primary/50 ring-offset-2 ring-offset-background',
-                    )}
-                    {...phaseDropProps('seq-single', 0)}
-                  >
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <span className="text-micro font-tome-marginalia uppercase tracking-wide text-muted-foreground">
-                        Single phase
-                      </span>
-                      <TooltipProvider delayDuration={150}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="text-tiny text-muted-foreground font-tome-marginalia cursor-help">
-                              {resolvedActivePhaseIndex === 0 ? 'Active phase · bucketed — order ignored' : 'Bucketed — order ignored'}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs text-xs font-tome-marginalia">
-                            Default single-phase mode: clicks toggle components in this one phase, and component order is ignored.
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <div className="flex flex-wrap gap-2 items-stretch">
-                      {bucketSequenceByComponentId(selectedComponents).map((bucket) => {
-                        const n = bucket.indices.length;
-                        const removeOne = () =>
-                          removeSequenceAt(bucket.indices[bucket.indices.length - 1]);
-                        return (
-                          <button
-                            key={bucket.comp.id}
-                            type="button"
-                            className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-primary/15 text-primary border border-primary/25 hover:bg-primary/25"
-                            onClick={removeOne}
-                            title={`${bucket.comp.name} (Tier ${bucket.comp.tier}) — remove one`}
-                          >
-                            <ComponentRpgGlyph
-                              component={bucket.comp}
-                              iconClassName="text-sm"
-                              fallbackClassName="font-mono font-bold text-xs"
-                            />
-                            <span className="hidden sm:inline">{bucket.comp.name}</span>
-                            {n > 1 && (
-                              <Badge variant="outline" className="h-4 px-1 text-[10px] font-mono">
-                                ×{n}
-                              </Badge>
-                            )}
-                            <X className="h-3 w-3" />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
 
               {/* Spell Name */}
               <div>
@@ -1420,57 +1569,6 @@ const COUNTDOWN_SECONDS = 3; // 3 seconds countdown
             </CardContent>
           </Card>
         </div>
-
-        {/* Components palette (secondary column) — card chrome matches Spell Crucible */}
-        <Card className="arcane-border bg-card min-w-0 flex flex-col lg:max-h-[80dvh] lg:min-h-0 overflow-hidden">
-          <CardHeader className="shrink-0 pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg font-tome-heading text-primary">
-              <RaIcon name="crystal-wand" className="text-base" />
-              <span>Components</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pt-0">
-            <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 min-w-0">
-              <div className="flex items-center bg-muted/30 p-1 rounded-md border border-border shrink-0">
-                <Button variant={viewMode === 'table' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('table')} className="gap-2 h-8">
-                  <RaIcon name="aura" className="text-sm" /> Table
-                </Button>
-                <Button variant={viewMode === 'keyboard' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('keyboard')} className="gap-2 h-8">
-                  <Keyboard className="h-4 w-4" /> Keyboard
-                </Button>
-              </div>
-              {availableComponentIds && (
-                <div className="text-sm text-muted-foreground font-tome-marginalia text-right min-w-0 w-full sm:w-auto">
-                  <span className="text-primary font-semibold">{availableCount}</span> of{' '}
-                  <span className="text-muted-foreground">{totalCount}</span> available
-                </div>
-              )}
-            </div>
-
-            {viewMode === 'table' ? (
-              <ElementTable
-                components={allComponents}
-                availableComponentIds={availableComponentIds}
-                selectedComponentIds={selectedComponentIds}
-                selectedAnywhereComponentIds={selectedAnywhereComponentIds}
-                onComponentClick={handleComponentSelect}
-                disableDetailPopup={true}
-                characterComponents={components}
-                enableComponentDrag
-                onComponentDragStart={(comp, x, y) => setDragTrail({ component: comp, x, y })}
-                onComponentDragEnd={() => setDragTrail(null)}
-              />
-            ) : (
-              <ComponentKeyboard
-                availableComponents={availableComponents || allComponents}
-                selectedComponents={activePhaseComponents}
-                selectedAnywhereComponentIds={selectedAnywhereComponentIds}
-                onComponentSelect={handleComponentSelect}
-                isTimerActive={isTimerRunning}
-              />
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       <Dialog
