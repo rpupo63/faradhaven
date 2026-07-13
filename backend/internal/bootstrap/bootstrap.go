@@ -48,7 +48,9 @@ func InitDB(dsn string) (*gorm.DB, error) {
 		DSN:                  dsn,
 		PreferSimpleProtocol: true, // Disable implicit prepared statement usage (required for connection pooling)
 	}), &gorm.Config{
-		Logger:      newLogger,
+		Logger: newLogger,
+		// Circular FKs (e.g. users.active_character_id ↔ characters.user_id) break single-pass AutoMigrate.
+		DisableForeignKeyConstraintWhenMigrating: true,
 		PrepareStmt: false, // Disable prepared statements to avoid "already exists" errors with connection pooling
 	})
 	if err != nil {
