@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "repo": "rpupo63/faradhaven",
+  "updated_at": "2026-08-08T02:30:23Z",
+  "allow": [
+    "Bash(grep:*)",
+    "Bash(go build:*)",
+    "Bash(npm run build:*)",
+    "Bash(npx tsc:*)",
+    "Bash(go test:*)",
+    "Bash(ls:*)",
+    "Bash(xargs ls:*)",
+    "Bash(go vet:*)",
+    "Bash(npm run test:*)",
+    "Bash(find:*)",
+    "Bash(for f in api/types.go api/mechanics_handler.go api/character_sheet_handler.go)",
+    "Bash(do echo \"=== $f ===\")",
+    "Bash(gofmt:*)",
+    "Bash(done)",
+    "Bash(psql:*)",
+    "Bash(GENERATE_MODELS=only go run:*)",
+    "Bash(node -e:*)",
+    "Bash(cd:*)",
+    "Bash(npm run:*)",
+    "Bash(npm info:*)",
+    "Read(//tmp/rpga/**)",
+    "Bash(tar -xzf rpg-awesome-0.2.0.tgz)",
+    "Bash(npm install:*)"
+  ],
+  "deny": [
+    "Bash(dd *)",
+    "Bash(mkfs *)",
+    "Bash(parted *)",
+    "Bash(sfdisk *)",
+    "Bash(wipefs *)",
+    "Bash(rclone sync *)",
+    "Bash(pacman -Syu*)",
+    "Bash(git checkout -f ~/*)",
+    "Bash(git checkout -f $HOME/*)"
+  ],
+  "notes": []
+}
